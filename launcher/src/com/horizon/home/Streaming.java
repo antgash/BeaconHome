@@ -122,6 +122,45 @@ final class Streaming {
         return ALL[0];
     }
 
+    /** Order of the streaming tiles on Home (saved as pipe-separated keys). */
+    static List<Service> ordered(Context c) {
+        List<Service> out = new ArrayList<>();
+        for (String k : U.prefs(c).getString("svc_order", "").split("\\|")) {
+            for (Service s : ALL) if (s.key.equals(k) && !out.contains(s)) out.add(s);
+        }
+        for (Service s : ALL) if (!out.contains(s)) out.add(s);
+        return out;
+    }
+
+    static void move(Context c, String key, int dir) {
+        List<Service> l = ordered(c);
+        int i = -1;
+        for (int k = 0; k < l.size(); k++) if (l.get(k).key.equals(key)) i = k;
+        int j = i + dir;
+        if (i < 0 || j < 0 || j >= l.size()) return;
+        Service t = l.get(i);
+        l.set(i, l.get(j));
+        l.set(j, t);
+        StringBuilder sb = new StringBuilder();
+        for (Service s : l) sb.append(sb.length() > 0 ? "|" : "").append(s.key);
+        U.prefs(c).edit().putString("svc_order", sb.toString()).apply();
+    }
+
+    /** The series' own landscape wallpaper from the public Cinemeta catalogue ("" when there is no exact match). */
+    static String seriesWallpaper(String title) throws Exception {
+        String url = "https://v3-cinemeta.strem.io/catalog/series/top/search="
+                + java.net.URLEncoder.encode(title, "UTF-8").replace("+", "%20") + ".json";
+        JSONArray m = new JSONObject(Http.get(url)).optJSONArray("metas");
+        if (m == null) return "";
+        for (int i = 0; i < m.length(); i++) {
+            JSONObject o = m.optJSONObject(i);
+            if (o == null || !title.equalsIgnoreCase(o.optString("name"))) continue;
+            String bg = o.optString("background", "");
+            if (!TextUtils.isEmpty(bg)) return bg;
+        }
+        return "";
+    }
+
     static String tmdbKey(Context c) { return U.prefs(c).getString("tmdb_key", ""); }
 
     /** Services we can show titles for right now. */

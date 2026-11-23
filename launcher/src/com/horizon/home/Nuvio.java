@@ -32,10 +32,12 @@ final class Nuvio {
         long durationMs, positionMs, engaged;
         float posterAspect;
         boolean watchNext;
+        /** The series' own wallpaper, for episodes (their poster/thumbnail is the episode still). */
+        String wall;
 
         boolean isNuvio() { return U.NUVIO.equals(pkg); }
 
-        String art() { return !TextUtils.isEmpty(poster) ? poster : thumb; }
+        String art() { return !TextUtils.isEmpty(wall) ? wall : !TextUtils.isEmpty(poster) ? poster : thumb; }
 
         String cardArt() { return !TextUtils.isEmpty(thumb) ? thumb : poster; }
 
@@ -144,6 +146,32 @@ final class Nuvio {
             r.continueWatching.addAll(otherNext);
         }
         return r;
+    }
+
+    /**
+     * Gives every episode its series' wallpaper. Cached lookups apply instantly; with network=true the
+     * missing ones are fetched (one request per series, remembered). Returns how many items gained one.
+     */
+    static int applyWallpapers(Context c, Result r, boolean network) {
+        int changed = 0;
+        android.content.SharedPreferences p = U.prefs(c);
+        List<Item> all = new ArrayList<>(r.continueWatching);
+        all.addAll(r.picks);
+        for (Item it : all) {
+            if (TextUtils.isEmpty(it.episode) || TextUtils.isEmpty(it.title) || !TextUtils.isEmpty(it.wall)) continue;
+            String k = "swp_" + it.title.toLowerCase(Locale.ROOT);
+            String v = p.getString(k, null);
+            if (v == null && network) {
+                try {
+                    v = Streaming.seriesWallpaper(it.title);
+                    p.edit().putString(k, TextUtils.isEmpty(v) ? "-" : v).apply();
+                } catch (Throwable t) {
+                    v = null; // offline: try again next time
+                }
+            }
+            if (v != null && !v.equals("-")) { it.wall = v; changed++; }
+        }
+        return changed;
     }
 
     private static void dedupe(List<Item> list) {

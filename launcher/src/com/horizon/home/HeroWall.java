@@ -38,7 +38,11 @@ final class HeroWall extends FrameLayout implements Glass.Source {
         }
     }
 
+    private long fadeMs = -1;
+
     void setDriftMs(long ms) { driftMs = ms; }
+
+    void setFadeMs(long ms) { fadeMs = ms; }
 
     boolean hasImage() { return front >= 0; }
 
@@ -50,7 +54,8 @@ final class HeroWall extends FrameLayout implements Glass.Source {
         n.setImageBitmap(b);
         n.bringToFront();
         n.setAlpha(0f);
-        n.animate().alpha(1f).setDuration(front < 0 ? 500 : 700).start();
+        final long fd = fadeMs > 0 ? fadeMs : (front < 0 ? 500 : 700);
+        n.animate().alpha(1f).setDuration(fd).start();
         if (drift[next] != null) drift[next].cancel();
         flip++;
         n.setScaleX(1f);
@@ -71,7 +76,7 @@ final class HeroWall extends FrameLayout implements Glass.Source {
                     o.setImageDrawable(null); // let the old picture's memory go
                     if (drift[old] != null) drift[old].cancel();
                 }
-            }, 760);
+            }, fd + 60);
         }
     }
 

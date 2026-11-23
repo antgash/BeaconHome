@@ -1300,8 +1300,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         svcRow.removeAllViews();
         int th = V.dp(63), tw = V.dp(112);
         addLiveTile(tw, th);
-        for (final Streaming.Service sv : Streaming.ALL) {
+        for (final Streaming.Service sv : Streaming.ordered(this)) {
             final FrameLayout t = new FrameLayout(this);
+            t.setTag(sv.key);
+            t.setOnLongClickListener(v -> { svcMenu(sv); return true; });
             t.setFocusable(true);
             t.setFocusableInTouchMode(true);
             t.setLayoutParams(new LinearLayout.LayoutParams(tw, th));
@@ -1340,6 +1342,28 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             t.setOnClickListener(v -> openService(sv.key));
             addToRow(svcRow, t);
         }
+    }
+
+    private void svcMenu(final Streaming.Service sv) {
+        List<Streaming.Service> l = Streaming.ordered(this);
+        int at = -1;
+        for (int i = 0; i < l.size(); i++) if (l.get(i).key.equals(sv.key)) at = i;
+        ActionSheet sheet = new ActionSheet(this, sv.name);
+        if (at > 0) sheet.add("Move left", Icon.LEFT, () -> moveService(sv.key, -1));
+        if (at >= 0 && at < l.size() - 1) sheet.add("Move right", Icon.RIGHT, () -> moveService(sv.key, +1));
+        sheet.show();
+    }
+
+    private void moveService(final String key, int dir) {
+        Streaming.move(this, key, dir);
+        fillServices();
+        stopAtEdges(svcRow);
+        U.MAIN.post(() -> {
+            for (int i = 0; i < svcRow.getChildCount(); i++) {
+                View c = svcRow.getChildAt(i);
+                if (key.equals(c.getTag())) { c.requestFocus(); break; }
+            }
+        });
     }
 
     private void addLiveTile(int tw, int th) {
@@ -1483,7 +1507,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final boolean fill = prefs.getBoolean(U.P_HERO_FILL, true);
         U.IO.execute(() -> {
             final Nuvio.Result r = Nuvio.load(getApplicationContext(), fill);
-            U.MAIN.post(() -> {
+            Nuvio.applyWallpapers(getApplicationContext(), r, false);
+            final Runnable show = () -> {
                 nuvio = r;
                 View f = getCurrentFocus();
                 boolean onCw = f != null && f.getParent() == cwRow;
@@ -1492,7 +1517,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
                 if (onCw || getCurrentFocus() == null) focusDefault();
-            });
+            };
+            U.MAIN.post(show);
+            // episodes not seen before: fetch their series wallpaper, then refresh once
+            if (Nuvio.applyWallpapers(getApplicationContext(), r, true) > 0) U.MAIN.post(() -> { if (r == nuvio) show.run(); });
         });
     }
 
@@ -1543,28 +1571,35 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // ================================================================== ambient
 
-    /** While ambient, the backdrop moves on every 14 s through a shuffled mix of Continue Watching and Nuvio's own rows. */
-    private final Runnable ambientSlide = new Runnable() {
-        @Override public void run() {
-            if (!ambient || !started) return;
-            List<Nuvio.Item> pool = new ArrayList<>(cwItems);
-            if (nuvio != null) pool.addAll(nuvio.picks);
-            List<Nuvio.Item> withArt = new ArrayList<>();
-            for (Nuvio.Item it : pool) if (!TextUtils.isEmpty(it.art())) withArt.add(it);
-            if (!withArt.isEmpty()) {
-                Nuvio.Item pick = withArt.get(new java.util.Random().nextInt(withArt.size()));
-                showItem(pick, TextUtils.isEmpty(pick.channel) ? "Continue" : pick.channel);
-            }
-            U.MAIN.postDelayed(this, 14000);
-        }
-    };
+    private AmbientView ambientView;
 
     private void enterAmbient() {
         if (ambient) return;
         ambient = true;
-        U.MAIN.removeCallbacks(ambientSlide);
-        U.MAIN.postDelayed(ambientSlide, 4000);
         stopGif();
+        if (wall != null) wall.pause();
+        final AmbientView av = new AmbientView(this);
+        List<Nuvio.Item> pool = new ArrayList<>(cwItems);
+        if (nuvio != null) { pool.addAll(nuvio.continueWatching); pool.addAll(nuvio.picks); }
+        av.setItems(pool);
+        av.setAlpha(0f);
+        root.addView(av, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        av.start();
+        av.animate().alpha(1f).setDuration(900).start();
+        ambientView = av;
+        Nuvio.Result nr = nuvio;
+        if (nr != null) {
+            final Nuvio.Result fr = nr;
+            U.IO.execute(() -> {
+                if (Nuvio.applyWallpapers(getApplicationContext(), fr, true) > 0) U.MAIN.post(() -> {
+                    if (ambientView == av) {
+                        List<Nuvio.Item> p2 = new ArrayList<>(fr.continueWatching);
+                        p2.addAll(fr.picks);
+                        av.setItems(p2);
+                    }
+                });
+            });
+        }
         ui.animate().cancel();
         ui.animate().alpha(0f).setDuration(900).withLayer().start();
         shade.animate().alpha(0.35f).setDuration(900).start();
@@ -1573,7 +1608,15 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void exitAmbient(boolean animate) {
         ambient = false;
-        U.MAIN.removeCallbacks(ambientSlide);
+        final AmbientView av = ambientView;
+        ambientView = null;
+        if (av != null) {
+            av.stop();
+            av.animate().cancel();
+            if (animate) av.animate().alpha(0f).setDuration(420).withEndAction(() -> root.removeView(av)).start();
+            else root.removeView(av);
+        }
+        if (wall != null) wall.resume();
         int d = animate ? 420 : 0;
         ui.animate().cancel();
         ui.animate().alpha(1f).setDuration(d).withLayer().start();
