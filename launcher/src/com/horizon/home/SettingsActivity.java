@@ -82,17 +82,9 @@ public class SettingsActivity extends Activity {
         TextView sub = U.text(this, "Ad-free by design · no tracking · your XGIMI home", 13, 0x99FFFFFF, U.REG);
         list.addView(sub, U.llp(U.WRAP, U.WRAP, 0, 8, 0, 6));
 
-        section("ARTWORK");
-        choice("Change title every", U.P_HERO_SECS, 12,
-                new int[] {8, 12, 20, 30, 60}, new String[] {"8 seconds", "12 seconds", "20 seconds", "30 seconds", "1 minute"});
-        toggle("Fill in from other apps", "If Nuvio shares only a few titles, add rows from YouTube, Prime Video and others", U.P_HERO_FILL, true);
-        buildNuvioStatus();
-
         section("LOOK");
         choice("Screen edge margin", "edge", 64, new int[] {48, 64, 80, 96},
                 new String[] {"Small", "Medium", "Large", "Extra large"});
-        action("Theme", () -> themeName(), this::nextTheme);
-        toggle("Colours from artwork", "The accent glows in the colours of what's on screen", "art_colours", true);
         toggle("Weather", "Temperature next to the clock (Open-Meteo, no account)", "weather", true);
 
         section("PROJECTOR CHANGES");
@@ -149,6 +141,7 @@ public class SettingsActivity extends Activity {
         action("Install Live TV in Nuvio", () -> "Adds the addon with the TV GUIDE link to the Nuvio profile in use", this::installLiveTv);
 
         section("GENERAL");
+        buildNuvioStatus();
         choice("Ambient mode after", U.P_AMBIENT_MIN, 3,
                 new int[] {0, 1, 3, 5, 10, 20}, new String[] {"Never", "1 minute", "3 minutes", "5 minutes", "10 minutes", "20 minutes"});
         toggle("Show greeting", null, U.P_GREET, true);

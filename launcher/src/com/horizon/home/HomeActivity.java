@@ -471,6 +471,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             lastInput = System.currentTimeMillis();
         }), lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
 
+        menuPanel.addView(menuLabel("Artwork changes every"));
+        final int[] secs = {8, 12, 20, 30, 60};
+        String[] sNames = {"8s", "12s", "20s", "30s", "1m"};
+        int curS = prefs.getInt(U.P_HERO_SECS, 12), selS = 1;
+        for (int i = 0; i < secs.length; i++) if (secs[i] == curS) selS = i;
+        menuPanel.addView(chipRow(sNames, selS, i -> prefs.edit().putInt(U.P_HERO_SECS, secs[i]).apply()),
+                lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
+
         menuPanel.addView(menuLabel("Theme"));
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
@@ -1215,14 +1223,35 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
      * Up/Down between Home's rows returns to the item you were last on in the row you're going to
      * (instead of the nearest one by position). Returns false when there's nothing remembered yet.
      */
+    private int lastRowIdx = -1; // the row we last left going up to the top bar
+
+    private boolean inTopBar(View v) {
+        for (android.view.ViewParent p = v.getParent(); p != null; p = p.getParent()) if (p == topBar) return true;
+        return v == topBar;
+    }
+
     private boolean moveBetweenRows(int dir) {
         LinearLayout[] rows = {cwRow, svcRow, appsRow};
         View f = getCurrentFocus();
         if (f == null || ambient) return false;
+        if (dir > 0 && topBar != null && inTopBar(f)) {
+            // Down from the top bar goes back to the row we came from, at the place we left it
+            int li = lastRowIdx;
+            if (li < 0 || rows[li] == null || rows[li].getChildCount() == 0 || rowMemory[li] < 0) return false;
+            View t = rows[li].getChildAt(Math.min(rowMemory[li], rows[li].getChildCount() - 1));
+            if (t == null) return false;
+            t.requestFocus();
+            return true;
+        }
         int from = -1;
         for (int i = 0; i < rows.length; i++) if (rows[i] != null && f.getParent() == rows[i]) from = i;
         if (from < 0) return false;
         rowMemory[from] = rows[from].indexOfChild(f);
+        if (dir < 0) {
+            boolean rowAbove = false;
+            for (int to = from - 1; to >= 0; to--) if (rows[to] != null && rows[to].getChildCount() > 0) rowAbove = true;
+            if (!rowAbove) lastRowIdx = from; // Up from the first row heads to the top bar
+        }
         for (int to = from + dir; to >= 0 && to < rows.length; to += dir) {
             LinearLayout r = rows[to];
             if (r == null || r.getChildCount() == 0) continue;
