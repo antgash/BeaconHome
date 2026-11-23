@@ -218,6 +218,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             return true;
         }
         if (swallowUp && e.getAction() == KeyEvent.ACTION_UP) { swallowUp = false; return true; }
+        if (e.getAction() == KeyEvent.ACTION_DOWN && (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN)
+                && moveBetweenRows(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : -1)) return true;
         if (wall != null && e.getAction() == KeyEvent.ACTION_DOWN) {
             wall.pause();
             U.MAIN.removeCallbacks(resumeWall);
@@ -933,6 +935,32 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
     }
 
+    private final int[] rowMemory = {-1, -1, -1};
+
+    /**
+     * Up/Down between Home's rows returns to the item you were last on in the row you're going to
+     * (instead of the nearest one by position). Returns false when there's nothing remembered yet.
+     */
+    private boolean moveBetweenRows(int dir) {
+        LinearLayout[] rows = {cwRow, svcRow, appsRow};
+        View f = getCurrentFocus();
+        if (f == null || ambient) return false;
+        int from = -1;
+        for (int i = 0; i < rows.length; i++) if (rows[i] != null && f.getParent() == rows[i]) from = i;
+        if (from < 0) return false;
+        rowMemory[from] = rows[from].indexOfChild(f);
+        for (int to = from + dir; to >= 0 && to < rows.length; to += dir) {
+            LinearLayout r = rows[to];
+            if (r == null || r.getChildCount() == 0) continue;
+            if (rowMemory[to] < 0) return false; // never visited: the normal nearest-item move
+            View target = r.getChildAt(Math.min(rowMemory[to], r.getChildCount() - 1));
+            if (target == null) return false;
+            target.requestFocus();
+            return true;
+        }
+        return false;
+    }
+
     /** Focus the left-most pinned app on the bottom row (falls back to the normal default). */
     private void focusFirstApp() {
         final View v = appsRow != null && appsRow.getChildCount() > 0 ? appsRow.getChildAt(0) : null;
@@ -1224,16 +1252,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final List<Apps.App> pins = pinned();
         int at = -1;
         for (int i = 0; i < pins.size(); i++) if (pins.get(i).pkg.equals(a.pkg)) at = i;
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> acts = new ArrayList<>();
-        labels.add("Open"); acts.add(() -> Apps.launch(this, a));
-        if (at > 0) { labels.add("Move left"); acts.add(() -> Apps.movePin(this, apps, a.pkg, -1)); }
-        if (at >= 0 && at < pins.size() - 1) { labels.add("Move right"); acts.add(() -> Apps.movePin(this, apps, a.pkg, +1)); }
-        labels.add("Unpin from Home"); acts.add(() -> Apps.unpin(this, apps, a.pkg));
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle(a.label)
-                .setItems(labels.toArray(new String[0]), (d, which) -> acts.get(which).run())
-                .show();
+        ActionSheet sheet = new ActionSheet(this, a.label).add("Open", Icon.PLAY, () -> Apps.launch(this, a));
+        if (at > 0) sheet.add("Move left", Icon.LEFT, () -> Apps.movePin(this, apps, a.pkg, -1));
+        if (at >= 0 && at < pins.size() - 1) sheet.add("Move right", Icon.RIGHT, () -> Apps.movePin(this, apps, a.pkg, +1));
+        sheet.add("Unpin from Home", Icon.UNPIN, () -> Apps.unpin(this, apps, a.pkg));
+        sheet.show();
     }
 
     // ================================================================== data

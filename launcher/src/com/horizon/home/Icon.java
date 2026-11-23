@@ -11,7 +11,7 @@ import android.view.View;
 final class Icon extends View {
     static final int WIFI = 1, WIFI_OFF = 2, ETHERNET = 3, HDMI = 4, GEAR = 5, SLIDERS = 6, WALL = 7,
             SEARCH = 8, PLAY = 9, INFO = 10, PREV = 11, NEXT = 12, EYE = 13, APPS = 14, CHECK = 15, NUVIO = 16,
-            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25;
+            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29;
 
     private int type;
     private int level = 4;
@@ -174,6 +174,21 @@ final class Icon extends View {
                 c.drawCircle(12, 12, 4.2f, fill);
                 r.set(2.5f, 8.5f, 21.5f, 15.5f);
                 c.save(); c.rotate(-24, 12, 12); c.drawOval(r, p); c.restore();
+                break;
+            case PIN: case UNPIN:
+                c.drawLine(12, 17, 12, 22, p);
+                path.reset(); path.moveTo(8, 3); path.lineTo(16, 3); path.lineTo(15, 10); path.lineTo(18, 13);
+                path.lineTo(6, 13); path.lineTo(9, 10); path.close();
+                c.drawPath(path, p);
+                if (type == UNPIN) c.drawLine(4, 4, 20, 20, p);
+                break;
+            case LEFT:
+                path.reset(); path.moveTo(15, 6); path.lineTo(9, 12); path.lineTo(15, 18);
+                c.drawPath(path, p);
+                break;
+            case RIGHT:
+                path.reset(); path.moveTo(9, 6); path.lineTo(15, 12); path.lineTo(9, 18);
+                c.drawPath(path, p);
                 break;
             case NUVIO:
                 c.drawCircle(12, 12, 9, p);

@@ -105,6 +105,14 @@ public class AllAppsActivity extends Activity {
             V.ellipsize(tv);
             t.addView(tv, U.flp(U.MATCH, U.WRAP, Gravity.BOTTOM, 8, 0, 8, 9));
         }
+        // Veil's pin badge: a small accent circle with a pin, top right, on apps pinned to Home.
+        final FrameLayout badge = new FrameLayout(this);
+        badge.setBackground(V.shape(V.accent(), 10, 0));
+        Icon pinIc = new Icon(this, Icon.PIN);
+        pinIc.setColor(V.INK);
+        badge.addView(pinIc, U.flp(V.dp(11), V.dp(11), Gravity.CENTER));
+        t.addView(badge, U.flp(V.dp(20), V.dp(20), Gravity.TOP | Gravity.END, 0, 7, 7, 0));
+        badge.setVisibility(Apps.isPinned(this, allApps, a.pkg) ? View.VISIBLE : View.GONE);
         final View ring = new View(this);
         GradientDrawable g = V.shape(0, 14, 0);
         g.setStroke(V.dp(2), V.TEXT);
@@ -119,17 +127,13 @@ public class AllAppsActivity extends Activity {
         t.setOnClickListener(v -> Apps.launch(this, a));
         t.setOnLongClickListener(v -> {
             final boolean pinned = Apps.isPinned(this, allApps, a.pkg);
-            String[] items = {pinned ? "Unpin from Home" : "Pin to Home", "Open", "App info", "Hide"};
-            new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle(a.label).setItems(items, (d, which) -> {
-                switch (which) {
-                    case 0:
-                        if (pinned) Apps.unpin(this, allApps, a.pkg); else Apps.pin(this, allApps, a.pkg);
-                        break;
-                    case 1: Apps.launch(this, a); break;
-                    case 2: Apps.start(this, new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.pkg))); break;
-                    case 3: prefs.edit().putBoolean("hide_" + a.pkg, true).apply(); recreate(); break;
-                }
-            }).show();
+            ActionSheet sheet = new ActionSheet(this, a.label);
+            if (pinned) sheet.add("Unpin from Home", Icon.UNPIN, () -> { Apps.unpin(this, allApps, a.pkg); badge.setVisibility(View.GONE); });
+            else sheet.add("Pin to Home", Icon.PIN, () -> { Apps.pin(this, allApps, a.pkg); badge.setVisibility(View.VISIBLE); });
+            sheet.add("Open", Icon.PLAY, () -> Apps.launch(this, a));
+            sheet.add("App info", Icon.INFO, () -> Apps.start(this, new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.pkg))));
+            sheet.add("Hide", Icon.EYE, () -> { prefs.edit().putBoolean("hide_" + a.pkg, true).apply(); recreate(); });
+            sheet.show();
             return true;
         });
         t.setContentDescription(a.label);
