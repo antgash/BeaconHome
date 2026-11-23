@@ -39,6 +39,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -50,7 +51,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Horizon Home, Veil-style: artwork (or a living XGIMI scene) fills the wall, a calm hero tells you
+ * beacon, Veil-style: artwork (or a living XGIMI scene) fills the wall, a calm hero tells you
  * what's next, and three pill rows hold Continue watching, Nuvio's streaming services and your apps.
  */
 public class HomeActivity extends Activity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -66,7 +67,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private Shade shade;
 
     // top bar
-    private TextView clock, weatherText, privacyText, memText;
+    private TextView clock, weatherText, memText;
     private FrameLayout memBar;
     private View memFill;
     private final Runnable memTick = new Runnable() {
@@ -75,7 +76,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (started) U.MAIN.postDelayed(this, 15000);
         }
     };
-    private Icon weatherIcon, wifiIcon, privacyIcon;
+    private Icon weatherIcon, wifiIcon;
 
     // hero
     private LinearLayout hero;
@@ -88,6 +89,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // rows
     private LinearLayout cwBlock, cwRow, svcRow, appsRow;
+    private LinearLayout volumeRow;
     private TextView cwCount, cwTonight;
     private int defaultFocusId = View.NO_ID;
     private boolean firstFocusDone;
@@ -111,6 +113,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
     };
     private final List<Nuvio.Item> cwItems = new ArrayList<>();
+    private final java.util.Set<String> cwKeys = new java.util.HashSet<>();
+    private boolean cwLoadedOnce;
+    private TextView cwHead;
 
     // state
     private boolean ambient, started, coldStart = true, swallowUp, receiversOn;
@@ -149,6 +154,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         root = new FrameLayout(this);
         root.setBackgroundColor(V.BG);
         setContentView(root);
+        Sfx.attach(this);
         getWindow().setBackgroundDrawable(null); // root paints the background; skip one full-screen fill per frame
         V.unclipAll(root);
         askPermissions();
@@ -238,6 +244,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             return true;
         }
         if (swallowUp && e.getAction() == KeyEvent.ACTION_UP) { swallowUp = false; return true; }
+        Sfx.key(this, e);
         if (rearrangeView != null && handleRearrangeKey(e)) return true;
         if (!menuOpen && e.getAction() == KeyEvent.ACTION_DOWN && (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN)
                 && moveBetweenRows(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : -1)) return true;
@@ -273,9 +280,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (i == null) return;
         String m = i.getStringExtra("mode");
         if (U.MODE_NUVIO.equals(m) || U.MODE_SCENES.equals(m)) U.prefs(this).edit().putString(U.P_MODE, m).apply();
-        String nid = i.getStringExtra("nextdns_id"), nkey = i.getStringExtra("nextdns_key");
-        if (nid != null) U.prefs(this).edit().putString("nextdns_id", nid.trim()).apply();
-        if (nkey != null) U.prefs(this).edit().putString("nextdns_key", nkey.trim()).apply();
         String os = i.getStringExtra("open_service");
         if (os != null) startActivity(new Intent(this, ServiceActivity.class).putExtra("service", os));
         String tk = i.getStringExtra("tmdb");
@@ -308,7 +312,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void build() {
         mode = U.mode(this);
         EDGE = V.edge(this);
-        wallArt = null; panel = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
+        wallArt = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
         root.removeAllViews();
         root.setBackgroundColor(V.BG);
         player = null;
@@ -376,11 +380,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         ((FrameLayout.LayoutParams) bar.getLayoutParams()).topMargin = V.dp(26 + (EDGE - 48) / 2);
         bar.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
 
-        // Left: Horizon menu pill (customise Home)
+        // Left: beacon menu pill (customise Home)
         LinearLayout menu = V.pill(this, 34, 12, 12);
-        Icon mi = new Icon(this, Icon.ORBIT);
+        Icon mi = new Icon(this, Icon.BEACON);
         menu.addView(mi, new LinearLayout.LayoutParams(V.dp(14), V.dp(14)));
-        TextView mt = V.text(this, "horizon", 15, 800, V.TEXT);
+        TextView mt = V.text(this, "beacon", 15, 800, V.TEXT);
         mt.setLetterSpacing(-0.02f);
         menu.addView(mt, lp(U.WRAP, U.WRAP, 7, 0, 6, 0));
         Icon chev = new Icon(this, Icon.CHEVRON_DOWN);
@@ -419,7 +423,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
 
-    // ------------------------------------------------------------------ Horizon menu (Veil-style dropdown)
+    // ------------------------------------------------------------------ beacon menu (Veil-style dropdown)
 
     private LinearLayout menuPanel;
     private View menuPill;
@@ -451,7 +455,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuHost = sv;
         sv.setAlpha(0f);
 
-        menuPanel.addView(V.text(this, "Horizon", 24, 800, V.TEXT));
+        menuPanel.addView(V.text(this, "beacon", 24, 800, V.TEXT));
         menuPanel.addView(V.dim(V.caps(this, "Home & screensaver", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
 
         View first = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
@@ -470,12 +474,32 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             lastInput = System.currentTimeMillis();
         }), lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
 
+        menuPanel.addView(menuLabel("Artwork changes every"));
+        final int[] secs = {8, 12, 20, 30, 60};
+        String[] sNames = {"8s", "12s", "20s", "30s", "1m"};
+        int curS = prefs.getInt(U.P_HERO_SECS, 12), selS = 1;
+        for (int i = 0; i < secs.length; i++) if (secs[i] == curS) selS = i;
+        menuPanel.addView(chipRow(sNames, selS, i -> prefs.edit().putInt(U.P_HERO_SECS, secs[i]).apply()),
+                lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
+
         menuPanel.addView(menuLabel("Theme"));
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
+        menuPanel.addView(menuLabel("Sound"));
+        menuPanel.addView(soundToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+        volumeRow = buildVolumeRow();
+        volumeRow.setAlpha(Sfx.isEnabled() ? 1f : 0.45f);
+        menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
         menuPanel.addView(menuLabel("Weather"));
         menuPanel.addView(toggleButton(Icon.SUN, "Show weather by the clock", "weather", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+        String city = prefs.getString("wx_city", "");
+        menuPanel.addView(menuButton(Icon.SEARCH, "Weather location", TextUtils.isEmpty(city) ? "Automatic \u00b7 search for a city" : city + " \u00b7 search for another", () -> {
+            closeMenu();
+            U.MAIN.postDelayed(this::editWeatherCity, 250);
+        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
         menuPanel.addView(menuLabel("System"));
         menuPanel.addView(menuButton(Icon.MOON, "Use as Android TV screensaver", "Opens the system screensaver picker", this::openDreamSettings), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -520,12 +544,64 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (menuPill != null) menuPill.requestFocus();
     }
 
+    private void editWeatherCity() {
+        final EditText et = new EditText(this);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        et.setSingleLine(true);
+        et.setHint("City name, e.g. Austin");
+        et.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Weather location")
+                .setView(et)
+                .setPositiveButton("Search", (d, w) -> searchCity(et.getText().toString().trim()))
+                .setNeutralButton("Automatic", (d, w) -> {
+                    prefs.edit().remove("wx_lat").remove("wx_lon").remove("wx_city").putBoolean("weather", true).apply();
+                    loadWeather();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void searchCity(final String q) {
+        if (q.isEmpty()) return;
+        U.IO.execute(() -> {
+            try {
+                JSONObject r = new JSONObject(Http.get("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name="
+                        + java.net.URLEncoder.encode(q, "UTF-8")));
+                final org.json.JSONArray res = r.optJSONArray("results");
+                U.MAIN.post(() -> {
+                    if (res == null || res.length() == 0) { Toast.makeText(this, "No place found for \u201c" + q + "\u201d", Toast.LENGTH_LONG).show(); return; }
+                    ActionSheet sheet = new ActionSheet(this, "Choose your location");
+                    for (int i = 0; i < res.length(); i++) {
+                        final JSONObject o = res.optJSONObject(i);
+                        if (o == null) continue;
+                        StringBuilder sb = new StringBuilder(o.optString("name"));
+                        String reg = o.optString("admin1"), ctry = o.optString("country_code");
+                        if (!reg.isEmpty()) sb.append(", ").append(reg);
+                        if (!ctry.isEmpty()) sb.append(", ").append(ctry);
+                        final String label = sb.toString();
+                        sheet.add(label, Icon.SEARCH, () -> {
+                            prefs.edit().putLong("wx_lat", Double.doubleToLongBits(o.optDouble("latitude")))
+                                    .putLong("wx_lon", Double.doubleToLongBits(o.optDouble("longitude")))
+                                    .putString("wx_city", o.optString("name")).putBoolean("weather", true).apply();
+                            loadWeather();
+                            Toast.makeText(this, "Weather set to " + label, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                    sheet.show();
+                });
+            } catch (Throwable t) {
+                U.MAIN.post(() -> Toast.makeText(this, "Couldn't search right now. Check the connection.", Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
     private void openDreamSettings() {
         String[] tries = {"android.settings.DREAM_SETTINGS", "android.settings.DISPLAY_SETTINGS", Settings.ACTION_SETTINGS};
         for (String a : tries) {
             try { closeMenu(); startActivity(new Intent(a).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return; } catch (Throwable ignored) {}
         }
-        Toast.makeText(this, "Open Settings › Device Preferences › Screen saver and pick Horizon", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Open Settings › Device Preferences › Screen saver and pick beacon", Toast.LENGTH_LONG).show();
     }
 
     private TextView menuLabel(String t) {
@@ -559,6 +635,62 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             V.tint(row, has ? V.INK : V.TEXT);
         });
         row.setOnClickListener(v -> r.run());
+        return row;
+    }
+
+    /** Navigation sounds on/off. Plays its own up/down chime, so the automatic select pop is skipped. */
+    private View soundToggle() {
+        final LinearLayout row = menuButton(Icon.SPEAKER, "Navigation sounds", null, () -> {});
+        row.setTag(Sfx.QUIET);
+        final TextView state = V.text(this, "", 10, 800, V.TEXT);
+        final Runnable paint = () -> state.setText(Sfx.isEnabled() ? "ON" : "OFF");
+        paint.run();
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(state);
+        V.tint(row, V.TEXT);
+        row.setOnClickListener(v -> {
+            boolean on = !Sfx.isEnabled();
+            if (on) { Sfx.setEnabled(this, true); Sfx.on(); }
+            else { Sfx.off(); Sfx.setEnabled(this, false); }
+            paint.run();
+            if (volumeRow != null) volumeRow.setAlpha(on ? 1f : 0.45f);
+        });
+        return row;
+    }
+
+    /** Volume as 8 rising bars: Left/Right change it by one step and play a tick at the new level. */
+    private LinearLayout buildVolumeRow() {
+        final LinearLayout row = menuButton(Icon.SPEAKER, "Volume", null, () -> Sfx.preview());
+        row.setTag(Sfx.QUIET);
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        final LinearLayout bars = U.row(this);
+        bars.setGravity(Gravity.CENTER_VERTICAL);
+        final View[] seg = new View[Sfx.LEVELS];
+        for (int i = 0; i < Sfx.LEVELS; i++) {
+            View b = new View(this);
+            seg[i] = b;
+            LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(V.dp(5), V.dp(6 + i * 2));
+            bp.leftMargin = i == 0 ? 0 : V.dp(3);
+            bars.addView(b, bp);
+        }
+        row.addView(bars);
+        final Runnable paint = () -> {
+            int base = row.hasFocus() ? V.INK : V.TEXT;
+            for (int i = 0; i < seg.length; i++) seg[i].setBackground(V.shape(i < Sfx.level() ? base : U.alpha(base, 0.25f), 2, 0));
+        };
+        paint.run();
+        final View.OnFocusChangeListener baseFocus = row.getOnFocusChangeListener();
+        row.setOnFocusChangeListener((v, has) -> { if (baseFocus != null) baseFocus.onFocusChange(v, has); paint.run(); });
+        row.setOnKeyListener((v, code, ev) -> {
+            if (ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+            int d = code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : code == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : 0;
+            if (d == 0) return false;
+            int n = Math.max(1, Math.min(Sfx.LEVELS, Sfx.level() + d));
+            if (n != Sfx.level()) { Sfx.setLevel(this, n); paint.run(); Sfx.preview(); }
+            return true;
+        });
         return row;
     }
 
@@ -644,45 +776,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return row;
     }
 
-    // ------------------------------------------------------------------ privacy panel (NextDNS)
-
-    private LinearLayout panel;
     private View scrim, topBar;
-    private final Runnable openPanel = this::showPanel;
-
-    private void showPanel() {
-        if (panel == null) {
-            panel = U.col(this);
-            panel.setPadding(V.dp(16), V.dp(16), V.dp(16), V.dp(16));
-            panel.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.16f), 0.98f), 20, 0x40FFFFFF));
-            FrameLayout.LayoutParams lp = U.flp(V.dp(330), U.WRAP, Gravity.TOP | Gravity.END);
-            lp.topMargin = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
-            lp.rightMargin = V.dp(EDGE + 3 * 39);
-            if (scrim == null) {
-                scrim = new View(this);
-                scrim.setBackgroundColor(0x8C000000);
-                scrim.setAlpha(0f);
-                ui.addView(scrim, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-            }
-            ui.addView(panel, lp);
-            panel.setAlpha(0f);
-        }
-        scrim.bringToFront();
-        topBar.bringToFront();
-        panel.bringToFront();
-        scrim.animate().cancel();
-        scrim.animate().alpha(1f).setDuration(200).start();
-        fillPanel(NextDnsStats.cached());
-        panel.animate().cancel();
-        panel.setTranslationY(-V.dpf(12));
-        panel.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
-        if (NextDnsStats.configured(this)) {
-            U.IO.execute(() -> {
-                final NextDnsStats.Stats st = NextDnsStats.load(getApplicationContext());
-                U.MAIN.post(() -> { if (panel != null && panel.getAlpha() > 0) fillPanel(st); updatePrivacy(); });
-            });
-        }
-    }
 
     // ------------------------------------------------------------------ memory panel
 
@@ -774,7 +868,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         if (st != null && st.noPermission) {
             String msg;
-            if ("waiting".equals(AdbLocal.state)) msg = "On screen now: \u201cAllow network debugging?\u201d \u2014 tick Always allow and choose Allow. Horizon only uses it to read memory and close background apps.";
+            if ("waiting".equals(AdbLocal.state)) msg = "On screen now: \u201cAllow network debugging?\u201d \u2014 tick Always allow and choose Allow. beacon only uses it to read memory and close background apps.";
             else if ("denied".equals(AdbLocal.state)) msg = "Permission was declined. Open this again to get the prompt back.";
             else msg = "Network debugging is off on the projector, so per-app memory can't be read. Turn it on in Developer options to see it here.";
             memPanel.addView(V.dim(V.text(this, msg, 10, 500, V.TEXT), 0.8f), lp(U.MATCH, U.WRAP, 0, 12, 0, 0));
@@ -802,109 +896,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         String foot = note != null ? note : "OK closes background apps you aren't using \u00b7 grey = Android itself";
         memPanel.addView(V.dim(V.text(this, foot, 8.5f, 500, V.TEXT), note != null ? 0.9f : 0.5f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-    }
-
-    private void hidePanel() {
-        if (scrim != null) { scrim.animate().cancel(); scrim.animate().alpha(0f).setDuration(120).start(); }
-        if (panel != null) panel.animate().alpha(0f).translationY(-V.dpf(12)).setDuration(120).withLayer().start();
-    }
-
-    private void fillPanel(NextDnsStats.Stats st) {
-        panel.removeAllViews();
-        boolean on = nextDnsOn();
-        LinearLayout head = U.row(this);
-        FrameLayout badge = new FrameLayout(this);
-        badge.setBackground(V.shape(V.GLASS_STRONG, 8, 0));
-        Icon sh = new Icon(this, on ? Icon.SHIELD : Icon.SHIELD_OFF);
-        sh.setColor(V.TEXT);
-        badge.addView(sh, U.flp(V.dp(15), V.dp(15), Gravity.CENTER));
-        head.addView(badge, new LinearLayout.LayoutParams(V.dp(30), V.dp(30)));
-        LinearLayout ht = U.col(this);
-        ht.addView(V.text(this, "NextDNS", 13, 800, V.TEXT));
-        ht.addView(V.dim(V.text(this, "Encrypted DNS \u00b7 DNS-over-TLS", 8.5f, 500, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 2, 0, 0));
-        head.addView(ht, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-        ((LinearLayout.LayoutParams) ht.getLayoutParams()).leftMargin = V.dp(10);
-        TextView chip = V.caps(this, on ? "Active" : "Off", 8, on ? V.INK : U.alpha(V.TEXT, 0.75f));
-        chip.setPadding(V.dp(8), V.dp(3), V.dp(8), V.dp(3));
-        chip.setBackground(V.shape(on ? V.accent() : 0x1FFFFFFF, 10, 0));
-        head.addView(chip);
-        panel.addView(head);
-
-        if (st == null) {
-            panel.addView(V.dim(V.text(this, NextDnsStats.configured(this) ? "Loading today's numbers\u2026" : "Add your NextDNS API key to see what's being blocked.", 10, 500, V.TEXT), 0.75f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-            return;
-        }
-        if (st.error != null) {
-            panel.addView(V.dim(V.text(this, "Couldn't reach NextDNS right now.", 10, 500, V.TEXT), 0.75f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-            return;
-        }
-        java.text.NumberFormat nf = java.text.NumberFormat.getIntegerInstance();
-        panel.addView(V.text(this, nf.format(st.blocked) + " trackers stopped at the door.", 14, 800, V.TEXT), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-        TextView body = V.dim(V.text(this, "Every lookup your projector makes is encrypted and filtered before it leaves the house. Ads and trackers never get an answer.", 9, 500, V.TEXT), 0.7f);
-        body.setLineSpacing(V.dpf(2), 1f);
-        panel.addView(body, lp(U.MATCH, U.WRAP, 0, 6, 0, 0));
-
-        LinearLayout boxes = U.row(this);
-        long pct = st.total > 0 ? Math.round(st.blocked * 100.0 / st.total) : 0;
-        boxes.addView(statBox(nf.format(st.blocked), "Blocked", true), new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-        boxes.addView(statBox(nf.format(st.total), "Lookups", false), lp(0, U.WRAP, 8, 0, 0, 0));
-        ((LinearLayout.LayoutParams) boxes.getChildAt(1).getLayoutParams()).weight = 1f;
-        boxes.addView(statBox(pct + "%", "Blocked %", false), lp(0, U.WRAP, 8, 0, 0, 0));
-        ((LinearLayout.LayoutParams) boxes.getChildAt(2).getLayoutParams()).weight = 1f;
-        panel.addView(boxes, lp(U.MATCH, U.WRAP, 0, 12, 0, 0));
-
-        if (!st.topBlocked.isEmpty()) {
-            panel.addView(V.dim(V.caps(this, "Most blocked \u00b7 24 h", 8, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 14, 0, 6));
-            for (String[] d : st.topBlocked) {
-                LinearLayout r = U.row(this);
-                View dot = new View(this);
-                dot.setBackground(V.shape(V.accent(), 3, 0));
-                r.addView(dot, new LinearLayout.LayoutParams(V.dp(5), V.dp(5)));
-                TextView dn = V.text(this, d[0], 10, 600, V.TEXT);
-                V.ellipsize(dn);
-                r.addView(dn, lp(0, U.WRAP, 8, 0, 8, 0));
-                ((LinearLayout.LayoutParams) dn.getLayoutParams()).weight = 1f;
-                r.addView(V.dim(V.text(this, d[1], 10, 500, V.TEXT), 0.7f));
-                panel.addView(r, lp(U.MATCH, U.WRAP, 0, 3, 0, 3));
-            }
-        }
-
-        panel.addView(V.dim(V.caps(this, "This week", 8, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 14, 0, 4));
-        LinearLayout wk = U.row(this);
-        wk.setGravity(Gravity.BOTTOM);
-        LinearLayout wl = U.col(this);
-        LinearLayout big = U.row(this);
-        big.setGravity(Gravity.BOTTOM);
-        TextView n = V.text(this, nf.format(st.weekBlocked), 16, 800, V.accent());
-        big.addView(n);
-        big.addView(V.dim(V.text(this, " blocked", 9, 500, V.TEXT), 0.7f));
-        wl.addView(big);
-        if (st.topWeek != null) wl.addView(V.dim(V.text(this, "Top: " + st.topWeek, 8.5f, 500, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 3, 0, 0));
-        wk.addView(wl, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-        long max = 1;
-        for (long x : st.week) max = Math.max(max, x);
-        LinearLayout bars = U.row(this);
-        bars.setGravity(Gravity.BOTTOM);
-        for (int i = 0; i < 7; i++) {
-            View b = new View(this);
-            b.setBackground(V.shape(i == 6 ? V.accent() : 0x40FFFFFF, 2, 0));
-            int h = Math.max(V.dp(2), Math.round(V.dp(26) * st.week[i] / (float) max));
-            bars.addView(b, lp(V.dp(7), h, 2, 0, 2, 0));
-        }
-        wk.addView(bars, new LinearLayout.LayoutParams(U.WRAP, V.dp(28)));
-        panel.addView(wk, lp(U.MATCH, U.WRAP, 0, 0, 0, 0));
-        panel.addView(V.dim(V.text(this, "Last 24 hours \u00b7 profile " + NextDnsStats.profile(this), 8, 500, V.TEXT), 0.5f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-    }
-
-    private View statBox(String value, String label, boolean accent) {
-        LinearLayout b = U.col(this);
-        b.setPadding(V.dp(10), V.dp(8), V.dp(10), V.dp(8));
-        b.setBackground(V.shape(V.GLASS, 10, 0));
-        TextView v = V.text(this, value, 14, 800, accent ? V.accent() : V.TEXT);
-        V.ellipsize(v);
-        b.addView(v);
-        b.addView(V.dim(V.text(this, label, 8, 500, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 3, 0, 0));
-        return b;
     }
 
     private void updateMemory() {
@@ -951,11 +942,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
         heroTitle = V.text(this, "", 44, 800, V.TEXT);
         heroTitle.setLetterSpacing(-0.03f);
-        heroTitle.setMaxLines(2);
+        heroTitle.setMaxLines(1);
         heroTitle.setEllipsize(TextUtils.TruncateAt.END);
-        heroTitle.setLineSpacing(0, 0.92f);
-        heroTitle.setMaxWidth(V.dp(520));
-        hero.addView(heroTitle, lp(U.WRAP, U.WRAP, 0, 6, 0, 0));
+        // one row: long titles shrink to fit instead of wrapping or being cut off
+        heroTitle.setAutoSizeTextTypeUniformWithConfiguration(18, 44, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+        hero.addView(heroTitle, lp(V.dp(600), U.WRAP, 0, 6, 0, 0));
         heroLine = V.text(this, "", 14, 400, U.alpha(V.TEXT, 0.85f));
         V.ellipsize(heroLine);
         heroLine.setMaxWidth(V.dp(560));
@@ -1059,7 +1050,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         String name = prefs.getString(U.P_NAME, "");
         String hi = U.greeting(cal.get(Calendar.HOUR_OF_DAY)) + (TextUtils.isEmpty(name) ? "" : ", " + name);
         String label;
-        label = "Horizon";
+        label = "beacon";
         heroKey = null;
         setHero("greet", label, hi, null, DateFormat.format("EEEE, d MMMM", new Date()).toString(), 0, null, null);
     }
@@ -1097,7 +1088,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout h = U.row(this);
         h.setGravity(Gravity.BOTTOM);
         h.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
-        h.addView(V.text(this, "Continue watching", 12, 700, V.TEXT));
+        cwHead = V.text(this, "Continue watching", 12, 700, V.TEXT);
+        h.addView(cwHead);
         cwCount = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
         h.addView(cwCount, lp(U.WRAP, U.WRAP, 7, 0, 0, 1));
         cwTonight = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
@@ -1156,14 +1148,35 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
      * Up/Down between Home's rows returns to the item you were last on in the row you're going to
      * (instead of the nearest one by position). Returns false when there's nothing remembered yet.
      */
+    private int lastRowIdx = -1; // the row we last left going up to the top bar
+
+    private boolean inTopBar(View v) {
+        for (android.view.ViewParent p = v.getParent(); p != null; p = p.getParent()) if (p == topBar) return true;
+        return v == topBar;
+    }
+
     private boolean moveBetweenRows(int dir) {
         LinearLayout[] rows = {cwRow, svcRow, appsRow};
         View f = getCurrentFocus();
         if (f == null || ambient) return false;
+        if (dir > 0 && topBar != null && inTopBar(f)) {
+            // Down from the top bar goes back to the row we came from, at the place we left it
+            int li = lastRowIdx;
+            if (li < 0 || rows[li] == null || rows[li].getChildCount() == 0 || rowMemory[li] < 0) return false;
+            View t = rows[li].getChildAt(Math.min(rowMemory[li], rows[li].getChildCount() - 1));
+            if (t == null) return false;
+            t.requestFocus();
+            return true;
+        }
         int from = -1;
         for (int i = 0; i < rows.length; i++) if (rows[i] != null && f.getParent() == rows[i]) from = i;
         if (from < 0) return false;
         rowMemory[from] = rows[from].indexOfChild(f);
+        if (dir < 0) {
+            boolean rowAbove = false;
+            for (int to = from - 1; to >= 0; to--) if (rows[to] != null && rows[to].getChildCount() > 0) rowAbove = true;
+            if (!rowAbove) lastRowIdx = from; // Up from the first row heads to the top bar
+        }
         for (int to = from + dir; to >= 0 && to < rows.length; to += dir) {
             LinearLayout r = rows[to];
             if (r == null || r.getChildCount() == 0) continue;
@@ -1461,6 +1474,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         row.addView(v, j, lp);
         v.requestFocus();
         liftTile(v, true);
+        Sfx.move(1.3f);
     }
 
     private void endRearrange(boolean save) {
@@ -1634,6 +1648,53 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    /**
+     * Nuvio doesn't say which profile is active, but switching profile replaces most of the Continue
+     * Watching list. When under 40% of the titles carry over, treat it as a profile switch.
+     */
+    private boolean detectCwSwitch(Nuvio.Result r) {
+        java.util.Set<String> now = new java.util.HashSet<>();
+        int n = 0;
+        for (Nuvio.Item it : r.continueWatching) {
+            if (n++ >= 12) break;
+            if (it.title != null) now.add(it.title);
+        }
+        boolean sw = false;
+        if (cwLoadedOnce) {
+            int inter = 0;
+            for (String s : now) if (cwKeys.contains(s)) inter++;
+            int union = cwKeys.size() + now.size() - inter;
+            sw = union > 0 && inter / (float) union < 0.4f;
+        }
+        cwLoadedOnce = true;
+        cwKeys.clear();
+        cwKeys.addAll(now);
+        return sw;
+    }
+
+    /** After a switch the row starts again from its first item, wherever it was scrolled to. */
+    private void scrollCwToStart() {
+        if (!(cwRow.getParent() instanceof HorizontalScrollView)) return;
+        final HorizontalScrollView hs = (HorizontalScrollView) cwRow.getParent();
+        hs.scrollTo(0, 0);
+        hs.post(() -> hs.scrollTo(0, 0));
+    }
+
+    /** The flash: the row slides and fades in fresh, the heading pulses in the accent colour. */
+    private void flashCw() {
+        cwBlock.animate().cancel();
+        cwBlock.setAlpha(0.15f);
+        cwBlock.setTranslationX(V.dpf(36));
+        cwBlock.animate().alpha(1f).translationX(0).setDuration(450).start();
+        if (cwHead != null) {
+            android.animation.ValueAnimator a = android.animation.ValueAnimator.ofObject(new android.animation.ArgbEvaluator(), V.accent(), V.TEXT);
+            a.setDuration(1100);
+            a.addUpdateListener(an -> cwHead.setTextColor((Integer) an.getAnimatedValue()));
+            a.start();
+        }
+        Toast.makeText(this, "Continue watching updated", Toast.LENGTH_SHORT).show();
+    }
+
     private void loadNuvio() {
         nuvioAt = System.currentTimeMillis();
         final boolean fill = prefs.getBoolean(U.P_HERO_FILL, true);
@@ -1644,10 +1705,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 nuvio = r;
                 View f = getCurrentFocus();
                 boolean onCw = f != null && f.getParent() == cwRow;
+                boolean switched = detectCwSwitch(r);
                 fillContinue();
                 stopAtEdges(cwRow);
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
+                if (switched) { rowMemory[0] = 0; scrollCwToStart(); flashCw(); } // row 0 is Continue watching: forget the old place
                 if (onCw || getCurrentFocus() == null) focusDefault();
             };
             U.MAIN.post(show);
@@ -1663,9 +1726,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 double lat = Double.longBitsToDouble(prefs.getLong("wx_lat", Double.doubleToLongBits(Double.NaN)));
                 double lon = Double.longBitsToDouble(prefs.getLong("wx_lon", Double.doubleToLongBits(Double.NaN)));
                 if (Double.isNaN(lat)) {
-                    JSONObject loc = new JSONObject(Http.get("https://ipapi.co/json/"));
-                    lat = loc.getDouble("latitude");
-                    lon = loc.getDouble("longitude");
+                    JSONObject loc;
+                    try {
+                        loc = new JSONObject(Http.get("https://ipapi.co/json/"));
+                        lat = loc.getDouble("latitude");
+                        lon = loc.getDouble("longitude");
+                    } catch (Throwable first) {
+                        loc = new JSONObject(Http.get("https://ipwho.is/")); // second opinion if the first is rate-limited
+                        lat = loc.getDouble("latitude");
+                        lon = loc.getDouble("longitude");
+                    }
                     prefs.edit().putLong("wx_lat", Double.doubleToLongBits(lat)).putLong("wx_lon", Double.doubleToLongBits(lon))
                             .putString("wx_city", loc.optString("city")).apply();
                 }
@@ -1766,31 +1836,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void updateClock() {
         if (clock == null) return;
         clock.setText(DateFormat.getTimeFormat(this).format(new Date()));
-    }
-
-    private boolean nextDnsOn() {
-        try {
-            String m = Settings.Global.getString(getContentResolver(), "private_dns_mode");
-            String h = Settings.Global.getString(getContentResolver(), "private_dns_specifier");
-            return "hostname".equals(m) && h != null && h.length() > 0;
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private void updatePrivacy() {
-        if (privacyIcon == null) return;
-        boolean on = nextDnsOn();
-        privacyIcon.setType(on ? Icon.SHIELD : Icon.SHIELD_OFF);
-        NextDnsStats.Stats st = NextDnsStats.cached();
-        String count = st != null && st.error == null ? " \u00b7 " + java.text.NumberFormat.getIntegerInstance().format(st.blocked) + " blocked" : "";
-        privacyText.setText(on ? "No ads \u00b7 No tracking" + count : "Ad blocking off");
-    }
-
-    private String privacyMessage() {
-        if (!nextDnsOn()) return "Ad and tracker blocking is off.";
-        String h = Settings.Global.getString(getContentResolver(), "private_dns_specifier");
-        return "Encrypted DNS through " + (h != null && h.contains("nextdns") ? "NextDNS" : h) + ": ads and trackers are blocked before they load.";
     }
 
     private void updateNetwork() {
