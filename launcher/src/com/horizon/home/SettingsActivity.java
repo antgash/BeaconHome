@@ -88,14 +88,6 @@ public class SettingsActivity extends Activity {
         toggle("Weather", "Temperature next to the clock (Open-Meteo, no account)", "weather", true);
 
         section("PROJECTOR CHANGES");
-        action("Ad & tracker blocking", () -> dnsOn() ? "On \u00b7 NextDNS" : "Off", () -> {
-            final boolean on = dnsOn();
-            confirmRun(on ? "Turn off ad & tracker blocking?" : "Turn ad & tracker blocking back on?",
-                    on ? "The projector goes back to its normal DNS. Ads and trackers will load again."
-                       : "Lookups are encrypted and filtered by your NextDNS profile again.",
-                    on ? "settings delete global private_dns_mode; settings delete global private_dns_specifier"
-                       : "settings put global private_dns_specifier " + NextDnsStats.profile(this) + ".dns.nextdns.io; settings put global private_dns_mode hostname");
-        });
         action("Power button", () -> fullOff() ? "Full shutdown \u00b7 logo on every start" : "Quick standby", () -> {
             final boolean full = fullOff();
             confirmRun(full ? "Switch Power Off to quick standby?" : "Make Power Off a full shutdown?",
@@ -142,8 +134,6 @@ public class SettingsActivity extends Activity {
 
         section("GENERAL");
         buildNuvioStatus();
-        choice("Ambient mode after", U.P_AMBIENT_MIN, 3,
-                new int[] {0, 1, 3, 5, 10, 20}, new String[] {"Never", "1 minute", "3 minutes", "5 minutes", "10 minutes", "20 minutes"});
         toggle("Show greeting", null, U.P_GREET, true);
         action("Your name", () -> prefs.getString(U.P_NAME, ""), this::editName);
         action("Show hidden apps again", () -> hiddenCount() + " hidden", this::unhideAll);
