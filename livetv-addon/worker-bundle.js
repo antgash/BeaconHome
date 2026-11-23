@@ -255,7 +255,7 @@ init();
 // <config> is base64url(JSON), see DEFAULTS.
 
 
-const DATA = "https://raw.githubusercontent.com/jyotiprakash101/nuvio-livetv/data/";
+const DATA = "https://raw.githubusercontent.com/antgash/nuvio-livetv/data/";
 const VERSION = "1.0.0";
 const PREFIX = "nltv";
 
@@ -682,7 +682,7 @@ async function stream(cfg, idStr, cfgStr, origin) {
 
 // ------------------------------------------------------------------ playlist for IPTV apps
 
-const RAW = "https://raw.githubusercontent.com/jyotiprakash101/nuvio-livetv/data/";
+const RAW = "https://raw.githubusercontent.com/antgash/nuvio-livetv/data/";
 
 async function playlist(cfg) {
   const chans = await allChannels(cfg);
@@ -719,7 +719,7 @@ export default {
       if (parts[0] === "api" && parts[1] === "countries") return json((await countries()) || {}, 3600);
       if (parts[0] === "api" && parts[1] === "categories") return json((await categories()) || {}, 86400);
       if (parts[0] === "api" && parts[1] === "report") return json((await data("report.json", 900)) || {}, 900);
-      if (parts[0] === "logo.png") return Response.redirect("https://raw.githubusercontent.com/jyotiprakash101/nuvio-livetv/main/worker/logo.png", 302);
+      if (parts[0] === "logo.png") return Response.redirect("https://raw.githubusercontent.com/antgash/nuvio-livetv/main/worker/logo.png", 302);
 
       const cfg = readConfig(parts[0]);
       if (!cfg) return json({ error: "bad configuration" }, 60);
