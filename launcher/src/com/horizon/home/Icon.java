@@ -11,7 +11,7 @@ import android.view.View;
 final class Icon extends View {
     static final int WIFI = 1, WIFI_OFF = 2, ETHERNET = 3, HDMI = 4, GEAR = 5, SLIDERS = 6, WALL = 7,
             SEARCH = 8, PLAY = 9, INFO = 10, PREV = 11, NEXT = 12, EYE = 13, APPS = 14, CHECK = 15, NUVIO = 16,
-            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30;
+            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30, MANTLE = 31;
 
     private int type;
     private int level = 4;
@@ -169,6 +169,16 @@ final class Icon extends View {
             case GRID4:
                 c.drawCircle(7, 7, 2.2f, fill); c.drawCircle(17, 7, 2.2f, fill);
                 c.drawCircle(7, 17, 2.2f, fill); c.drawCircle(17, 17, 2.2f, fill);
+                break;
+            case MANTLE:
+                // a planet cut away to show its layers: crust, mantle and a solid core
+                r.set(3, 3, 21, 21);
+                c.drawArc(r, 0, 270, false, p);
+                r.set(6.3f, 6.3f, 17.7f, 17.7f);
+                c.drawArc(r, 0, 270, false, p);
+                c.drawCircle(12, 12, 2.6f, fill);
+                c.drawLine(12, 9.4f, 12, 3, p);
+                c.drawLine(14.6f, 12, 21, 12, p);
                 break;
             case ORBIT:
                 c.drawCircle(12, 12, 4.2f, fill);

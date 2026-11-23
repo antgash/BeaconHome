@@ -379,7 +379,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
         // Left: Mantle menu pill (customise Home)
         LinearLayout menu = V.pill(this, 34, 12, 12);
-        Icon mi = new Icon(this, Icon.ORBIT);
+        Icon mi = new Icon(this, Icon.MANTLE);
         menu.addView(mi, new LinearLayout.LayoutParams(V.dp(14), V.dp(14)));
         TextView mt = V.text(this, "mantle", 15, 800, V.TEXT);
         mt.setLetterSpacing(-0.02f);

@@ -54,7 +54,7 @@ final class AmbientView extends FrameLayout {
         // top-left mark
         LinearLayout mark = new LinearLayout(c);
         mark.setGravity(Gravity.CENTER_VERTICAL);
-        Icon mi = new Icon(c, Icon.ORBIT);
+        Icon mi = new Icon(c, Icon.MANTLE);
         mi.setColor(U.alpha(V.TEXT, 0.7f));
         mark.addView(mi, new LinearLayout.LayoutParams(V.dp(12), V.dp(12)));
         TextView mt = V.text(c, "mantle", 14, 800, U.alpha(V.TEXT, 0.7f));
