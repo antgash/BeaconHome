@@ -1143,6 +1143,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
     private final int[] rowMemory = {-1, -1, -1};
+    /** Set on a profile switch: Continue watching is entered at its first item until you leave that row once. */
+    private boolean cwFresh;
+    private int memIdx(int row) { return row == 0 && cwFresh ? 0 : rowMemory[row]; }
 
     /**
      * Up/Down between Home's rows returns to the item you were last on in the row you're going to
@@ -1162,8 +1165,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (dir > 0 && topBar != null && inTopBar(f)) {
             // Down from the top bar goes back to the row we came from, at the place we left it
             int li = lastRowIdx;
-            if (li < 0 || rows[li] == null || rows[li].getChildCount() == 0 || rowMemory[li] < 0) return false;
-            View t = rows[li].getChildAt(Math.min(rowMemory[li], rows[li].getChildCount() - 1));
+            if (li < 0 || rows[li] == null || rows[li].getChildCount() == 0 || memIdx(li) < 0) return false;
+            View t = rows[li].getChildAt(Math.min(memIdx(li), rows[li].getChildCount() - 1));
             if (t == null) return false;
             t.requestFocus();
             return true;
@@ -1172,6 +1175,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         for (int i = 0; i < rows.length; i++) if (rows[i] != null && f.getParent() == rows[i]) from = i;
         if (from < 0) return false;
         rowMemory[from] = rows[from].indexOfChild(f);
+        if (from == 0) cwFresh = false; // you've been in the row since the switch
         if (dir < 0) {
             boolean rowAbove = false;
             for (int to = from - 1; to >= 0; to--) if (rows[to] != null && rows[to].getChildCount() > 0) rowAbove = true;
@@ -1180,8 +1184,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         for (int to = from + dir; to >= 0 && to < rows.length; to += dir) {
             LinearLayout r = rows[to];
             if (r == null || r.getChildCount() == 0) continue;
-            if (rowMemory[to] < 0) return false; // never visited: the normal nearest-item move
-            View target = r.getChildAt(Math.min(rowMemory[to], r.getChildCount() - 1));
+            if (memIdx(to) < 0) return false; // never visited: the normal nearest-item move
+            View target = r.getChildAt(Math.min(memIdx(to), r.getChildCount() - 1));
             if (target == null) return false;
             target.requestFocus();
             return true;
@@ -1710,7 +1714,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 stopAtEdges(cwRow);
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
-                if (switched) { rowMemory[0] = 0; scrollCwToStart(); flashCw(); } // row 0 is Continue watching: forget the old place
+                if (switched) { rowMemory[0] = 0; cwFresh = true; scrollCwToStart(); flashCw(); } // row 0 is Continue watching: forget the old place
                 if (onCw || getCurrentFocus() == null) focusDefault();
             };
             U.MAIN.post(show);
