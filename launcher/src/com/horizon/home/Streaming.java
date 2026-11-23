@@ -29,7 +29,7 @@ import java.util.Set;
  * when a TMDB key is set, otherwise from the public Streaming Catalogs addon.
  */
 final class Streaming {
-    private static final String TAG = "MantleStreaming";
+    private static final String TAG = "BeaconStreaming";
     static final String CATALOG = "https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club";
     private static final String K = "https://imkaptain.github.io/nuvio-assets/assets/images/";
     private static final String P = "https://raw.githubusercontent.com/bramst0ne/prism-wallpapers/main/collections/";
@@ -420,7 +420,7 @@ final class Streaming {
             con = (HttpURLConnection) new URL(url).openConnection();
             con.setConnectTimeout(8000);
             con.setReadTimeout(15000);
-            con.setRequestProperty("User-Agent", "MantleHome/1.2 (Android TV)");
+            con.setRequestProperty("User-Agent", "BeaconHome/1.2 (Android TV)");
             if (con.getResponseCode() != 200) return null;
             try (InputStream in = con.getInputStream()) {
                 ByteArrayOutputStream bo = new ByteArrayOutputStream();

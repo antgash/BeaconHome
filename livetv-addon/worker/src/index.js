@@ -33,7 +33,7 @@ const DEFAULTS = {
   clean: true,         // tidy channel names
   days: 3,             // schedule days ahead
   maxStreams: 3,        // links per channel
-  guideApp: false,      // add an "Open TV Guide" link that opens Mantle's guide
+  guideApp: false,      // add an "Open TV Guide" link that opens beacon's guide
   working: false,       // only channels whose link passed the last test
   src: [],              // only these stream sources (empty = all)
 };
@@ -415,9 +415,9 @@ async function stream(cfg, idStr, cfgStr, origin) {
   }
   const extra = cfg.guideApp
     ? [{
-        externalUrl: `mantle://guide?cc=${id.cc}&ch=${encodeURIComponent(ch.id)}&src=${encodeURIComponent(`${origin}/${cfgStr}`)}`,
+        externalUrl: `beacon://guide?cc=${id.cc}&ch=${encodeURIComponent(ch.id)}&src=${encodeURIComponent(`${origin}/${cfgStr}`)}`,
         name: "📺 TV GUIDE",
-        description: "Open the full TV guide on Mantle",
+        description: "Open the full TV guide on beacon",
       }]
     : [];
   return {

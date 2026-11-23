@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds MantleHome.apk without Gradle.
+# Builds BeaconHome.apk without Gradle.
 # Needs: JDK 17+, Python 3, and the Android SDK (build-tools 30+ and platform android-30).
 #   ANDROID_HOME   path to the Android SDK            (default: ~/Android/Sdk)
 #   BUILD_TOOLS    build-tools version to use         (default: newest installed)
@@ -28,9 +28,9 @@ cp build/base.apk build/unsigned.apk
 "$BT/zipalign" -f -p 4 build/unsigned.apk build/aligned.apk
 if [ ! -f "$KS" ]; then
   keytool -genkeypair -keystore "$KS" -storepass "$KP" -keypass "$KP" -alias horizon \
-    -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Mantle Home Kit" >/dev/null 2>&1
+    -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=beacon Home Kit" >/dev/null 2>&1
 fi
 java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-pass "pass:$KP" --key-pass "pass:$KP" \
-    --out build/MantleHome.apk build/aligned.apk
-java -jar "$BT/lib/apksigner.jar" verify build/MantleHome.apk
-ls -la build/MantleHome.apk
+    --out build/BeaconHome.apk build/aligned.apk
+java -jar "$BT/lib/apksigner.jar" verify build/BeaconHome.apk
+ls -la build/BeaconHome.apk

@@ -19,10 +19,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Mantle's interface sounds, ported from Veil. Each sound is synthesised once from soft sine tones (no
+ * beacon's interface sounds, ported from Veil. Each sound is synthesised once from soft sine tones (no
  * audio files are bundled or downloaded), saved to the app cache as a tiny WAV and played through
  * SoundPool for low latency. They are quieter while music is playing. On/off and an 8-step volume live in
- * the Mantle menu.
+ * the beacon menu.
  *
  * Hooking in is two lines per screen: Sfx.attach(this) in onCreate and Sfx.key(this, e) in dispatchKeyEvent.
  * attach() listens for focus moving anywhere in the window, so every list, row and menu ticks on its own.
@@ -74,7 +74,7 @@ final class Sfx {
                     synchronized (ids) { ids.put(s, id); }
                 }
             }
-        }, "mantle-sfx");
+        }, "beacon-sfx");
         th.start();
     }
 

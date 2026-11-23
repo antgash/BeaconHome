@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Mantle, Veil-style: artwork (or a living XGIMI scene) fills the wall, a calm hero tells you
+ * beacon, Veil-style: artwork (or a living XGIMI scene) fills the wall, a calm hero tells you
  * what's next, and three pill rows hold Continue watching, Nuvio's streaming services and your apps.
  */
 public class HomeActivity extends Activity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -89,7 +89,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // rows
     private LinearLayout cwBlock, cwRow, svcRow, appsRow;
-    private TextView cwTitle;
     private LinearLayout volumeRow;
     private TextView cwCount, cwTonight;
     private int defaultFocusId = View.NO_ID;
@@ -378,11 +377,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         ((FrameLayout.LayoutParams) bar.getLayoutParams()).topMargin = V.dp(26 + (EDGE - 48) / 2);
         bar.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
 
-        // Left: Mantle menu pill (customise Home)
+        // Left: beacon menu pill (customise Home)
         LinearLayout menu = V.pill(this, 34, 12, 12);
-        Icon mi = new Icon(this, Icon.MANTLE);
+        Icon mi = new Icon(this, Icon.BEACON);
         menu.addView(mi, new LinearLayout.LayoutParams(V.dp(14), V.dp(14)));
-        TextView mt = V.text(this, "mantle", 15, 800, V.TEXT);
+        TextView mt = V.text(this, "beacon", 15, 800, V.TEXT);
         mt.setLetterSpacing(-0.02f);
         menu.addView(mt, lp(U.WRAP, U.WRAP, 7, 0, 6, 0));
         Icon chev = new Icon(this, Icon.CHEVRON_DOWN);
@@ -421,7 +420,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
 
-    // ------------------------------------------------------------------ Mantle menu (Veil-style dropdown)
+    // ------------------------------------------------------------------ beacon menu (Veil-style dropdown)
 
     private LinearLayout menuPanel;
     private View menuPill;
@@ -453,7 +452,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuHost = sv;
         sv.setAlpha(0f);
 
-        menuPanel.addView(V.text(this, "Mantle", 24, 800, V.TEXT));
+        menuPanel.addView(V.text(this, "beacon", 24, 800, V.TEXT));
         menuPanel.addView(V.dim(V.caps(this, "Home & screensaver", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
 
         View first = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
@@ -483,13 +482,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(menuLabel("Theme"));
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-
-        menuPanel.addView(menuLabel("Profile"));
-        String pn = prefs.getString("profile_name", "").trim();
-        menuPanel.addView(menuButton(Icon.NUVIO, "Profile name", TextUtils.isEmpty(pn) ? "Shown before \u201ccontinue watching\u201d" : pn + " \u00b7 change", () -> {
-            closeMenu();
-            U.MAIN.postDelayed(this::editProfileName, 250);
-        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
         menuPanel.addView(menuLabel("Sound"));
         menuPanel.addView(soundToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -606,7 +598,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         for (String a : tries) {
             try { closeMenu(); startActivity(new Intent(a).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return; } catch (Throwable ignored) {}
         }
-        Toast.makeText(this, "Open Settings › Device Preferences › Screen saver and pick Mantle", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Open Settings › Device Preferences › Screen saver and pick beacon", Toast.LENGTH_LONG).show();
     }
 
     private TextView menuLabel(String t) {
@@ -873,7 +865,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         if (st != null && st.noPermission) {
             String msg;
-            if ("waiting".equals(AdbLocal.state)) msg = "On screen now: \u201cAllow network debugging?\u201d \u2014 tick Always allow and choose Allow. Mantle only uses it to read memory and close background apps.";
+            if ("waiting".equals(AdbLocal.state)) msg = "On screen now: \u201cAllow network debugging?\u201d \u2014 tick Always allow and choose Allow. beacon only uses it to read memory and close background apps.";
             else if ("denied".equals(AdbLocal.state)) msg = "Permission was declined. Open this again to get the prompt back.";
             else msg = "Network debugging is off on the projector, so per-app memory can't be read. Turn it on in Developer options to see it here.";
             memPanel.addView(V.dim(V.text(this, msg, 10, 500, V.TEXT), 0.8f), lp(U.MATCH, U.WRAP, 0, 12, 0, 0));
@@ -1055,7 +1047,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         String name = prefs.getString(U.P_NAME, "");
         String hi = U.greeting(cal.get(Calendar.HOUR_OF_DAY)) + (TextUtils.isEmpty(name) ? "" : ", " + name);
         String label;
-        label = "Mantle";
+        label = "beacon";
         heroKey = null;
         setHero("greet", label, hi, null, DateFormat.format("EEEE, d MMMM", new Date()).toString(), 0, null, null);
     }
@@ -1093,8 +1085,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout h = U.row(this);
         h.setGravity(Gravity.BOTTOM);
         h.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
-        cwTitle = V.text(this, "Continue watching", 12, 700, V.TEXT);
-        h.addView(cwTitle);
+        h.addView(V.text(this, "Continue watching", 12, 700, V.TEXT));
         cwCount = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
         h.addView(cwCount, lp(U.WRAP, U.WRAP, 7, 0, 0, 1));
         cwTonight = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
@@ -1225,38 +1216,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // --- continue watching (from Nuvio's own Continue Watching list)
 
-    /** "<Name>'s continue watching": the name set in the Mantle menu, else one Nuvio's own channel names give us. */
-    private void applyCwTitle() {
-        if (cwTitle == null) return;
-        String n = prefs.getString("profile_name", "").trim();
-        if (n.isEmpty() && nuvio != null && nuvio.profile != null) n = nuvio.profile;
-        if (n.isEmpty()) { cwTitle.setText("Continue watching"); return; }
-        boolean s = n.endsWith("s") || n.endsWith("S");
-        cwTitle.setText(n + (s ? "\u2019" : "\u2019s") + " continue watching");
-    }
-
-    private void editProfileName() {
-        final EditText et = new EditText(this);
-        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        et.setSingleLine(true);
-        et.setHint("Your name, e.g. Anthony");
-        et.setText(prefs.getString("profile_name", ""));
-        et.setSelection(et.getText().length());
-        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Profile name")
-                .setMessage("Shown before \u201ccontinue watching\u201d on the home screen.")
-                .setView(et)
-                .setPositiveButton("Save", (d, w) -> {
-                    prefs.edit().putString("profile_name", et.getText().toString().trim()).apply();
-                    applyCwTitle();
-                })
-                .setNeutralButton("Clear", (d, w) -> { prefs.edit().remove("profile_name").apply(); applyCwTitle(); })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     private void fillContinue() {
-        applyCwTitle();
         cwRow.removeAllViews();
         cwItems.clear();
         if (nuvio != null) for (Nuvio.Item it : nuvio.continueWatching) { if (cwItems.size() < 12) cwItems.add(it); }

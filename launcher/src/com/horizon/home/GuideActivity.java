@@ -54,10 +54,10 @@ import java.util.Set;
  * Full-screen TV guide for the Nuvio Live TV addon: a TiviMate-style grid (channels down the side,
  * time across), a live preview, full-screen playback with channel zapping and a see-through guide,
  * and a jump back to the channel's page in Nuvio. Opened from Nuvio's "TV GUIDE" link
- * (mantle://guide?cc=..&ch=..&src=..) or from the Live TV tile on the home screen.
+ * (beacon://guide?cc=..&ch=..&src=..) or from the Live TV tile on the home screen.
  */
 public class GuideActivity extends Activity {
-    private static final String TAG = "MantleGuide";
+    private static final String TAG = "BeaconGuide";
     static final String P_SRC = "guide_src", P_FAV = "guide_fav", P_LAST = "guide_last", P_CAT = "guide_cat", P_LANG = "guide_lang", P_CC = "guide_cc", P_SRC_F = "guide_srcf";
     static final Map<String, String> SOURCES = new LinkedHashMap<>();
     static {
