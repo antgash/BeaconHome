@@ -484,12 +484,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
 
         // nothing behind the menu may take focus
-        topBar.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-        View colv = ui.getChildAt(1);
-        if (colv != null && colv != scrim) colv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         for (int i = 0; i < ui.getChildCount(); i++) {
             View c = ui.getChildAt(i);
-            if (c != sv && c != scrim) c.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+            if (c != sv && c != scrim && c instanceof ViewGroup) ((ViewGroup) c).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         }
         scrim.bringToFront();
         sv.bringToFront();
@@ -512,7 +509,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final View host = menuHost;
         menuHost = null;
         menuPanel = null;
-        for (int i = 0; i < ui.getChildCount(); i++) ui.getChildAt(i).setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        for (int i = 0; i < ui.getChildCount(); i++) {
+            View c = ui.getChildAt(i);
+            if (c instanceof ViewGroup) ((ViewGroup) c).setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        }
         if (scrim != null) scrim.animate().alpha(0f).setDuration(160).start();
         if (host != null) host.animate().alpha(0f).translationY(-V.dpf(8)).setDuration(160).withEndAction(() -> ui.removeView(host)).start();
         if (menuPill != null) menuPill.requestFocus();
