@@ -52,6 +52,8 @@ Mantle is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 - The long-press menu uses a Veil-style action sheet.
 - **Streaming tiles** can be **rearranged** the same way, and **hidden** (long-press → *Hide from Home*). Once any are hidden, a blank tile with a **+** at the end of the row lists them so you can add them back (one at a time or *Add all*).
 - **Continue Watching refreshes right away when you switch profiles in Nuvio**, without opening Nuvio again.
+- **Navigation sounds**, ported from Veil: soft synthesised tones (no audio files) for moving, selecting, going back and toggles. The Mantle menu has a **Sound** section with an on/off toggle and an 8-step volume (Left/Right to change it).
+- **Your name on the row**: *Profile name* in the Mantle menu makes the row read "Anthony’s continue watching". If a Nuvio channel is already named that way, Mantle picks the name up by itself.
 - **Episode wallpapers use the series artwork**, not the episode still.
 - **Long titles shrink to fit on one row** instead of wrapping or being cut off.
 - **Smoother artwork**: a new picture starts where the old one is, so it no longer re-zooms; a double-darkening glitch that dimmed the picture for a moment is fixed.

@@ -82,7 +82,7 @@ final class ActionSheet {
                 row.setBackground(V.shape(has ? V.TEXT : 0, 25, 0));
                 V.tint(row, has ? V.INK : V.TEXT);
             });
-            row.setOnClickListener(v -> { d.dismiss(); run.run(); });
+            row.setOnClickListener(v -> { Sfx.select(); d.dismiss(); run.run(); });
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(U.MATCH, V.dp(34));
             rp.topMargin = V.dp(4);
             list.addView(row, rp);
@@ -108,6 +108,8 @@ final class ActionSheet {
             return true;
         });
         d.show();
+        Sfx.watch(d.getWindow());
+        Sfx.open();
         final View f = first;
         if (f != null) f.post(f::requestFocus);
     }

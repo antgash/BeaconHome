@@ -89,6 +89,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // rows
     private LinearLayout cwBlock, cwRow, svcRow, appsRow;
+    private TextView cwTitle;
+    private LinearLayout volumeRow;
     private TextView cwCount, cwTonight;
     private int defaultFocusId = View.NO_ID;
     private boolean firstFocusDone;
@@ -150,6 +152,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         root = new FrameLayout(this);
         root.setBackgroundColor(V.BG);
         setContentView(root);
+        Sfx.attach(this);
         getWindow().setBackgroundDrawable(null); // root paints the background; skip one full-screen fill per frame
         V.unclipAll(root);
         askPermissions();
@@ -239,6 +242,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             return true;
         }
         if (swallowUp && e.getAction() == KeyEvent.ACTION_UP) { swallowUp = false; return true; }
+        Sfx.key(this, e);
         if (rearrangeView != null && handleRearrangeKey(e)) return true;
         if (!menuOpen && e.getAction() == KeyEvent.ACTION_DOWN && (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN)
                 && moveBetweenRows(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : -1)) return true;
@@ -480,6 +484,19 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
+        menuPanel.addView(menuLabel("Profile"));
+        String pn = prefs.getString("profile_name", "").trim();
+        menuPanel.addView(menuButton(Icon.NUVIO, "Profile name", TextUtils.isEmpty(pn) ? "Shown before \u201ccontinue watching\u201d" : pn + " \u00b7 change", () -> {
+            closeMenu();
+            U.MAIN.postDelayed(this::editProfileName, 250);
+        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+        menuPanel.addView(menuLabel("Sound"));
+        menuPanel.addView(soundToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+        volumeRow = buildVolumeRow();
+        volumeRow.setAlpha(Sfx.isEnabled() ? 1f : 0.45f);
+        menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
         menuPanel.addView(menuLabel("Weather"));
         menuPanel.addView(toggleButton(Icon.SUN, "Show weather by the clock", "weather", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
@@ -623,6 +640,62 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             V.tint(row, has ? V.INK : V.TEXT);
         });
         row.setOnClickListener(v -> r.run());
+        return row;
+    }
+
+    /** Navigation sounds on/off. Plays its own up/down chime, so the automatic select pop is skipped. */
+    private View soundToggle() {
+        final LinearLayout row = menuButton(Icon.SPEAKER, "Navigation sounds", null, () -> {});
+        row.setTag(Sfx.QUIET);
+        final TextView state = V.text(this, "", 10, 800, V.TEXT);
+        final Runnable paint = () -> state.setText(Sfx.isEnabled() ? "ON" : "OFF");
+        paint.run();
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(state);
+        V.tint(row, V.TEXT);
+        row.setOnClickListener(v -> {
+            boolean on = !Sfx.isEnabled();
+            if (on) { Sfx.setEnabled(this, true); Sfx.on(); }
+            else { Sfx.off(); Sfx.setEnabled(this, false); }
+            paint.run();
+            if (volumeRow != null) volumeRow.setAlpha(on ? 1f : 0.45f);
+        });
+        return row;
+    }
+
+    /** Volume as 8 rising bars: Left/Right change it by one step and play a tick at the new level. */
+    private LinearLayout buildVolumeRow() {
+        final LinearLayout row = menuButton(Icon.SPEAKER, "Volume", null, () -> Sfx.preview());
+        row.setTag(Sfx.QUIET);
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        final LinearLayout bars = U.row(this);
+        bars.setGravity(Gravity.CENTER_VERTICAL);
+        final View[] seg = new View[Sfx.LEVELS];
+        for (int i = 0; i < Sfx.LEVELS; i++) {
+            View b = new View(this);
+            seg[i] = b;
+            LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(V.dp(5), V.dp(6 + i * 2));
+            bp.leftMargin = i == 0 ? 0 : V.dp(3);
+            bars.addView(b, bp);
+        }
+        row.addView(bars);
+        final Runnable paint = () -> {
+            int base = row.hasFocus() ? V.INK : V.TEXT;
+            for (int i = 0; i < seg.length; i++) seg[i].setBackground(V.shape(i < Sfx.level() ? base : U.alpha(base, 0.25f), 2, 0));
+        };
+        paint.run();
+        final View.OnFocusChangeListener baseFocus = row.getOnFocusChangeListener();
+        row.setOnFocusChangeListener((v, has) -> { if (baseFocus != null) baseFocus.onFocusChange(v, has); paint.run(); });
+        row.setOnKeyListener((v, code, ev) -> {
+            if (ev.getAction() != KeyEvent.ACTION_DOWN) return false;
+            int d = code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : code == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : 0;
+            if (d == 0) return false;
+            int n = Math.max(1, Math.min(Sfx.LEVELS, Sfx.level() + d));
+            if (n != Sfx.level()) { Sfx.setLevel(this, n); paint.run(); Sfx.preview(); }
+            return true;
+        });
         return row;
     }
 
@@ -1020,7 +1093,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout h = U.row(this);
         h.setGravity(Gravity.BOTTOM);
         h.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
-        h.addView(V.text(this, "Continue watching", 12, 700, V.TEXT));
+        cwTitle = V.text(this, "Continue watching", 12, 700, V.TEXT);
+        h.addView(cwTitle);
         cwCount = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
         h.addView(cwCount, lp(U.WRAP, U.WRAP, 7, 0, 0, 1));
         cwTonight = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
@@ -1151,7 +1225,38 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // --- continue watching (from Nuvio's own Continue Watching list)
 
+    /** "<Name>'s continue watching": the name set in the Mantle menu, else one Nuvio's own channel names give us. */
+    private void applyCwTitle() {
+        if (cwTitle == null) return;
+        String n = prefs.getString("profile_name", "").trim();
+        if (n.isEmpty() && nuvio != null && nuvio.profile != null) n = nuvio.profile;
+        if (n.isEmpty()) { cwTitle.setText("Continue watching"); return; }
+        boolean s = n.endsWith("s") || n.endsWith("S");
+        cwTitle.setText(n + (s ? "\u2019" : "\u2019s") + " continue watching");
+    }
+
+    private void editProfileName() {
+        final EditText et = new EditText(this);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        et.setSingleLine(true);
+        et.setHint("Your name, e.g. Anthony");
+        et.setText(prefs.getString("profile_name", ""));
+        et.setSelection(et.getText().length());
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Profile name")
+                .setMessage("Shown before \u201ccontinue watching\u201d on the home screen.")
+                .setView(et)
+                .setPositiveButton("Save", (d, w) -> {
+                    prefs.edit().putString("profile_name", et.getText().toString().trim()).apply();
+                    applyCwTitle();
+                })
+                .setNeutralButton("Clear", (d, w) -> { prefs.edit().remove("profile_name").apply(); applyCwTitle(); })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void fillContinue() {
+        applyCwTitle();
         cwRow.removeAllViews();
         cwItems.clear();
         if (nuvio != null) for (Nuvio.Item it : nuvio.continueWatching) { if (cwItems.size() < 12) cwItems.add(it); }
@@ -1405,6 +1510,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         row.addView(v, j, lp);
         v.requestFocus();
         liftTile(v, true);
+        Sfx.move(1.3f);
     }
 
     private void endRearrange(boolean save) {

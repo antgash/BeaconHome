@@ -127,6 +127,7 @@ public class ServiceActivity extends Activity {
         root.addView(status, stp);
 
         setContentView(root);
+        Sfx.attach(this);
         // Only the rows may draw past their edges (focus outlines); the spotlight and the rows area
         // itself stay clipped so nothing slides over the top half.
         V.unclipAll(grid);
@@ -299,5 +300,10 @@ public class ServiceActivity extends Activity {
             int target = Math.max(0, Math.min(max, r.top - V.dp(30)));
             return target - getScrollY();
         }
+    }
+
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        Sfx.key(this, e);
+        return super.dispatchKeyEvent(e);
     }
 }

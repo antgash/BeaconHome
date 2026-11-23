@@ -65,6 +65,7 @@ public class SettingsActivity extends Activity {
         sv.addView(list, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
         panel.addView(sv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
         setContentView(root);
+        Sfx.attach(this);
         build();
     }
 
@@ -525,5 +526,10 @@ public class SettingsActivity extends Activity {
     private static int indexOf(int[] a, int v) {
         for (int i = 0; i < a.length; i++) if (a[i] == v) return i;
         return 0;
+    }
+
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        Sfx.key(this, e);
+        return super.dispatchKeyEvent(e);
     }
 }

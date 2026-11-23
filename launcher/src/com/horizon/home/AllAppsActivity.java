@@ -46,6 +46,7 @@ public class AllAppsActivity extends Activity {
         sv.addView(list, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
         root.addView(sv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
         setContentView(root);
+        Sfx.attach(this);
         V.fit(this, 1);
         U.IO.execute(() -> {
             final List<Apps.App> apps = Apps.load(getApplicationContext());
@@ -148,5 +149,10 @@ public class AllAppsActivity extends Activity {
         });
         t.setContentDescription(a.label);
         return t;
+    }
+
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        Sfx.key(this, e);
+        return super.dispatchKeyEvent(e);
     }
 }

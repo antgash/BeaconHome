@@ -195,6 +195,7 @@ public class GuideActivity extends Activity {
         root = new FrameLayout(this);
         root.setBackgroundColor(0xFF07080B);
         setContentView(root);
+        Sfx.attach(this);
 
         videoBox = new FrameLayout(this);
         videoBox.setBackgroundColor(0xFF000000);
@@ -1336,5 +1337,10 @@ public class GuideActivity extends Activity {
         }
 
         private final Set<String> loading = new HashSet<>();
+    }
+
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        Sfx.key(this, e);
+        return super.dispatchKeyEvent(e);
     }
 }

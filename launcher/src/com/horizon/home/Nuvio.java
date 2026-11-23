@@ -65,6 +65,7 @@ final class Nuvio {
         final List<Item> continueWatching = new ArrayList<>();
         int nuvioPicks, nuvioContinue, otherPicks;
         String error;
+        String profile; // best-effort: a channel called "<Name>'s Continue watching"
         final Set<String> channels = new HashSet<>();
     }
 
@@ -82,6 +83,13 @@ final class Nuvio {
             Log.w(TAG, "channels", t);
         } finally {
             if (ch != null) ch.close();
+        }
+
+        java.util.regex.Pattern prof = java.util.regex.Pattern.compile("^(.{1,30}?)['\u2019]s\\s+continue", java.util.regex.Pattern.CASE_INSENSITIVE);
+        for (String nm : channelNames.values()) {
+            if (nm == null) continue;
+            java.util.regex.Matcher pm = prof.matcher(nm.trim());
+            if (pm.find()) { r.profile = pm.group(1).trim(); break; }
         }
 
         List<Item> nuvio = new ArrayList<>(), others = new ArrayList<>();
