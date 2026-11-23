@@ -92,8 +92,9 @@ final class AmbientView extends FrameLayout {
         text.addView(label);
         title = V.text(c, "", 40, 800, V.TEXT);
         title.setLetterSpacing(-0.03f);
-        title.setMaxLines(2);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(U.WRAP, U.WRAP);
+        title.setMaxLines(1);
+        title.setAutoSizeTextTypeUniformWithConfiguration(18, 40, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(U.MATCH, U.WRAP);
         tp.topMargin = V.dp(6);
         text.addView(title, tp);
         logo = V.image(c, ImageView.ScaleType.FIT_START);

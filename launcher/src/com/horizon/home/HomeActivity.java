@@ -39,6 +39,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -477,6 +478,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(menuLabel("Weather"));
         menuPanel.addView(toggleButton(Icon.SUN, "Show weather by the clock", "weather", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
+        String city = prefs.getString("wx_city", "");
+        menuPanel.addView(menuButton(Icon.SEARCH, "Weather location", TextUtils.isEmpty(city) ? "Automatic \u00b7 search for a city" : city + " \u00b7 search for another", () -> {
+            closeMenu();
+            U.MAIN.postDelayed(this::editWeatherCity, 250);
+        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
         menuPanel.addView(menuLabel("System"));
         menuPanel.addView(menuButton(Icon.MOON, "Use as Android TV screensaver", "Opens the system screensaver picker", this::openDreamSettings), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
         menuPanel.addView(menuButton(Icon.GEAR, "More settings", "Rows, background, projector and more", () -> {
@@ -518,6 +525,58 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (scrim != null) scrim.animate().alpha(0f).setDuration(160).start();
         if (host != null) host.animate().alpha(0f).translationY(-V.dpf(8)).setDuration(160).withEndAction(() -> ui.removeView(host)).start();
         if (menuPill != null) menuPill.requestFocus();
+    }
+
+    private void editWeatherCity() {
+        final EditText et = new EditText(this);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        et.setSingleLine(true);
+        et.setHint("City name, e.g. Austin");
+        et.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Weather location")
+                .setView(et)
+                .setPositiveButton("Search", (d, w) -> searchCity(et.getText().toString().trim()))
+                .setNeutralButton("Automatic", (d, w) -> {
+                    prefs.edit().remove("wx_lat").remove("wx_lon").remove("wx_city").putBoolean("weather", true).apply();
+                    loadWeather();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void searchCity(final String q) {
+        if (q.isEmpty()) return;
+        U.IO.execute(() -> {
+            try {
+                JSONObject r = new JSONObject(Http.get("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name="
+                        + java.net.URLEncoder.encode(q, "UTF-8")));
+                final org.json.JSONArray res = r.optJSONArray("results");
+                U.MAIN.post(() -> {
+                    if (res == null || res.length() == 0) { Toast.makeText(this, "No place found for \u201c" + q + "\u201d", Toast.LENGTH_LONG).show(); return; }
+                    ActionSheet sheet = new ActionSheet(this, "Choose your location");
+                    for (int i = 0; i < res.length(); i++) {
+                        final JSONObject o = res.optJSONObject(i);
+                        if (o == null) continue;
+                        StringBuilder sb = new StringBuilder(o.optString("name"));
+                        String reg = o.optString("admin1"), ctry = o.optString("country_code");
+                        if (!reg.isEmpty()) sb.append(", ").append(reg);
+                        if (!ctry.isEmpty()) sb.append(", ").append(ctry);
+                        final String label = sb.toString();
+                        sheet.add(label, Icon.SEARCH, () -> {
+                            prefs.edit().putLong("wx_lat", Double.doubleToLongBits(o.optDouble("latitude")))
+                                    .putLong("wx_lon", Double.doubleToLongBits(o.optDouble("longitude")))
+                                    .putString("wx_city", o.optString("name")).putBoolean("weather", true).apply();
+                            loadWeather();
+                            Toast.makeText(this, "Weather set to " + label, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                    sheet.show();
+                });
+            } catch (Throwable t) {
+                U.MAIN.post(() -> Toast.makeText(this, "Couldn't search right now. Check the connection.", Toast.LENGTH_LONG).show());
+            }
+        });
     }
 
     private void openDreamSettings() {
@@ -951,11 +1010,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
         heroTitle = V.text(this, "", 44, 800, V.TEXT);
         heroTitle.setLetterSpacing(-0.03f);
-        heroTitle.setMaxLines(2);
+        heroTitle.setMaxLines(1);
         heroTitle.setEllipsize(TextUtils.TruncateAt.END);
-        heroTitle.setLineSpacing(0, 0.92f);
-        heroTitle.setMaxWidth(V.dp(520));
-        hero.addView(heroTitle, lp(U.WRAP, U.WRAP, 0, 6, 0, 0));
+        // one row: long titles shrink to fit instead of wrapping or being cut off
+        heroTitle.setAutoSizeTextTypeUniformWithConfiguration(18, 44, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+        hero.addView(heroTitle, lp(V.dp(600), U.WRAP, 0, 6, 0, 0));
         heroLine = V.text(this, "", 14, 400, U.alpha(V.TEXT, 0.85f));
         V.ellipsize(heroLine);
         heroLine.setMaxWidth(V.dp(560));
@@ -1663,9 +1722,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 double lat = Double.longBitsToDouble(prefs.getLong("wx_lat", Double.doubleToLongBits(Double.NaN)));
                 double lon = Double.longBitsToDouble(prefs.getLong("wx_lon", Double.doubleToLongBits(Double.NaN)));
                 if (Double.isNaN(lat)) {
-                    JSONObject loc = new JSONObject(Http.get("https://ipapi.co/json/"));
-                    lat = loc.getDouble("latitude");
-                    lon = loc.getDouble("longitude");
+                    JSONObject loc;
+                    try {
+                        loc = new JSONObject(Http.get("https://ipapi.co/json/"));
+                        lat = loc.getDouble("latitude");
+                        lon = loc.getDouble("longitude");
+                    } catch (Throwable first) {
+                        loc = new JSONObject(Http.get("https://ipwho.is/")); // second opinion if the first is rate-limited
+                        lat = loc.getDouble("latitude");
+                        lon = loc.getDouble("longitude");
+                    }
                     prefs.edit().putLong("wx_lat", Double.doubleToLongBits(lat)).putLong("wx_lon", Double.doubleToLongBits(lon))
                             .putString("wx_city", loc.optString("city")).apply();
                 }
