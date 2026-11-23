@@ -61,6 +61,17 @@
         </activity>
 
         <service
+            android:name=".HorizonDream"
+            android:exported="true"
+            android:label="Horizon"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name=".HomeButtonService"
             android:exported="true"
             android:label="@string/a11y_label"
