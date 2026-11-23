@@ -77,7 +77,7 @@ public class SettingsActivity extends Activity {
         list.removeAllViews();
         refreshers.clear();
 
-        TextView h = V.text(this, "horizon", 26, 800, 0xFFFFFFFF);
+        TextView h = V.text(this, "mantle", 26, 800, 0xFFFFFFFF);
         list.addView(h);
         TextView sub = U.text(this, "Ad-free by design · no tracking · your XGIMI home", 13, 0x99FFFFFF, U.REG);
         list.addView(sub, U.llp(U.WRAP, U.WRAP, 0, 8, 0, 6));
@@ -124,18 +124,18 @@ public class SettingsActivity extends Activity {
                     "A background service only Google's home screen uses. Off saves memory.",
                     (on ? "pm disable-user --user 0 " : "pm enable ") + TVREC);
         });
-        action("Home screen", () -> horizonIsHome() ? "Horizon" : "Google TV", () -> {
+        action("Home screen", () -> horizonIsHome() ? "Mantle" : "Google TV", () -> {
             if (horizonIsHome()) {
                 confirmRun("Go back to the Google TV home screen?",
                         "Turns Google's home and its recommendations back on and makes it the home screen. "
-                                + "Horizon stays installed: open it from your apps any time to switch back.",
+                                + "Mantle stays installed: open it from your apps any time to switch back.",
                         "pm enable " + TVLAUNCHER + "; pm enable " + TVREC
                                 + "; cmd package set-home-activity " + TVLAUNCHER + "/.MainActivity"
                                 + "; settings delete secure enabled_accessibility_services; settings put secure accessibility_enabled 0"
                                 + "; am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             } else {
-                confirmRun("Make Horizon your home screen?",
-                        "Switches Google's home off (it stays installed) and makes the Home button open Horizon.",
+                confirmRun("Make Mantle your home screen?",
+                        "Switches Google's home off (it stays installed) and makes the Home button open Mantle.",
                         "cmd package set-home-activity " + getPackageName() + "/.HomeActivity"
                                 + "; settings put secure enabled_accessibility_services " + getPackageName() + "/" + getPackageName() + ".HomeButtonService"
                                 + "; settings put secure accessibility_enabled 1"

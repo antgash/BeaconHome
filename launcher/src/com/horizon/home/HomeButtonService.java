@@ -6,16 +6,16 @@ import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
 /**
- * Makes the remote's Home button open Horizon Home (after Veil's HomeButtonService). It only looks at
+ * Makes the remote's Home button open Mantle (after Veil's HomeButtonService). It only looks at
  * the Home key and at which app's window comes to the front; it never reads screen content.
  */
 public class HomeButtonService extends AccessibilityService {
     @Override protected void onServiceConnected() {
-        android.util.Log.i("HorizonHomeKey", "connected");
+        android.util.Log.i("MantleHomeKey", "connected");
     }
 
     @Override public boolean onKeyEvent(KeyEvent e) {
-        android.util.Log.i("HorizonHomeKey", "key " + e.getKeyCode() + " action " + e.getAction());
+        android.util.Log.i("MantleHomeKey", "key " + e.getKeyCode() + " action " + e.getAction());
         if (e.getKeyCode() != KeyEvent.KEYCODE_HOME) return false;
         if (e.getAction() == KeyEvent.ACTION_UP && !e.isCanceled()) goHome();
         return true;
@@ -26,7 +26,7 @@ public class HomeButtonService extends AccessibilityService {
         CharSequence p = e.getPackageName(), c = e.getClassName();
         if (p == null || c == null) return;
         String pkg = p.toString(), cls = c.toString();
-        android.util.Log.i("HorizonHomeKey", "window " + pkg + " / " + cls);
+        android.util.Log.i("MantleHomeKey", "window " + pkg + " / " + cls);
         // Only the stock home *screen* itself, not its other screens.
         if ((pkg.equals("com.google.android.tvlauncher") && cls.endsWith("MainActivity"))
                 || (pkg.equals("com.google.android.apps.tv.launcherx") && cls.endsWith("HomeActivity"))) {

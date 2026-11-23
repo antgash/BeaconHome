@@ -22,7 +22,7 @@ import java.util.Set;
  * Watching list) through the system TV provider, and turns them into hero-wall items.
  */
 final class Nuvio {
-    private static final String TAG = "HorizonNuvio";
+    private static final String TAG = "MantleNuvio";
 
     static final class Item {
         String pkg, title, episode, desc, longDesc, poster, thumb, logo, intentUri, channel;

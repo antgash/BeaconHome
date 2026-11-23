@@ -29,7 +29,7 @@ final class ScenePlayer extends FrameLayout implements SurfaceHolder.Callback, G
         void onProgress(float fraction);
     }
 
-    private static final String TAG = "HorizonScenes";
+    private static final String TAG = "MantleScenes";
 
     private final SurfaceView surface;
     private final ImageView poster;

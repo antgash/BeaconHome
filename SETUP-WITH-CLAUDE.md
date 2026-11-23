@@ -1,7 +1,7 @@
 # Setup runbook for Claude
 
 > **Human:** give Claude this whole repository (or its link) and say
-> *"Set up Horizon Home Kit on my TV using SETUP-WITH-CLAUDE.md."*
+> *"Set up Mantle Home Kit on my TV using SETUP-WITH-CLAUDE.md."*
 > Claude works with access to your PC (the Claude desktop app with your folder connected, or Claude Code).
 > It will ask you for the few things only you can provide (keys, logins, a button press on the TV).
 
@@ -18,9 +18,9 @@
 ## 0. Ask first
 
 Ask the user, in one message:
-- What TV device? (Android TV / Google TV / XGIMI projector / other). Android 8+ is needed for Horizon Home.
+- What TV device? (Android TV / Google TV / XGIMI projector / other). Android 8+ is needed for Mantle.
 - Which parts do they want?
-  - **A. Horizon Home** — the ad-free home screen (with the Live TV guide)
+  - **A. Mantle** — the ad-free home screen (with the Live TV guide)
   - **B. Live TV addon** for Nuvio (their own free Cloudflare Worker)
   - **C. Nuvio setup** — the addon list and the Home layout
   - **D. Ad blocking** (NextDNS, optional)
@@ -57,12 +57,12 @@ Follow `livetv-addon/README.md`:
 3. Copy the addon link → add it in Nuvio (nuvio.tv → Account → Addons → Add Addon, or in the app).
 4. Put the link without `/manifest.json` into `config.bat` as `LIVETV=`.
 
-## 4. Horizon Home (A)
+## 4. Mantle (A)
 
-1. Get `HorizonHome.apk` from this repo's **Releases → latest** (or build it: `launcher/build.sh`, needs JDK 17 + Android SDK build-tools and platform 30). Put it in the `windows` folder.
-2. Run `install-horizon.bat`. It installs the app, grants its permissions, backs up the current home screen and Home-button setting, makes Horizon the home screen, and passes the keys from `config.bat`.
-3. On the TV: if it asks **"Allow network debugging?"** again (Horizon uses it for the memory panel and the in-app projector settings), the user allows it.
-4. Check with a screenshot. Undo any time: `use-original-home.bat` (or `uninstall-horizon.bat`).
+1. Get `MantleHome.apk` from this repo's **Releases → latest** (or build it: `launcher/build.sh`, needs JDK 17 + Android SDK build-tools and platform 30). Put it in the `windows` folder.
+2. Run `install-mantle.bat`. It installs the app, grants its permissions, backs up the current home screen and Home-button setting, makes Mantle the home screen, and passes the keys from `config.bat`.
+3. On the TV: if it asks **"Allow network debugging?"** again (Mantle uses it for the memory panel and the in-app projector settings), the user allows it.
+4. Check with a screenshot. Undo any time: `use-original-home.bat` (or `uninstall-mantle.bat`).
 
 What the user gets is described in the README. The Live TV tile is the first tile in "Streaming services".
 

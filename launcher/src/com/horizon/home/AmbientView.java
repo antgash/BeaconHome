@@ -23,7 +23,7 @@ import java.util.Set;
 /**
  * The Veil-style ambient screen, shared by Home's idle mode and the system screensaver: a slow, drifting
  * slideshow of artwork, the title (or its logo) with where it came from bottom-left, the clock and weather
- * top-right, and the Horizon mark top-left.
+ * top-right, and the Mantle mark top-left.
  */
 final class AmbientView extends FrameLayout {
     private final HeroWall wall;
@@ -57,7 +57,7 @@ final class AmbientView extends FrameLayout {
         Icon mi = new Icon(c, Icon.ORBIT);
         mi.setColor(U.alpha(V.TEXT, 0.7f));
         mark.addView(mi, new LinearLayout.LayoutParams(V.dp(12), V.dp(12)));
-        TextView mt = V.text(c, "horizon", 14, 800, U.alpha(V.TEXT, 0.7f));
+        TextView mt = V.text(c, "mantle", 14, 800, U.alpha(V.TEXT, 0.7f));
         LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(U.WRAP, U.WRAP);
         mp.leftMargin = V.dp(6);
         mark.addView(mt, mp);

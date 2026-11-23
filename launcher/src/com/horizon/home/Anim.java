@@ -43,7 +43,7 @@ final class Anim {
             if (!f.exists() || f.length() == 0) {
                 Img.fetchTo(c, url, f);
             }
-            if (!f.exists() || f.length() < 100) { Log.w("HorizonAnim", "no file for " + url); return null; }
+            if (!f.exists() || f.length() < 100) { Log.w("MantleAnim", "no file for " + url); return null; }
             ImageDecoder.Source src = ImageDecoder.createSource(f);
             Drawable d = ImageDecoder.decodeDrawable(src, (decoder, info, s) -> {
                 int iw = info.getSize().getWidth(), ih = info.getSize().getHeight();
@@ -52,10 +52,10 @@ final class Anim {
                 decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
             });
             if (d instanceof AnimatedImageDrawable) ((AnimatedImageDrawable) d).setRepeatCount(AnimatedImageDrawable.REPEAT_INFINITE);
-            Log.i("HorizonAnim", "ok " + url + " " + f.length() + " bytes " + d.getClass().getSimpleName());
+            Log.i("MantleAnim", "ok " + url + " " + f.length() + " bytes " + d.getClass().getSimpleName());
             return d;
         } catch (Throwable t) {
-            Log.w("HorizonAnim", "decode " + url + ": " + t);
+            Log.w("MantleAnim", "decode " + url + ": " + t);
             return null;
         }
     }

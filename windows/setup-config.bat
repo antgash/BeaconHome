@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 echo ============================================
-echo   Horizon Home Kit - settings
+echo   Mantle Home Kit - settings
 echo   (saved only on this PC, in config.bat)
 echo ============================================
 echo.

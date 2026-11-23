@@ -20,7 +20,7 @@ import java.security.MessageDigest;
 final class Img {
     interface Cb { void done(Bitmap b); }
 
-    private static final String TAG = "HorizonImg";
+    private static final String TAG = "MantleImg";
     private static final LruCache<String, Bitmap> mem = new LruCache<String, Bitmap>(
             (int) Math.min(20 * 1024, Runtime.getRuntime().maxMemory() / 1024 / 8)) {
         @Override protected int sizeOf(String k, Bitmap b) { return b.getByteCount() / 1024; }
@@ -117,7 +117,7 @@ final class Img {
                     con.setConnectTimeout(7000);
                     con.setReadTimeout(12000);
                     con.setInstanceFollowRedirects(true);
-                    con.setRequestProperty("User-Agent", "HorizonHome/1.0 (Android TV)");
+                    con.setRequestProperty("User-Agent", "MantleHome/1.0 (Android TV)");
                     int code = con.getResponseCode();
                     if (code >= 300 && code < 400 && con.getHeaderField("Location") != null) {
                         url = new URL(url, con.getHeaderField("Location"));

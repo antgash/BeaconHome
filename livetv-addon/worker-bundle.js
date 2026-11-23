@@ -120,7 +120,7 @@ function configurePage(origin, cfg, defaults) {
       <label><input type="checkbox" id="guide"><span>Only channels with a TV guide<small>Hides channels without listings.</small></span></label>
       <label><input type="checkbox" id="clean"><span>Tidy channel names<small>Removes tags like (1080p) and [Geo-blocked].</small></span></label>
       <label><input type="checkbox" id="working"><span>Only channels that work<small>Hides channels whose links failed the last test (tests run from the US, so some India-only channels may be hidden).</small></span></label>
-      <label><input type="checkbox" id="guideApp"><span>Add "Open TV Guide" link<small>Opens the full grid guide in Horizon Home (Android TV launcher). Leave off on other devices.</small></span></label>
+      <label><input type="checkbox" id="guideApp"><span>Add "Open TV Guide" link<small>Opens the full grid guide in Mantle (Android TV launcher). Leave off on other devices.</small></span></label>
       <label><input type="checkbox" id="nsfw"><span>Include adult channels<small>Off by default.</small></span></label>
     </div>
   </div>
@@ -274,7 +274,7 @@ const DEFAULTS = {
   clean: true,         // tidy channel names
   days: 3,             // schedule days ahead
   maxStreams: 3,        // links per channel
-  guideApp: false,      // add an "Open TV Guide" link that opens Horizon Home's guide
+  guideApp: false,      // add an "Open TV Guide" link that opens Mantle's guide
   working: false,       // only channels whose link passed the last test
   src: [],              // only these stream sources (empty = all)
 };
@@ -656,9 +656,9 @@ async function stream(cfg, idStr, cfgStr, origin) {
   }
   const extra = cfg.guideApp
     ? [{
-        externalUrl: `horizon://guide?cc=${id.cc}&ch=${encodeURIComponent(ch.id)}&src=${encodeURIComponent(`${origin}/${cfgStr}`)}`,
+        externalUrl: `mantle://guide?cc=${id.cc}&ch=${encodeURIComponent(ch.id)}&src=${encodeURIComponent(`${origin}/${cfgStr}`)}`,
         name: "📺 TV GUIDE",
-        description: "Open the full TV guide on Horizon Home",
+        description: "Open the full TV guide on Mantle",
       }]
     : [];
   return {

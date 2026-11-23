@@ -13,7 +13,7 @@ final class Http {
         try {
             con.setConnectTimeout(8000);
             con.setReadTimeout(12000);
-            con.setRequestProperty("User-Agent", "HorizonHome/2.0 (Android TV)");
+            con.setRequestProperty("User-Agent", "MantleHome/2.0 (Android TV)");
             if (con.getResponseCode() != 200) throw new Exception("HTTP " + con.getResponseCode());
             try (InputStream in = con.getInputStream()) {
                 ByteArrayOutputStream bo = new ByteArrayOutputStream();
