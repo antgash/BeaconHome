@@ -2,6 +2,8 @@ package com.horizon.home;
 
 import android.Manifest;
 import android.app.Activity;
+import android.graphics.Color;
+import android.widget.ScrollView;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -166,14 +168,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         registerReceivers();
         updateClock();
         updateNetwork();
-        updatePrivacy();
         loadWeather();
-        if (NextDnsStats.configured(this)) U.IO.execute(() -> { NextDnsStats.load(getApplicationContext()); U.MAIN.post(this::updatePrivacy); });
         startBackground();
         U.MAIN.removeCallbacks(idleTick);
         U.MAIN.postDelayed(idleTick, 10000);
-        U.MAIN.removeCallbacks(memTick);
-        U.MAIN.post(memTick);
     }
 
     @Override protected void onResume() {
@@ -222,6 +220,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override public void onBackPressed() {
         if (ambient) { exitAmbient(true); return; }
+        if (menuOpen) { closeMenu(); return; }
         View f = getCurrentFocus();
         if (f != null && f.getId() != defaultFocusId) focusDefault(); else enterAmbient();
     }
@@ -238,7 +237,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             return true;
         }
         if (swallowUp && e.getAction() == KeyEvent.ACTION_UP) { swallowUp = false; return true; }
-        if (e.getAction() == KeyEvent.ACTION_DOWN && (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN)
+        if (!menuOpen && e.getAction() == KeyEvent.ACTION_DOWN && (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN)
                 && moveBetweenRows(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : -1)) return true;
         if (wall != null && e.getAction() == KeyEvent.ACTION_DOWN) {
             wall.pause();
@@ -307,7 +306,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void build() {
         mode = U.mode(this);
         EDGE = V.edge(this);
-        panel = null; memPanel = null; scrim = null;
+        panel = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
         root.removeAllViews();
         root.setBackgroundColor(V.BG);
         player = null;
@@ -355,9 +354,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         showGreeting();
         updateClock();
         updateNetwork();
-        updatePrivacy();
-        updateMemory();
         loadWeather();
+        if (reopenMenu) { reopenMenu = false; U.MAIN.post(this::showMenu); }
     }
 
     private View space(float dp) {
@@ -387,7 +385,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menu.addView(chev, new LinearLayout.LayoutParams(V.dp(11), V.dp(11)));
         V.tint(menu, V.TEXT);
         menu.setContentDescription("Customise Home");
-        menu.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        menu.setOnClickListener(v -> { if (menuOpen) closeMenu(); else showMenu(); });
+        menuPill = menu;
         LinearLayout left = U.row(this);
         left.addView(menu, new LinearLayout.LayoutParams(U.WRAP, V.dp(34)));
         bar.addView(left, U.flp(U.WRAP, U.WRAP, Gravity.START | Gravity.CENTER_VERTICAL));
@@ -403,46 +402,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         mid.addView(weatherIcon, lp(V.dp(14), V.dp(14), 12, 0, 4, 0));
         weatherText = V.text(this, "", 14, 400, U.alpha(V.TEXT, 0.9f));
         mid.addView(weatherText);
-        left.addView(mid, lp(U.WRAP, U.WRAP, 22, 0, 0, 0));
+        bar.addView(mid, U.flp(U.WRAP, U.WRAP, Gravity.CENTER));
 
-        // Memory: free RAM, refreshed every 15 s (fixed width so updates never re-layout the page)
-        final LinearLayout memRow = V.pill(this, 30, 12, 12);
-        memText = V.text(this, "", 11, 500, U.alpha(V.TEXT, 0.75f));
-        memText.setSingleLine(true);
-        memBar = new FrameLayout(this);
-        memBar.setBackground(V.shape(0x33FFFFFF, 2, 0));
-        memFill = new View(this);
-        memFill.setPivotX(0);
-        memFill.setBackground(V.shape(V.accent(), 2, 0));
-        memBar.addView(memFill, new FrameLayout.LayoutParams(V.dp(36), U.MATCH));
-        memRow.addView(memBar, new LinearLayout.LayoutParams(V.dp(36), V.dp(3)));
-        memRow.addView(memText, lp(V.dp(74), U.WRAP, 7, 0, 0, 0));
-        memRow.setContentDescription("Memory");
-        memRow.setOnFocusChangeListener((v, has) -> {
-            V.stylePill(memRow, has, 15, null);
-            memBar.setBackground(V.shape(has ? 0x33000000 : 0x33FFFFFF, 2, 0));
-            U.MAIN.removeCallbacks(openMem);
-            if (has) U.MAIN.postDelayed(openMem, 200); else hideMem();
-        });
-        memRow.setOnClickListener(v -> freeUpMemory());
-
-        // Right: privacy pill + HDMI, Wi-Fi, projector settings
+        // Right: HDMI, Wi-Fi, projector settings
         LinearLayout right = U.row(this);
         right.setClipChildren(false);
-        LinearLayout priv = V.pill(this, 30, 12, 14);
-        privacyIcon = new Icon(this, Icon.SHIELD);
-        priv.addView(privacyIcon, new LinearLayout.LayoutParams(V.dp(13), V.dp(13)));
-        privacyText = V.text(this, "", 10, 500, V.TEXT);
-        priv.addView(privacyText, lp(U.WRAP, U.WRAP, 8, 0, 0, 0));
-        priv.setOnClickListener(v -> Toast.makeText(this, privacyMessage(), Toast.LENGTH_LONG).show());
-        priv.setOnFocusChangeListener((v, has) -> {
-            V.stylePill(priv, has, 15, null);
-            U.MAIN.removeCallbacks(openPanel);
-            if (has) U.MAIN.postDelayed(openPanel, 200); else hidePanel();
-        });
-        V.tint(priv, V.TEXT);
-        right.addView(memRow, lp(U.WRAP, V.dp(30), 0, 0, 9, 0));
-        right.addView(priv);
         right.addView(roundButton(Icon.HDMI, "HDMI", v -> openHdmi()), lp(V.dp(30), V.dp(30), 9, 0, 0, 0));
         wifiIcon = new Icon(this, Icon.WIFI);
         View wifi = V.iconButton(this, wifiIcon, "Wi-Fi");
@@ -450,6 +414,232 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         right.addView(wifi, lp(V.dp(30), V.dp(30), 9, 0, 0, 0));
         right.addView(roundButton(Icon.GEAR, "Projector settings", v -> openProjectorSettings()), lp(V.dp(30), V.dp(30), 9, 0, 0, 0));
         bar.addView(right, U.flp(U.WRAP, U.WRAP, Gravity.END | Gravity.CENTER_VERTICAL));
+    }
+
+
+    // ------------------------------------------------------------------ Horizon menu (Veil-style dropdown)
+
+    private LinearLayout menuPanel;
+    private View menuPill;
+    private boolean menuOpen, reopenMenu;
+
+    private void showMenu() {
+        if (menuOpen || ambient) return;
+        menuOpen = true;
+        if (scrim == null) {
+            scrim = new View(this);
+            scrim.setBackgroundColor(0x8C000000);
+            scrim.setAlpha(0f);
+            ui.addView(scrim, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        }
+        ScrollView sv = new ScrollView(this);
+        sv.setVerticalScrollBarEnabled(false);
+        sv.setFillViewport(false);
+        menuPanel = U.col(this);
+        menuPanel.setPadding(V.dp(16), V.dp(16), V.dp(16), V.dp(16));
+        sv.addView(menuPanel, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
+        sv.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.10f), 0.98f), 20, 0x40FFFFFF));
+        sv.setClipToOutline(true);
+        int top = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
+        FrameLayout.LayoutParams lp = U.flp(V.dp(330), U.WRAP, Gravity.TOP | Gravity.START);
+        lp.topMargin = top;
+        lp.leftMargin = V.dp(EDGE);
+        int maxH = getResources().getDisplayMetrics().heightPixels - top - V.dp(24);
+        ui.addView(sv, lp);
+        menuHost = sv;
+        sv.setAlpha(0f);
+
+        menuPanel.addView(V.text(this, "Horizon", 24, 800, V.TEXT));
+        menuPanel.addView(V.dim(V.caps(this, "Home & screensaver", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
+
+        View first = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
+            closeMenu();
+            U.MAIN.postDelayed(this::enterAmbient, 350);
+        });
+        menuPanel.addView(first, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+        menuPanel.addView(menuLabel("Screensaver starts after"));
+        final int[] mins = {0, 1, 3, 5, 10, 20};
+        String[] names = {"Off", "1m", "3m", "5m", "10m", "20m"};
+        int cur = prefs.getInt(U.P_AMBIENT_MIN, 3), sel = 2;
+        for (int i = 0; i < mins.length; i++) if (mins[i] == cur) sel = i;
+        menuPanel.addView(chipRow(names, sel, i -> {
+            prefs.edit().putInt(U.P_AMBIENT_MIN, mins[i]).apply();
+            lastInput = System.currentTimeMillis();
+        }), lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
+
+        menuPanel.addView(menuLabel("Theme"));
+        menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
+        menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+        menuPanel.addView(menuLabel("Weather"));
+        menuPanel.addView(toggleButton(Icon.SUN, "Show weather by the clock", "weather", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+        menuPanel.addView(menuLabel("System"));
+        menuPanel.addView(menuButton(Icon.MOON, "Use as Android TV screensaver", "Opens the system screensaver picker", this::openDreamSettings), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+        menuPanel.addView(menuButton(Icon.GEAR, "More settings", "Rows, background, projector and more", () -> {
+            closeMenu();
+            startActivity(new Intent(this, SettingsActivity.class));
+        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
+
+        // nothing behind the menu may take focus
+        topBar.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        View colv = ui.getChildAt(1);
+        if (colv != null && colv != scrim) colv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        for (int i = 0; i < ui.getChildCount(); i++) {
+            View c = ui.getChildAt(i);
+            if (c != sv && c != scrim) c.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        }
+        scrim.bringToFront();
+        sv.bringToFront();
+        scrim.animate().cancel();
+        scrim.animate().alpha(1f).setDuration(200).start();
+        sv.setTranslationY(-V.dpf(12));
+        sv.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
+        sv.post(() -> {
+            if (sv.getHeight() > maxH) sv.getLayoutParams().height = maxH;
+            sv.requestLayout();
+            first.requestFocus();
+        });
+    }
+
+    private View menuHost;
+
+    private void closeMenu() {
+        if (!menuOpen) return;
+        menuOpen = false;
+        final View host = menuHost;
+        menuHost = null;
+        menuPanel = null;
+        for (int i = 0; i < ui.getChildCount(); i++) ui.getChildAt(i).setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        if (scrim != null) scrim.animate().alpha(0f).setDuration(160).start();
+        if (host != null) host.animate().alpha(0f).translationY(-V.dpf(8)).setDuration(160).withEndAction(() -> ui.removeView(host)).start();
+        if (menuPill != null) menuPill.requestFocus();
+    }
+
+    private void openDreamSettings() {
+        String[] tries = {"android.settings.DREAM_SETTINGS", "android.settings.DISPLAY_SETTINGS", Settings.ACTION_SETTINGS};
+        for (String a : tries) {
+            try { closeMenu(); startActivity(new Intent(a).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return; } catch (Throwable ignored) {}
+        }
+        Toast.makeText(this, "Open Settings › Device Preferences › Screen saver and pick Horizon", Toast.LENGTH_LONG).show();
+    }
+
+    private TextView menuLabel(String t) {
+        TextView v = V.dim(V.caps(this, t, 8, V.TEXT), 0.55f);
+        v.setLetterSpacing(0.12f);
+        v.setPadding(0, 0, 0, V.dp(6));
+        return v;
+    }
+
+    private LinearLayout menuButton(int icon, String title, String sub, Runnable r) {
+        final LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(V.dp(9), 0, V.dp(12), 0);
+        row.setFocusable(true);
+        row.setFocusableInTouchMode(true);
+        row.setBackground(V.shape(V.GLASS, 14, V.LINE));
+        FrameLayout tile = new FrameLayout(this);
+        tile.setBackground(V.shape(0x22FFFFFF, 9, 0));
+        Icon ic = new Icon(this, icon);
+        tile.addView(ic, new FrameLayout.LayoutParams(V.dp(15), V.dp(15), Gravity.CENTER));
+        row.addView(tile, new LinearLayout.LayoutParams(V.dp(28), V.dp(28)));
+        LinearLayout tx = U.col(this);
+        tx.addView(V.text(this, title, 12, 700, V.TEXT));
+        if (sub != null) tx.addView(V.dim(V.text(this, sub, 9, 500, V.TEXT), 0.6f));
+        row.addView(tx, lp(U.WRAP, U.WRAP, 10, 0, 0, 0));
+        V.tint(row, V.TEXT);
+        row.setOnFocusChangeListener((v, has) -> {
+            row.setBackground(has ? V.shape(V.TEXT, 14, 0) : V.shape(V.GLASS, 14, V.LINE));
+            tile.setBackground(V.shape(has ? 0x22000000 : 0x22FFFFFF, 9, 0));
+            V.tint(row, has ? V.INK : V.TEXT);
+        });
+        row.setOnClickListener(v -> r.run());
+        return row;
+    }
+
+    private View toggleButton(int icon, String title, String key, boolean def) {
+        final LinearLayout row = menuButton(icon, title, null, () -> {});
+        final TextView state = V.text(this, "", 10, 800, V.TEXT);
+        final Runnable paint = () -> state.setText(prefs.getBoolean(key, def) ? "ON" : "OFF");
+        paint.run();
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(state);
+        V.tint(row, V.TEXT);
+        row.setOnClickListener(v -> {
+            prefs.edit().putBoolean(key, !prefs.getBoolean(key, def)).apply();
+            paint.run();
+            if ("weather".equals(key)) loadWeather();
+        });
+        return row;
+    }
+
+    private LinearLayout chipRow(String[] labels, int selected, java.util.function.IntConsumer onPick) {
+        final LinearLayout row = U.row(this);
+        final TextView[] chips = new TextView[labels.length];
+        final int[] sel = {selected};
+        final Runnable paint = () -> {
+            for (int i = 0; i < chips.length; i++) {
+                boolean on = i == sel[0];
+                if (!chips[i].hasFocus()) {
+                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.GLASS, 15, V.LINE));
+                    chips[i].setTextColor(V.TEXT);
+                }
+            }
+        };
+        for (int i = 0; i < labels.length; i++) {
+            final int idx = i;
+            final TextView c = V.text(this, labels[i], 10, 700, V.TEXT);
+            c.setGravity(Gravity.CENTER);
+            c.setFocusable(true);
+            c.setFocusableInTouchMode(true);
+            chips[i] = c;
+            c.setOnFocusChangeListener((v, has) -> {
+                if (has) { c.setBackground(V.shape(V.TEXT, 15, 0)); c.setTextColor(V.INK); }
+                else paint.run();
+            });
+            c.setOnClickListener(v -> { sel[0] = idx; onPick.accept(idx); paint.run(); c.setBackground(V.shape(V.TEXT, 15, 0)); c.setTextColor(V.INK); });
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, U.MATCH, 1f);
+            p.rightMargin = i < labels.length - 1 ? V.dp(5) : 0;
+            row.addView(c, p);
+        }
+        paint.run();
+        return row;
+    }
+
+    private LinearLayout themeRow() {
+        final LinearLayout row = U.row(this);
+        String cur = prefs.getString("theme", "ember");
+        for (final String[] t : V.THEMES) {
+            final boolean on = t[0].equals(cur);
+            final int acc = Color.parseColor(t[3]);
+            final View b = new View(this);
+            b.setFocusable(true);
+            b.setFocusableInTouchMode(true);
+            b.setContentDescription(t[1]);
+            final android.graphics.drawable.GradientDrawable idle = new android.graphics.drawable.GradientDrawable();
+            idle.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            idle.setColor(acc);
+            idle.setStroke(V.dp(on ? 2.5f : 1), on ? V.TEXT : 0x55FFFFFF);
+            b.setBackground(idle);
+            b.setOnFocusChangeListener((v, has) -> {
+                b.animate().scaleX(has ? 1.25f : 1f).scaleY(has ? 1.25f : 1f).setDuration(140).start();
+                android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+                g.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                g.setColor(acc);
+                g.setStroke(V.dp(has ? 3 : on ? 2.5f : 1), has || on ? V.TEXT : 0x55FFFFFF);
+                b.setBackground(g);
+            });
+            b.setOnClickListener(v -> { reopenMenu = true; prefs.edit().putString("theme", t[0]).apply(); });
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(V.dp(24), V.dp(24));
+            p.rightMargin = V.dp(9);
+            p.topMargin = V.dp(4);
+            row.addView(b, p);
+        }
+        return row;
     }
 
     // ------------------------------------------------------------------ privacy panel (NextDNS)
@@ -1411,6 +1601,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
     private void updatePrivacy() {
+        if (privacyIcon == null) return;
         boolean on = nextDnsOn();
         privacyIcon.setType(on ? Icon.SHIELD : Icon.SHIELD_OFF);
         NextDnsStats.Stats st = NextDnsStats.cached();
