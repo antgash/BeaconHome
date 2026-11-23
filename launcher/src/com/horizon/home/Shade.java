@@ -14,39 +14,79 @@ import java.util.Random;
  * Two layers crossfade when the glow colour changes.
  */
 final class Shade extends FrameLayout {
-    private final ImageView a, b;
+    private final ImageView base, a, b;
     private boolean showingA = true;
     private Integer lastGlow = -1;
     private int lastBg;
+    private boolean haveBase;
+    private int seq;
 
     Shade(Context c) {
         super(c);
+        base = new ImageView(c);
         a = new ImageView(c);
         b = new ImageView(c);
-        for (ImageView iv : new ImageView[] {a, b}) {
+        for (ImageView iv : new ImageView[] {base, a, b}) {
             iv.setScaleType(ImageView.ScaleType.FIT_XY);
             addView(iv, new LayoutParams(U.MATCH, U.MATCH));
         }
+        a.setAlpha(0f);
         b.setAlpha(0f);
     }
 
+    /**
+     * The dark fades are baked once per background colour and never move. Only the colour glow is a separate
+     * layer that cross-fades, so the picture never dips darker mid-change (two see-through fades stacked
+     * double the darkness until the old one goes).
+     */
     void set(final int bg, final Integer glow) {
-        if (glow == null ? lastGlow == null : glow.equals(lastGlow)) { if (bg == lastBg) return; }
+        final boolean newBg = !haveBase || bg != lastBg;
+        final boolean newGlow = !(glow == null ? lastGlow == null : glow.equals(lastGlow));
+        if (!newBg && !newGlow) return;
         lastGlow = glow;
         lastBg = bg;
+        haveBase = true;
+        final int tk = ++seq;
         final int w = Math.max(320, U.W / 2), h = Math.max(180, U.H / 2);
         U.IO.execute(() -> {
-            final Bitmap bm = bake(w, h, bg, glow);
+            final Bitmap bb = newBg ? bake(w, h, bg, null) : null;
+            final Bitmap gb = newGlow && glow != null ? bakeGlow(w, h, glow) : null;
             U.MAIN.post(() -> {
+                if (bb != null) base.setImageBitmap(bb);
+                if (!newGlow || tk != seq) return;
                 ImageView in = showingA ? b : a, out = showingA ? a : b;
-                in.setImageBitmap(bm);
-                in.animate().cancel();
-                in.setAlpha(0f);
-                in.bringToFront();
-                in.animate().alpha(1f).setDuration(500).withEndAction(() -> { out.setAlpha(0f); out.setImageDrawable(null); }).start();
                 showingA = !showingA;
+                in.animate().cancel();
+                out.animate().cancel();
+                if (gb != null) {
+                    in.setImageBitmap(gb);
+                    in.setAlpha(0f);
+                    in.animate().alpha(1f).setDuration(500).start();
+                }
+                final ImageView o = out;
+                out.animate().alpha(0f).setDuration(500).withEndAction(() -> { if (o.getAlpha() == 0f) o.setImageDrawable(null); }).start();
             });
         });
+    }
+
+    /** Just the glow (colour with its own soft alpha), to sit over the fades. */
+    static Bitmap bakeGlow(int w, int h, int glow) {
+        int[] px = new int[w * h];
+        Random rnd = new Random(7);
+        float cx = w * 0.18f, cy = h * 1.02f, radius = w * 0.62f;
+        int R = Color.red(glow), G = Color.green(glow), B = Color.blue(glow);
+        for (int y = 0; y < h; y++) {
+            float dy = y - cy;
+            for (int x = 0; x < w; x++) {
+                float dx = x - cx;
+                float ga = ramp((float) Math.sqrt(dx * dx + dy * dy) / radius, G_STOPS, G_ALPHA);
+                int A = Math.max(0, Math.min(255, (int) (ga * 255f + rnd.nextFloat() - 0.5f)));
+                px[y * w + x] = (A << 24) | (R << 16) | (G << 8) | B;
+            }
+        }
+        Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        bm.setPixels(px, 0, w, 0, 0, w, h);
+        return bm;
     }
 
     private static float ramp(float t, float[] stops, float[] values) {

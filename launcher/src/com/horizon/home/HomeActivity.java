@@ -213,6 +213,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         super.onNewIntent(intent);
         applyIntentExtras(intent);
         // `started` is false while another app covers Home, so true here = Home pressed on Home.
+        endRearrange(false);
         boolean alreadyHome = started;
         if (ambient) exitAmbient(true);
         if (alreadyHome) focusFirstApp(); else focusDefault();
@@ -237,6 +238,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             return true;
         }
         if (swallowUp && e.getAction() == KeyEvent.ACTION_UP) { swallowUp = false; return true; }
+        if (rearrangeView != null && handleRearrangeKey(e)) return true;
         if (!menuOpen && e.getAction() == KeyEvent.ACTION_DOWN && (e.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP || e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN)
                 && moveBetweenRows(e.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : -1)) return true;
         if (wall != null && e.getAction() == KeyEvent.ACTION_DOWN) {
@@ -1401,21 +1403,99 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    // ------------------------------------------------------------------ rearrange (apps and streaming tiles)
+
+    private View rearrangeView;
+    private LinearLayout rearrangeRow;
+    private long rearrangeAt;
+
+    private boolean movable(View c) {
+        return c != null && c.getTag() instanceof String && !"+".equals(c.getTag());
+    }
+
+    /** Pick the tile up: Left/Right slide it along its row, OK puts it down, Back puts everything back. */
+    private void startRearrange(LinearLayout row, final String tag) {
+        View target = null;
+        for (int i = 0; i < row.getChildCount(); i++) if (tag.equals(row.getChildAt(i).getTag())) target = row.getChildAt(i);
+        if (target == null) return;
+        rearrangeRow = row;
+        rearrangeView = target;
+        rearrangeAt = System.currentTimeMillis();
+        target.requestFocus();
+        liftTile(target, true);
+        Toast.makeText(this, "Left / Right to move \u00b7 OK to place", Toast.LENGTH_LONG).show();
+    }
+
+    private void liftTile(final View v, boolean up) {
+        v.animate().cancel();
+        v.animate().scaleX(up ? 1.18f : 1.08f).scaleY(up ? 1.18f : 1.08f).translationY(up ? -V.dpf(5) : 0).setDuration(150).start();
+    }
+
+    private boolean handleRearrangeKey(KeyEvent e) {
+        int k = e.getKeyCode();
+        boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
+        if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (down) slideTile(k == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1);
+            return true;
+        }
+        if (k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN) return true;
+        if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER || k == KeyEvent.KEYCODE_BUTTON_A) {
+            // the OK press that chose "Rearrange" is still ending: ignore it
+            if (!down && System.currentTimeMillis() - rearrangeAt > 450) endRearrange(true);
+            return true;
+        }
+        if (k == KeyEvent.KEYCODE_BACK) {
+            if (!down) endRearrange(false);
+            return true;
+        }
+        return false;
+    }
+
+    private void slideTile(int dir) {
+        LinearLayout row = rearrangeRow;
+        View v = rearrangeView;
+        int i = row.indexOfChild(v), j = i + dir;
+        if (j < 0 || j >= row.getChildCount() || !movable(row.getChildAt(j))) return;
+        ViewGroup.LayoutParams lp = v.getLayoutParams();
+        row.removeView(v);
+        row.addView(v, j, lp);
+        v.requestFocus();
+        liftTile(v, true);
+    }
+
+    private void endRearrange(boolean save) {
+        final View v = rearrangeView;
+        final LinearLayout row = rearrangeRow;
+        if (v == null || row == null) return;
+        rearrangeView = null;
+        rearrangeRow = null;
+        final String tag = (String) v.getTag();
+        List<String> order = new ArrayList<>();
+        for (int i = 0; i < row.getChildCount(); i++) if (movable(row.getChildAt(i))) order.add((String) row.getChildAt(i).getTag());
+        if (save) {
+            if (row == svcRow) Streaming.setVisibleOrder(this, order);
+            else {
+                List<String> cur = Apps.pins(this, apps);
+                for (String p : cur) if (!order.contains(p)) order.add(p); // uninstalled pins stay, at the end
+                Apps.savePins(this, order);
+            }
+        }
+        // rebuild from what's saved (this also puts everything back when cancelled)
+        if (row == svcRow) { fillServices(); stopAtEdges(svcRow); } else { fillApps(); stopAtEdges(appsRow); }
+        U.MAIN.post(() -> {
+            for (int i = 0; i < row.getChildCount(); i++) if (tag.equals(row.getChildAt(i).getTag())) { row.getChildAt(i).requestFocus(); break; }
+        });
+    }
+
     private void svcMenu(final Streaming.Service sv) {
         List<Streaming.Service> l = Streaming.visible(this);
         int at = -1;
         for (int i = 0; i < l.size(); i++) if (l.get(i).key.equals(sv.key)) at = i;
         ActionSheet sheet = new ActionSheet(this, sv.name);
-        if (at > 0) sheet.add("Move left", Icon.LEFT, () -> moveService(sv.key, -1));
-        if (at >= 0 && at < l.size() - 1) sheet.add("Move right", Icon.RIGHT, () -> moveService(sv.key, +1));
+        if (l.size() > 1 && at >= 0) sheet.add("Rearrange", Icon.APPS, () -> startRearrange(svcRow, sv.key));
         final String next = at >= 0 && at + 1 < l.size() ? l.get(at + 1).key : at > 0 ? l.get(at - 1).key : null;
         sheet.add("Hide from Home", Icon.UNPIN, () -> { Streaming.setHidden(this, sv.key, true); refreshServices(next); });
         sheet.show();
-    }
-
-    private void moveService(final String key, int dir) {
-        Streaming.move(this, key, dir);
-        refreshServices(key);
     }
 
     private void addLiveTile(int tw, int th) {
@@ -1499,6 +1579,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             p.addView(ic, new LinearLayout.LayoutParams(V.dp(30), V.dp(30)));
             p.addView(V.text(this, a.label, 11.5f, 600, V.TEXT), lp(U.WRAP, U.WRAP, 10, 0, 0, 0));
             p.setContentDescription(a.label);
+            p.setTag(a.pkg);
             p.setOnClickListener(v -> Apps.launch(this, a));
             p.setOnLongClickListener(v -> { appMenu(a); return true; });
             p.setOnKeyListener((v, keyCode, ev) -> {
@@ -1539,8 +1620,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         int at = -1;
         for (int i = 0; i < pins.size(); i++) if (pins.get(i).pkg.equals(a.pkg)) at = i;
         ActionSheet sheet = new ActionSheet(this, a.label).add("Open", Icon.PLAY, () -> Apps.launch(this, a));
-        if (at > 0) sheet.add("Move left", Icon.LEFT, () -> Apps.movePin(this, apps, a.pkg, -1));
-        if (at >= 0 && at < pins.size() - 1) sheet.add("Move right", Icon.RIGHT, () -> Apps.movePin(this, apps, a.pkg, +1));
+        if (pins.size() > 1 && at >= 0) sheet.add("Rearrange", Icon.APPS, () -> startRearrange(appsRow, a.pkg));
         sheet.add("Unpin from Home", Icon.UNPIN, () -> Apps.unpin(this, apps, a.pkg));
         sheet.show();
     }

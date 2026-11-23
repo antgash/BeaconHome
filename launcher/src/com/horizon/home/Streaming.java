@@ -156,6 +156,19 @@ final class Streaming {
         return out;
     }
 
+    /** Saves a new order for the tiles shown on Home; hidden tiles keep their place in the full list. */
+    static void setVisibleOrder(Context c, List<String> keys) {
+        List<Service> all = ordered(c);
+        Set<String> h = hidden(c);
+        int n = 0;
+        StringBuilder sb = new StringBuilder();
+        for (Service s : all) {
+            String k = h.contains(s.key) || n >= keys.size() ? s.key : keys.get(n++);
+            sb.append(sb.length() > 0 ? "|" : "").append(k);
+        }
+        U.prefs(c).edit().putString("svc_order", sb.toString()).apply();
+    }
+
     static void move(Context c, String key, int dir) {
         List<Service> l = ordered(c);
         Set<String> h = hidden(c);
