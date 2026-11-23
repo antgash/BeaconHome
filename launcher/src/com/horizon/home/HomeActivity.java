@@ -1710,7 +1710,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 stopAtEdges(cwRow);
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
-                if (switched) { scrollCwToStart(); flashCw(); }
+                if (switched) { rowMemory[0] = 0; scrollCwToStart(); flashCw(); } // row 0 is Continue watching: forget the old place
                 if (onCw || getCurrentFocus() == null) focusDefault();
             };
             U.MAIN.post(show);
