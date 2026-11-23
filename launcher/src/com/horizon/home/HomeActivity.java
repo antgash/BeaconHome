@@ -306,7 +306,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void build() {
         mode = U.mode(this);
         EDGE = V.edge(this);
-        wallArt = null; panel = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
+        wallArt = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
         root.removeAllViews();
         root.setBackgroundColor(V.BG);
         player = null;
