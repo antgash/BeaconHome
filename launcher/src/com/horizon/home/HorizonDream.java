@@ -36,6 +36,8 @@ public class HorizonDream extends DreamService {
                 final List<Nuvio.Item> pool = new ArrayList<>(r.continueWatching);
                 pool.addAll(r.picks);
                 U.MAIN.post(() -> { if (view != null) view.setItems(pool); });
+                final List<Nuvio.Item> more = Streaming.ambientExtras(app, 5, 8);
+                U.MAIN.post(() -> { if (view != null) view.addItems(more); });
             } catch (Throwable ignored) {}
         });
     }

@@ -11,7 +11,7 @@ import android.view.View;
 final class Icon extends View {
     static final int WIFI = 1, WIFI_OFF = 2, ETHERNET = 3, HDMI = 4, GEAR = 5, SLIDERS = 6, WALL = 7,
             SEARCH = 8, PLAY = 9, INFO = 10, PREV = 11, NEXT = 12, EYE = 13, APPS = 14, CHECK = 15, NUVIO = 16,
-            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29;
+            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30;
 
     private int type;
     private int level = 4;
@@ -185,6 +185,10 @@ final class Icon extends View {
             case LEFT:
                 path.reset(); path.moveTo(15, 6); path.lineTo(9, 12); path.lineTo(15, 18);
                 c.drawPath(path, p);
+                break;
+            case PLUS:
+                c.drawLine(12, 5, 12, 19, p);
+                c.drawLine(5, 12, 19, 12, p);
                 break;
             case RIGHT:
                 path.reset(); path.moveTo(9, 6); path.lineTo(15, 12); path.lineTo(9, 18);

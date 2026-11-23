@@ -125,6 +125,19 @@ final class AmbientView extends FrameLayout {
         if (running && wasEmpty && !items.isEmpty()) { U.MAIN.removeCallbacks(next); U.MAIN.post(next); }
     }
 
+    /** Adds more titles to the slideshow, mixed in among those still to come. */
+    void addItems(List<Nuvio.Item> more) {
+        Set<String> seen = new HashSet<>();
+        for (Nuvio.Item it : items) seen.add(String.valueOf(it.title));
+        List<Nuvio.Item> add = new ArrayList<>();
+        for (Nuvio.Item it : more) if (!TextUtils.isEmpty(it.art()) && seen.add(String.valueOf(it.title))) add.add(it);
+        if (add.isEmpty()) return;
+        boolean wasEmpty = items.isEmpty();
+        items.addAll(add);
+        if (idx < items.size()) Collections.shuffle(items.subList(idx, items.size()));
+        if (running && wasEmpty) { U.MAIN.removeCallbacks(next); U.MAIN.post(next); }
+    }
+
     void start() {
         running = true;
         wall.resume();

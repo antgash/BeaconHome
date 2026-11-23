@@ -60,6 +60,8 @@ final class ActionSheet {
         col.addView(t, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
 
         View first = null;
+        final LinearLayout list = new LinearLayout(act);
+        list.setOrientation(LinearLayout.VERTICAL);
         for (int i = 0; i < labels.size(); i++) {
             final Runnable run = actions.get(i);
             final LinearLayout row = new LinearLayout(act);
@@ -83,8 +85,16 @@ final class ActionSheet {
             row.setOnClickListener(v -> { d.dismiss(); run.run(); });
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(U.MATCH, V.dp(34));
             rp.topMargin = V.dp(4);
-            col.addView(row, rp);
+            list.addView(row, rp);
             if (first == null) first = row;
+        }
+        if (labels.size() > 7) {
+            android.widget.ScrollView sv = new android.widget.ScrollView(act);
+            sv.setVerticalScrollBarEnabled(false);
+            sv.addView(list);
+            col.addView(sv, new LinearLayout.LayoutParams(U.MATCH, V.dp(7 * 38 + 4)));
+        } else {
+            col.addView(list, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
         }
         d.setContentView(col, new android.view.ViewGroup.LayoutParams(V.dp(220), U.WRAP));
 

@@ -132,18 +132,72 @@ final class Streaming {
         return out;
     }
 
+    static Set<String> hidden(Context c) {
+        Set<String> out = new HashSet<>();
+        for (String k : U.prefs(c).getString("svc_hidden", "").split("\\|")) if (!k.isEmpty()) out.add(k);
+        return out;
+    }
+
+    static void setHidden(Context c, String key, boolean hide) {
+        Set<String> h = hidden(c);
+        if (hide) h.add(key); else h.remove(key);
+        StringBuilder sb = new StringBuilder();
+        for (String k : h) sb.append(sb.length() > 0 ? "|" : "").append(k);
+        U.prefs(c).edit().putString("svc_hidden", sb.toString()).apply();
+    }
+
+    static void showAll(Context c) { U.prefs(c).edit().putString("svc_hidden", "").apply(); }
+
+    /** Tiles shown on Home, in order. */
+    static List<Service> visible(Context c) {
+        Set<String> h = hidden(c);
+        List<Service> out = new ArrayList<>();
+        for (Service s : ordered(c)) if (!h.contains(s.key)) out.add(s);
+        return out;
+    }
+
     static void move(Context c, String key, int dir) {
         List<Service> l = ordered(c);
+        Set<String> h = hidden(c);
         int i = -1;
         for (int k = 0; k < l.size(); k++) if (l.get(k).key.equals(key)) i = k;
+        if (i < 0) return;
         int j = i + dir;
-        if (i < 0 || j < 0 || j >= l.size()) return;
+        while (j >= 0 && j < l.size() && h.contains(l.get(j).key)) j += dir; // hop over hidden tiles
+        if (j < 0 || j >= l.size()) return;
         Service t = l.get(i);
         l.set(i, l.get(j));
         l.set(j, t);
         StringBuilder sb = new StringBuilder();
         for (Service s : l) sb.append(sb.length() > 0 ? "|" : "").append(s.key);
         U.prefs(c).edit().putString("svc_order", sb.toString()).apply();
+    }
+
+    /**
+     * A handful of titles from some of the streaming services' own lists (Top Movies, Top Series, ...), for the
+     * screensaver. Blocks on the network the first time; call it off the main thread.
+     */
+    static List<Nuvio.Item> ambientExtras(Context c, int services, int perService) {
+        List<Service> pool = new ArrayList<>();
+        for (Service s : visible(c)) if (canBrowse(c, s)) pool.add(s);
+        java.util.Collections.shuffle(pool);
+        List<Nuvio.Item> out = new ArrayList<>();
+        for (int n = 0; n < pool.size() && n < services; n++) {
+            Service s = pool.get(n);
+            try {
+                List<Nuvio.Item> mine = new ArrayList<>();
+                for (Row row : loadSync(c, s.key)) {
+                    for (Nuvio.Item it : row.items) {
+                        if (TextUtils.isEmpty(it.art())) continue;
+                        if (TextUtils.isEmpty(it.channel)) it.channel = s.name + " \u00b7 " + row.title;
+                        mine.add(it);
+                    }
+                }
+                java.util.Collections.shuffle(mine);
+                out.addAll(mine.subList(0, Math.min(perService, mine.size())));
+            } catch (Throwable ignored) {}
+        }
+        return out;
     }
 
     /** The series' own landscape wallpaper from the public Cinemeta catalogue ("" when there is no exact match). */

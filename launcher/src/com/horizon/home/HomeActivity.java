@@ -306,7 +306,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void build() {
         mode = U.mode(this);
         EDGE = V.edge(this);
-        panel = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
+        wallArt = null; panel = null; memPanel = null; scrim = null; menuPanel = null; menuHost = null; menuOpen = false;
         root.removeAllViews();
         root.setBackgroundColor(V.BG);
         player = null;
@@ -1024,9 +1024,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             final boolean first = wall == null || !wall.hasImage();
             U.MAIN.postDelayed(() -> {
                 if (token != heroToken) return;
+                if (art.equals(wallArt) && !first) return; // same picture already up: don't fade or re-zoom it
                 Img.load(this, art, WALL_W, bm -> {
                     if (token != heroToken || bm == null) return;
+                    if (art.equals(wallArt) && !first) return;
                     if (wall != null) {
+                        wallArt = art;
                         wall.show(bm);
                         if (root.getBackground() != null) root.setBackground(null); // the picture covers the screen now
                     }
@@ -1300,7 +1303,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         svcRow.removeAllViews();
         int th = V.dp(63), tw = V.dp(112);
         addLiveTile(tw, th);
-        for (final Streaming.Service sv : Streaming.ordered(this)) {
+        for (final Streaming.Service sv : Streaming.visible(this)) {
             final FrameLayout t = new FrameLayout(this);
             t.setTag(sv.key);
             t.setOnLongClickListener(v -> { svcMenu(sv); return true; });
@@ -1342,28 +1345,77 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             t.setOnClickListener(v -> openService(sv.key));
             addToRow(svcRow, t);
         }
+        if (!Streaming.hidden(this).isEmpty()) addPlusTile(tw, th);
+    }
+
+    private void addPlusTile(int tw, int th) {
+        final FrameLayout t = new FrameLayout(this);
+        t.setTag("+");
+        t.setFocusable(true);
+        t.setFocusableInTouchMode(true);
+        t.setLayoutParams(new LinearLayout.LayoutParams(tw, th));
+        V.round(t, 12);
+        t.setBackground(V.shape(V.GLASS, 12, V.LINE));
+        Icon plus = new Icon(this, Icon.PLUS);
+        plus.setColor(V.TEXT);
+        t.addView(plus, new FrameLayout.LayoutParams(V.dp(22), V.dp(22), Gravity.CENTER));
+        final View ring = new View(this);
+        GradientDrawable rg = V.shape(0, 11, 0);
+        rg.setStroke(V.dp(2), V.TEXT);
+        ring.setBackground(new android.graphics.drawable.InsetDrawable(rg, V.dp(1)));
+        ring.setAlpha(0f);
+        t.addView(ring, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        t.setContentDescription("Add streaming services back");
+        t.setOnFocusChangeListener((v, has) -> {
+            t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
+                    .setDuration(170).setInterpolator(new DecelerateInterpolator()).start();
+            ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
+        });
+        t.setOnClickListener(v -> hiddenMenu());
+        addToRow(svcRow, t);
+    }
+
+    private void hiddenMenu() {
+        final List<Streaming.Service> hid = new ArrayList<>();
+        java.util.Set<String> h = Streaming.hidden(this);
+        for (Streaming.Service s : Streaming.ordered(this)) if (h.contains(s.key)) hid.add(s);
+        if (hid.isEmpty()) return;
+        ActionSheet sheet = new ActionSheet(this, "Add back to Home");
+        if (hid.size() > 1) sheet.add("Add all", Icon.PLUS, () -> { Streaming.showAll(this); refreshServices(null); });
+        for (final Streaming.Service s : hid) sheet.add(s.name, Icon.PLUS, () -> { Streaming.setHidden(this, s.key, false); refreshServices(s.key); });
+        sheet.show();
+    }
+
+    /** Rebuilds the streaming row and puts focus on the tile with this key (or the first tile). */
+    private void refreshServices(final String focusKey) {
+        fillServices();
+        stopAtEdges(svcRow);
+        U.MAIN.post(() -> {
+            View target = null;
+            for (int i = 0; i < svcRow.getChildCount(); i++) {
+                View c = svcRow.getChildAt(i);
+                if (focusKey != null && focusKey.equals(c.getTag())) { target = c; break; }
+            }
+            if (target == null && svcRow.getChildCount() > 0) target = svcRow.getChildAt(0);
+            if (target != null) target.requestFocus();
+        });
     }
 
     private void svcMenu(final Streaming.Service sv) {
-        List<Streaming.Service> l = Streaming.ordered(this);
+        List<Streaming.Service> l = Streaming.visible(this);
         int at = -1;
         for (int i = 0; i < l.size(); i++) if (l.get(i).key.equals(sv.key)) at = i;
         ActionSheet sheet = new ActionSheet(this, sv.name);
         if (at > 0) sheet.add("Move left", Icon.LEFT, () -> moveService(sv.key, -1));
         if (at >= 0 && at < l.size() - 1) sheet.add("Move right", Icon.RIGHT, () -> moveService(sv.key, +1));
+        final String next = at >= 0 && at + 1 < l.size() ? l.get(at + 1).key : at > 0 ? l.get(at - 1).key : null;
+        sheet.add("Hide from Home", Icon.UNPIN, () -> { Streaming.setHidden(this, sv.key, true); refreshServices(next); });
         sheet.show();
     }
 
     private void moveService(final String key, int dir) {
         Streaming.move(this, key, dir);
-        fillServices();
-        stopAtEdges(svcRow);
-        U.MAIN.post(() -> {
-            for (int i = 0; i < svcRow.getChildCount(); i++) {
-                View c = svcRow.getChildAt(i);
-                if (key.equals(c.getTag())) { c.requestFocus(); break; }
-            }
-        });
+        refreshServices(key);
     }
 
     private void addLiveTile(int tw, int th) {
@@ -1572,6 +1624,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     // ================================================================== ambient
 
     private AmbientView ambientView;
+    private String wallArt;
 
     private void enterAmbient() {
         if (ambient) return;
@@ -1591,6 +1644,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (nr != null) {
             final Nuvio.Result fr = nr;
             U.IO.execute(() -> {
+                final List<Nuvio.Item> more = Streaming.ambientExtras(getApplicationContext(), 5, 8);
+                U.MAIN.post(() -> { if (ambientView == av) av.addItems(more); });
                 if (Nuvio.applyWallpapers(getApplicationContext(), fr, true) > 0) U.MAIN.post(() -> {
                     if (ambientView == av) {
                         List<Nuvio.Item> p2 = new ArrayList<>(fr.continueWatching);

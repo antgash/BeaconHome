@@ -58,15 +58,24 @@ final class HeroWall extends FrameLayout implements Glass.Source {
         n.animate().alpha(1f).setDuration(fd).start();
         if (drift[next] != null) drift[next].cancel();
         flip++;
-        n.setScaleX(1f);
-        n.setScaleY(1f);
-        n.setTranslationX(0);
-        n.setTranslationY(0);
-        driftView = n;
-        driftStart = System.currentTimeMillis() + 3000; // rest on the picture a moment first
-        removeCallbacks(driftTick);
-        postDelayed(driftTick, 3000);
         final int old = front;
+        if (old >= 0) {
+            // Start exactly where the old picture is, so the cross-fade never jumps or re-zooms.
+            ImageView o0 = iv[old];
+            n.setScaleX(o0.getScaleX());
+            n.setScaleY(o0.getScaleY());
+            n.setTranslationX(o0.getTranslationX());
+            n.setTranslationY(o0.getTranslationY());
+        } else {
+            n.setScaleX(1f);
+            n.setScaleY(1f);
+            n.setTranslationX(0);
+            n.setTranslationY(0);
+            driftStart = System.currentTimeMillis();
+        }
+        driftView = n;
+        removeCallbacks(driftTick);
+        if (!paused) post(driftTick);
         front = next;
         if (old >= 0) {
             final ImageView o = iv[old];
