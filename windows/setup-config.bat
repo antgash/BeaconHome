@@ -18,8 +18,6 @@ echo !IP! | find ":" >nul || set "IP=!IP!:5555"
 set /p NAME=Your first name for the greeting (optional, Enter to skip): 
 set /p TMDB_KEY=TMDB API key (optional, Enter to skip): 
 set /p LIVETV=Your Live TV addon link (optional, Enter to skip): 
-set /p NEXTDNS_ID=NextDNS profile ID (optional, Enter to skip): 
-set /p NEXTDNS_KEY=NextDNS API key (optional, Enter to skip): 
 if defined LIVETV set "LIVETV=!LIVETV:/manifest.json=!"
 (
   echo @echo off
@@ -27,8 +25,6 @@ if defined LIVETV set "LIVETV=!LIVETV:/manifest.json=!"
   echo set "NAME=!NAME!"
   echo set "TMDB_KEY=!TMDB_KEY!"
   echo set "LIVETV=!LIVETV!"
-  echo set "NEXTDNS_ID=!NEXTDNS_ID!"
-  echo set "NEXTDNS_KEY=!NEXTDNS_KEY!"
 ) > config.bat
 echo.
 echo Saved to config.bat.

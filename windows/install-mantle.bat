@@ -33,8 +33,6 @@ set "X="
 if not "%NAME%"=="" set X=%X% --es name "%NAME%"
 if not "%TMDB_KEY%"=="" set X=%X% --es tmdb "%TMDB_KEY%"
 if not "%LIVETV%"=="" set X=%X% --es livetv "%LIVETV%"
-if not "%NEXTDNS_ID%"=="" set X=%X% --es nextdns_id "%NEXTDNS_ID%"
-if not "%NEXTDNS_KEY%"=="" set X=%X% --es nextdns_key "%NEXTDNS_KEY%"
 "%ADB%" -s %IP% shell am start -n %P%/.HomeActivity %X% >nul
 echo Done. Press Home on the remote.
 echo To go back to the original home screen any time, run use-original-home.bat.

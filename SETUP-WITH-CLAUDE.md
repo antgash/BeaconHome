@@ -23,7 +23,6 @@ Ask the user, in one message:
   - **A. Mantle** — the ad-free home screen (with the Live TV guide)
   - **B. Live TV addon** for Nuvio (their own free Cloudflare Worker)
   - **C. Nuvio setup** — the addon list and the Home layout
-  - **D. Ad blocking** (NextDNS, optional)
   - **E. Speed tweaks** (shorter animations, Google TV recommendations off)
   - **F. XGIMI power button** (full shutdown so the logo shows on every start) — XGIMI only
 - Their first name for the greeting (optional).
@@ -42,12 +41,10 @@ Ask the user, in one message:
 | Key | Needed for | How the user gets it |
 |---|---|---|
 | TMDB API key (v3) | A — streaming-service pages, logos | https://www.themoviedb.org/settings/api (free) |
-| NextDNS profile ID | D | https://my.nextdns.io → new profile → the 6-character ID |
-| NextDNS API key | A — "ads blocked today" counter (optional) | my.nextdns.io → Account → API |
 | Cloudflare account | B | https://dash.cloudflare.com (free), user verifies their email |
 | Nuvio account | B, C | they already have one |
 
-Write them into `windows/config.bat` (`TMDB_KEY`, `NEXTDNS_ID`, `NEXTDNS_KEY`, `NAME`). Nothing else.
+Write them into `windows/config.bat` (`TMDB_KEY`, `NAME`). Nothing else.
 
 ## 3. Live TV addon (B)
 
@@ -73,7 +70,6 @@ What the user gets is described in the README. The Live TV tile is the first til
 
 ## 6. Optional tweaks
 
-- D: `ad-block-on.bat` (undo `ad-block-off.bat`)
 - E: `speed-up.bat` (undo `undo-speed-up.bat`)
 - F: `xgimi-power-full-off.bat` (undo `xgimi-power-standby.bat`)
 

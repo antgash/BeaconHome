@@ -247,10 +247,6 @@ public class SettingsActivity extends Activity {
 
     private static final String TVLAUNCHER = "com.google.android.tvlauncher", TVREC = "com.google.android.tvrecommendations";
 
-    private boolean dnsOn() {
-        return "hostname".equals(Settings.Global.getString(getContentResolver(), "private_dns_mode"));
-    }
-
     private boolean fullOff() {
         return Settings.System.getInt(getContentResolver(), "power_key_definition", 0) == 1;
     }

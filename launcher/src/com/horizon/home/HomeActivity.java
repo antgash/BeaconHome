@@ -67,7 +67,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private Shade shade;
 
     // top bar
-    private TextView clock, weatherText, privacyText, memText;
+    private TextView clock, weatherText, memText;
     private FrameLayout memBar;
     private View memFill;
     private final Runnable memTick = new Runnable() {
@@ -76,7 +76,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (started) U.MAIN.postDelayed(this, 15000);
         }
     };
-    private Icon weatherIcon, wifiIcon, privacyIcon;
+    private Icon weatherIcon, wifiIcon;
 
     // hero
     private LinearLayout hero;
@@ -274,9 +274,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (i == null) return;
         String m = i.getStringExtra("mode");
         if (U.MODE_NUVIO.equals(m) || U.MODE_SCENES.equals(m)) U.prefs(this).edit().putString(U.P_MODE, m).apply();
-        String nid = i.getStringExtra("nextdns_id"), nkey = i.getStringExtra("nextdns_key");
-        if (nid != null) U.prefs(this).edit().putString("nextdns_id", nid.trim()).apply();
-        if (nkey != null) U.prefs(this).edit().putString("nextdns_key", nkey.trim()).apply();
         String os = i.getStringExtra("open_service");
         if (os != null) startActivity(new Intent(this, ServiceActivity.class).putExtra("service", os));
         String tk = i.getStringExtra("tmdb");
@@ -711,45 +708,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return row;
     }
 
-    // ------------------------------------------------------------------ privacy panel (NextDNS)
-
-    private LinearLayout panel;
     private View scrim, topBar;
-    private final Runnable openPanel = this::showPanel;
-
-    private void showPanel() {
-        if (panel == null) {
-            panel = U.col(this);
-            panel.setPadding(V.dp(16), V.dp(16), V.dp(16), V.dp(16));
-            panel.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.16f), 0.98f), 20, 0x40FFFFFF));
-            FrameLayout.LayoutParams lp = U.flp(V.dp(330), U.WRAP, Gravity.TOP | Gravity.END);
-            lp.topMargin = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
-            lp.rightMargin = V.dp(EDGE + 3 * 39);
-            if (scrim == null) {
-                scrim = new View(this);
-                scrim.setBackgroundColor(0x8C000000);
-                scrim.setAlpha(0f);
-                ui.addView(scrim, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-            }
-            ui.addView(panel, lp);
-            panel.setAlpha(0f);
-        }
-        scrim.bringToFront();
-        topBar.bringToFront();
-        panel.bringToFront();
-        scrim.animate().cancel();
-        scrim.animate().alpha(1f).setDuration(200).start();
-        fillPanel(NextDnsStats.cached());
-        panel.animate().cancel();
-        panel.setTranslationY(-V.dpf(12));
-        panel.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
-        if (NextDnsStats.configured(this)) {
-            U.IO.execute(() -> {
-                final NextDnsStats.Stats st = NextDnsStats.load(getApplicationContext());
-                U.MAIN.post(() -> { if (panel != null && panel.getAlpha() > 0) fillPanel(st); updatePrivacy(); });
-            });
-        }
-    }
 
     // ------------------------------------------------------------------ memory panel
 
@@ -869,109 +828,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         String foot = note != null ? note : "OK closes background apps you aren't using \u00b7 grey = Android itself";
         memPanel.addView(V.dim(V.text(this, foot, 8.5f, 500, V.TEXT), note != null ? 0.9f : 0.5f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-    }
-
-    private void hidePanel() {
-        if (scrim != null) { scrim.animate().cancel(); scrim.animate().alpha(0f).setDuration(120).start(); }
-        if (panel != null) panel.animate().alpha(0f).translationY(-V.dpf(12)).setDuration(120).withLayer().start();
-    }
-
-    private void fillPanel(NextDnsStats.Stats st) {
-        panel.removeAllViews();
-        boolean on = nextDnsOn();
-        LinearLayout head = U.row(this);
-        FrameLayout badge = new FrameLayout(this);
-        badge.setBackground(V.shape(V.GLASS_STRONG, 8, 0));
-        Icon sh = new Icon(this, on ? Icon.SHIELD : Icon.SHIELD_OFF);
-        sh.setColor(V.TEXT);
-        badge.addView(sh, U.flp(V.dp(15), V.dp(15), Gravity.CENTER));
-        head.addView(badge, new LinearLayout.LayoutParams(V.dp(30), V.dp(30)));
-        LinearLayout ht = U.col(this);
-        ht.addView(V.text(this, "NextDNS", 13, 800, V.TEXT));
-        ht.addView(V.dim(V.text(this, "Encrypted DNS \u00b7 DNS-over-TLS", 8.5f, 500, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 2, 0, 0));
-        head.addView(ht, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-        ((LinearLayout.LayoutParams) ht.getLayoutParams()).leftMargin = V.dp(10);
-        TextView chip = V.caps(this, on ? "Active" : "Off", 8, on ? V.INK : U.alpha(V.TEXT, 0.75f));
-        chip.setPadding(V.dp(8), V.dp(3), V.dp(8), V.dp(3));
-        chip.setBackground(V.shape(on ? V.accent() : 0x1FFFFFFF, 10, 0));
-        head.addView(chip);
-        panel.addView(head);
-
-        if (st == null) {
-            panel.addView(V.dim(V.text(this, NextDnsStats.configured(this) ? "Loading today's numbers\u2026" : "Add your NextDNS API key to see what's being blocked.", 10, 500, V.TEXT), 0.75f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-            return;
-        }
-        if (st.error != null) {
-            panel.addView(V.dim(V.text(this, "Couldn't reach NextDNS right now.", 10, 500, V.TEXT), 0.75f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-            return;
-        }
-        java.text.NumberFormat nf = java.text.NumberFormat.getIntegerInstance();
-        panel.addView(V.text(this, nf.format(st.blocked) + " trackers stopped at the door.", 14, 800, V.TEXT), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-        TextView body = V.dim(V.text(this, "Every lookup your projector makes is encrypted and filtered before it leaves the house. Ads and trackers never get an answer.", 9, 500, V.TEXT), 0.7f);
-        body.setLineSpacing(V.dpf(2), 1f);
-        panel.addView(body, lp(U.MATCH, U.WRAP, 0, 6, 0, 0));
-
-        LinearLayout boxes = U.row(this);
-        long pct = st.total > 0 ? Math.round(st.blocked * 100.0 / st.total) : 0;
-        boxes.addView(statBox(nf.format(st.blocked), "Blocked", true), new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-        boxes.addView(statBox(nf.format(st.total), "Lookups", false), lp(0, U.WRAP, 8, 0, 0, 0));
-        ((LinearLayout.LayoutParams) boxes.getChildAt(1).getLayoutParams()).weight = 1f;
-        boxes.addView(statBox(pct + "%", "Blocked %", false), lp(0, U.WRAP, 8, 0, 0, 0));
-        ((LinearLayout.LayoutParams) boxes.getChildAt(2).getLayoutParams()).weight = 1f;
-        panel.addView(boxes, lp(U.MATCH, U.WRAP, 0, 12, 0, 0));
-
-        if (!st.topBlocked.isEmpty()) {
-            panel.addView(V.dim(V.caps(this, "Most blocked \u00b7 24 h", 8, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 14, 0, 6));
-            for (String[] d : st.topBlocked) {
-                LinearLayout r = U.row(this);
-                View dot = new View(this);
-                dot.setBackground(V.shape(V.accent(), 3, 0));
-                r.addView(dot, new LinearLayout.LayoutParams(V.dp(5), V.dp(5)));
-                TextView dn = V.text(this, d[0], 10, 600, V.TEXT);
-                V.ellipsize(dn);
-                r.addView(dn, lp(0, U.WRAP, 8, 0, 8, 0));
-                ((LinearLayout.LayoutParams) dn.getLayoutParams()).weight = 1f;
-                r.addView(V.dim(V.text(this, d[1], 10, 500, V.TEXT), 0.7f));
-                panel.addView(r, lp(U.MATCH, U.WRAP, 0, 3, 0, 3));
-            }
-        }
-
-        panel.addView(V.dim(V.caps(this, "This week", 8, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 14, 0, 4));
-        LinearLayout wk = U.row(this);
-        wk.setGravity(Gravity.BOTTOM);
-        LinearLayout wl = U.col(this);
-        LinearLayout big = U.row(this);
-        big.setGravity(Gravity.BOTTOM);
-        TextView n = V.text(this, nf.format(st.weekBlocked), 16, 800, V.accent());
-        big.addView(n);
-        big.addView(V.dim(V.text(this, " blocked", 9, 500, V.TEXT), 0.7f));
-        wl.addView(big);
-        if (st.topWeek != null) wl.addView(V.dim(V.text(this, "Top: " + st.topWeek, 8.5f, 500, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 3, 0, 0));
-        wk.addView(wl, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-        long max = 1;
-        for (long x : st.week) max = Math.max(max, x);
-        LinearLayout bars = U.row(this);
-        bars.setGravity(Gravity.BOTTOM);
-        for (int i = 0; i < 7; i++) {
-            View b = new View(this);
-            b.setBackground(V.shape(i == 6 ? V.accent() : 0x40FFFFFF, 2, 0));
-            int h = Math.max(V.dp(2), Math.round(V.dp(26) * st.week[i] / (float) max));
-            bars.addView(b, lp(V.dp(7), h, 2, 0, 2, 0));
-        }
-        wk.addView(bars, new LinearLayout.LayoutParams(U.WRAP, V.dp(28)));
-        panel.addView(wk, lp(U.MATCH, U.WRAP, 0, 0, 0, 0));
-        panel.addView(V.dim(V.text(this, "Last 24 hours \u00b7 profile " + NextDnsStats.profile(this), 8, 500, V.TEXT), 0.5f), lp(U.WRAP, U.WRAP, 0, 12, 0, 0));
-    }
-
-    private View statBox(String value, String label, boolean accent) {
-        LinearLayout b = U.col(this);
-        b.setPadding(V.dp(10), V.dp(8), V.dp(10), V.dp(8));
-        b.setBackground(V.shape(V.GLASS, 10, 0));
-        TextView v = V.text(this, value, 14, 800, accent ? V.accent() : V.TEXT);
-        V.ellipsize(v);
-        b.addView(v);
-        b.addView(V.dim(V.text(this, label, 8, 500, V.TEXT), 0.6f), lp(U.WRAP, U.WRAP, 0, 3, 0, 0));
-        return b;
     }
 
     private void updateMemory() {
@@ -1861,31 +1717,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void updateClock() {
         if (clock == null) return;
         clock.setText(DateFormat.getTimeFormat(this).format(new Date()));
-    }
-
-    private boolean nextDnsOn() {
-        try {
-            String m = Settings.Global.getString(getContentResolver(), "private_dns_mode");
-            String h = Settings.Global.getString(getContentResolver(), "private_dns_specifier");
-            return "hostname".equals(m) && h != null && h.length() > 0;
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private void updatePrivacy() {
-        if (privacyIcon == null) return;
-        boolean on = nextDnsOn();
-        privacyIcon.setType(on ? Icon.SHIELD : Icon.SHIELD_OFF);
-        NextDnsStats.Stats st = NextDnsStats.cached();
-        String count = st != null && st.error == null ? " \u00b7 " + java.text.NumberFormat.getIntegerInstance().format(st.blocked) + " blocked" : "";
-        privacyText.setText(on ? "No ads \u00b7 No tracking" + count : "Ad blocking off");
-    }
-
-    private String privacyMessage() {
-        if (!nextDnsOn()) return "Ad and tracker blocking is off.";
-        String h = Settings.Global.getString(getContentResolver(), "private_dns_specifier");
-        return "Encrypted DNS through " + (h != null && h.contains("nextdns") ? "NextDNS" : h) + ": ads and trackers are blocked before they load.";
     }
 
     private void updateNetwork() {

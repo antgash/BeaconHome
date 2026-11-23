@@ -1,6 +1,6 @@
 # Mantle
 
-An ad-free home screen for Android TV / Google TV / projectors, built around **Nuvio**, with a full **Live TV guide**, a Veil-style menu and a drifting-artwork screensaver. It also includes a Nuvio setup, ad blocking and speed tweaks, and a runbook so **Claude sets it all up for you**.
+An ad-free home screen for Android TV / Google TV / projectors, built around **Nuvio**, with a full **Live TV guide**, a Veil-style menu and a drifting-artwork screensaver. It also includes a Nuvio setup, speed tweaks, and a runbook so **Claude sets it all up for you**.
 
 Mantle is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed. The original was built on an XGIMI Horizon S Max (Android TV 11, 1.7 GB RAM); Mantle should work on any Android TV 8+ box or projector, and is used on an NVIDIA Shield.
 
@@ -34,7 +34,7 @@ Mantle is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
   - **Use as Android TV screensaver**: jumps to the system screensaver picker.
   - **More settings**: the full settings screen.
 - The **clock is centered with the weather beside it**, in **Fahrenheit**.
-- The ad-blocking (NextDNS) pill and the free-memory pill are gone from the top bar. HDMI, Wi-Fi and settings buttons remain on the right.
+- The ad-blocking (NextDNS) pill and the free-memory pill are gone from the top bar, and **all ad-blocking features have been removed from Mantle** (the NextDNS code, its settings entry and the `ad-block-on/off` scripts). HDMI, Wi-Fi and settings buttons remain on the right.
 
 **Screensaver**
 - One Veil-style ambient screen is used both for Home's idle mode and as a real **Android TV screensaver** (a system `DreamService`).
@@ -68,7 +68,7 @@ Mantle is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
   - Full screen with channel up/down and a see-through guide.
   - Favourites, and "Open in Nuvio".
   - Picks the sharpest version of each stream (up to 1080p).
-- **Settings on the TV itself** (no PC needed): ad blocking, animation speed, Google TV recommendations, power button, and the home screen switch. Each change has an undo.
+- **Settings on the TV itself** (no PC needed): animation speed, Google TV recommendations, power button, and the home screen switch. Each change has an undo.
 - **Switch back to the Google TV home any time** from Mantle's settings on the TV (or `use-original-home.bat` from the PC), and back to Mantle again.
 - The remote's **Home button** always brings you to Mantle.
 
@@ -81,7 +81,7 @@ Mantle is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 
 **Nuvio setup** (`nuvio/`): an addon list in order (no keys), and a Home layout template (5 collections, 58 folders: Discover, Streaming Services with Netflix/Prime/Apple TV/Hulu…, Genres, Anime, Formats).
 
-**Windows scripts** (`windows/`): install, update, switch back, ad blocking on/off, speed tweaks, XGIMI power button. Every script backs up the original setting first and has an undo.
+**Windows scripts** (`windows/`): install, update, switch back, speed tweaks, XGIMI power button. Every script backs up the original setting first and has an undo.
 
 ## Using the screensaver
 
@@ -99,7 +99,6 @@ Mantle is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
    > Set up Mantle on my TV using SETUP-WITH-CLAUDE.md
 3. Claude asks which parts you want and for the keys only you have:
    - a free TMDB key;
-   - optionally a NextDNS profile;
    - a free Cloudflare account for your own Live TV server.
 
    It then builds and installs everything, step by step, checking the TV screen as it goes.
@@ -114,7 +113,7 @@ Your keys only go into `windows/config.bat` on your PC and into your own addon l
 3. Live TV: follow `livetv-addon/README.md` (a 5-minute Cloudflare deploy). Add the link to Nuvio and to `config.bat`.
 4. Download `MantleHome.apk` from **Releases → latest** into `windows/`, then run `install-mantle.bat`.
 5. Nuvio: `nuvio/addons.md` and `nuvio/README.md`.
-6. Optional: `ad-block-on.bat`, `speed-up.bat`, `xgimi-power-full-off.bat`.
+6. Optional: `speed-up.bat`, `xgimi-power-full-off.bat`.
 
 **Undo:** `use-original-home.bat` puts your old home screen back. `uninstall-mantle.bat` removes the app. Every tweak has an undo script. Keep the `backup` folder the scripts create.
 
