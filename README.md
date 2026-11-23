@@ -51,7 +51,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 - **Each row remembers your place** when you move Up and Down between rows.
 - The long-press menu uses a Veil-style action sheet.
 - **Streaming tiles** can be **rearranged** the same way, and **hidden** (long-press → *Hide from Home*). Once any are hidden, a blank tile with a **+** at the end of the row lists them so you can add them back (one at a time or *Add all*).
-- **Continue Watching refreshes right away when you switch profiles in Nuvio**, without opening Nuvio again.
+- **Continue Watching refreshes right away when you switch profiles in Nuvio**, without opening Nuvio again. When most of the list is replaced (a profile switch), the row slides in fresh from its first item, the heading flashes in the accent colour and a short "Continue watching updated" message appears.
 - **Navigation sounds**, ported from Veil: soft synthesised tones (no audio files) for moving, selecting, going back and toggles. The beacon menu has a **Sound** section with an on/off toggle and an 8-step volume (Left/Right to change it).
 - **Episode wallpapers use the series artwork**, not the episode still.
 - **Long titles shrink to fit on one row** instead of wrapping or being cut off.

@@ -113,6 +113,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
     };
     private final List<Nuvio.Item> cwItems = new ArrayList<>();
+    private final java.util.Set<String> cwKeys = new java.util.HashSet<>();
+    private boolean cwLoadedOnce;
+    private TextView cwHead;
 
     // state
     private boolean ambient, started, coldStart = true, swallowUp, receiversOn;
@@ -1085,7 +1088,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout h = U.row(this);
         h.setGravity(Gravity.BOTTOM);
         h.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
-        h.addView(V.text(this, "Continue watching", 12, 700, V.TEXT));
+        cwHead = V.text(this, "Continue watching", 12, 700, V.TEXT);
+        h.addView(cwHead);
         cwCount = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
         h.addView(cwCount, lp(U.WRAP, U.WRAP, 7, 0, 0, 1));
         cwTonight = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
@@ -1644,6 +1648,53 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    /**
+     * Nuvio doesn't say which profile is active, but switching profile replaces most of the Continue
+     * Watching list. When under 40% of the titles carry over, treat it as a profile switch.
+     */
+    private boolean detectCwSwitch(Nuvio.Result r) {
+        java.util.Set<String> now = new java.util.HashSet<>();
+        int n = 0;
+        for (Nuvio.Item it : r.continueWatching) {
+            if (n++ >= 12) break;
+            if (it.title != null) now.add(it.title);
+        }
+        boolean sw = false;
+        if (cwLoadedOnce) {
+            int inter = 0;
+            for (String s : now) if (cwKeys.contains(s)) inter++;
+            int union = cwKeys.size() + now.size() - inter;
+            sw = union > 0 && inter / (float) union < 0.4f;
+        }
+        cwLoadedOnce = true;
+        cwKeys.clear();
+        cwKeys.addAll(now);
+        return sw;
+    }
+
+    /** After a switch the row starts again from its first item, wherever it was scrolled to. */
+    private void scrollCwToStart() {
+        if (!(cwRow.getParent() instanceof HorizontalScrollView)) return;
+        final HorizontalScrollView hs = (HorizontalScrollView) cwRow.getParent();
+        hs.scrollTo(0, 0);
+        hs.post(() -> hs.scrollTo(0, 0));
+    }
+
+    /** The flash: the row slides and fades in fresh, the heading pulses in the accent colour. */
+    private void flashCw() {
+        cwBlock.animate().cancel();
+        cwBlock.setAlpha(0.15f);
+        cwBlock.setTranslationX(V.dpf(36));
+        cwBlock.animate().alpha(1f).translationX(0).setDuration(450).start();
+        if (cwHead != null) {
+            android.animation.ValueAnimator a = android.animation.ValueAnimator.ofObject(new android.animation.ArgbEvaluator(), V.accent(), V.TEXT);
+            a.setDuration(1100);
+            a.addUpdateListener(an -> cwHead.setTextColor((Integer) an.getAnimatedValue()));
+            a.start();
+        }
+        Toast.makeText(this, "Continue watching updated", Toast.LENGTH_SHORT).show();
+    }
+
     private void loadNuvio() {
         nuvioAt = System.currentTimeMillis();
         final boolean fill = prefs.getBoolean(U.P_HERO_FILL, true);
@@ -1654,10 +1705,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 nuvio = r;
                 View f = getCurrentFocus();
                 boolean onCw = f != null && f.getParent() == cwRow;
+                boolean switched = detectCwSwitch(r);
                 fillContinue();
                 stopAtEdges(cwRow);
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
+                if (switched) { scrollCwToStart(); flashCw(); }
                 if (onCw || getCurrentFocus() == null) focusDefault();
             };
             U.MAIN.post(show);
