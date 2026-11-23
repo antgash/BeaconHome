@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
@@ -69,6 +70,7 @@ public class AllAppsActivity extends Activity {
                 if (i % per == 0) {
                     row = U.row(this);
                     row.setClipChildren(false);
+                    if (firstRow == null) firstRow = row;
                     LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(U.MATCH, U.WRAP);
                     rp.bottomMargin = gap;
                     list.addView(row, rp);
@@ -82,6 +84,8 @@ public class AllAppsActivity extends Activity {
         }
         if (first != null) { final View f = first; f.post(f::requestFocus); }
     }
+
+    private View firstRow;
 
     private View tile(final Apps.App a, int w, int h) {
         final FrameLayout t = new FrameLayout(this);
@@ -123,6 +127,12 @@ public class AllAppsActivity extends Activity {
             v.animate().scaleX(has ? 1.06f : 1f).scaleY(has ? 1.06f : 1f).translationZ(has ? V.dpf(12) : 0)
                     .setDuration(160).setInterpolator(new DecelerateInterpolator()).start();
             ring.animate().alpha(has ? 1f : 0f).setDuration(140).start();
+        });
+        // Up from the top row goes back to Home.
+        t.setOnKeyListener((v, keyCode, ev) -> {
+            if (keyCode != KeyEvent.KEYCODE_DPAD_UP || v.getParent() != firstRow) return false;
+            if (ev.getAction() == KeyEvent.ACTION_DOWN && ev.getRepeatCount() == 0) finish();
+            return true;
         });
         t.setOnClickListener(v -> Apps.launch(this, a));
         t.setOnLongClickListener(v -> {
