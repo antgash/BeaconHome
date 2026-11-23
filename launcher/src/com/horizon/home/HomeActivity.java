@@ -94,6 +94,20 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private List<Apps.App> apps = new ArrayList<>();
     private Nuvio.Result nuvio;
     private long nuvioAt;
+
+    /**
+     * Nuvio rewrites its home-screen rows in the TV provider when you switch profile. Watching that
+     * provider lets Continue Watching follow the change at once, with no need to reopen Nuvio first.
+     */
+    private final Runnable nuvioReload = this::loadNuvio;
+    private final android.database.ContentObserver nuvioObserver = new android.database.ContentObserver(U.MAIN) {
+        @Override public void onChange(boolean selfChange) {
+            nuvioAt = 0; // stale: reload now if Home is showing, otherwise as soon as it comes back
+            if (!started) return;
+            U.MAIN.removeCallbacks(nuvioReload);
+            U.MAIN.postDelayed(nuvioReload, 1200); // Nuvio writes the rows in a burst; wait for it to finish
+        }
+    };
     private final List<Nuvio.Item> cwItems = new ArrayList<>();
 
     // state
@@ -138,6 +152,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         askPermissions();
         build();
         loadApps();
+        try {
+            getContentResolver().registerContentObserver(android.media.tv.TvContract.WatchNextPrograms.CONTENT_URI, true, nuvioObserver);
+            getContentResolver().registerContentObserver(android.media.tv.TvContract.PreviewPrograms.CONTENT_URI, true, nuvioObserver);
+        } catch (Throwable ignored) {} // no permission yet: Continue Watching still refreshes when Home reopens
         Img.trim(this);
     }
 
@@ -161,7 +179,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     @Override protected void onResume() {
         super.onResume();
         lastInput = System.currentTimeMillis();
-        if (System.currentTimeMillis() - nuvioAt > 45000) loadNuvio();
+        if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
     }
 
     @Override protected void onStop() {
@@ -188,6 +206,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override protected void onDestroy() {
         super.onDestroy();
+        try { getContentResolver().unregisterContentObserver(nuvioObserver); } catch (Throwable ignored) {}
+        U.MAIN.removeCallbacks(nuvioReload);
         prefs.unregisterOnSharedPreferenceChangeListener(this);
     }
 
