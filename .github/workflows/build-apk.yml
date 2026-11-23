@@ -1,4 +1,4 @@
-name: Build Mantle APK
+name: Build beacon APK
 on:
   push:
     paths: ["launcher/**", ".github/workflows/build-apk.yml"]
@@ -18,10 +18,10 @@ jobs:
       - name: Build
         run: BUILD_TOOLS=34.0.0 VERSION_CODE=$((100 + ${{ github.run_number }})) bash launcher/build.sh
       - uses: actions/upload-artifact@v4
-        with: { name: MantleHome, path: launcher/build/MantleHome.apk }
+        with: { name: BeaconHome, path: launcher/build/BeaconHome.apk }
       - name: Publish as the "latest" release
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           gh release delete latest -y --cleanup-tag 2>/dev/null || true
-          gh release create latest launcher/build/MantleHome.apk -t "Mantle (latest build)" \
-            -n "Built automatically from commit ${GITHUB_SHA::7}. Install with windows/install-mantle.bat."
+          gh release create latest launcher/build/BeaconHome.apk -t "beacon (latest build)" \
+            -n "Built automatically from commit ${GITHUB_SHA::7}. Install with windows/install-beacon.bat."
