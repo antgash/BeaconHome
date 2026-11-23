@@ -1,4 +1,4 @@
-name: Build Horizon Home APK
+name: Build Mantle APK
 on:
   push:
     paths: ["launcher/**", ".github/workflows/build-apk.yml"]
@@ -16,12 +16,12 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0" "platforms;android-30" >/dev/null
       - name: Build
-        run: BUILD_TOOLS=34.0.0 VERSION_CODE=$((100 + ${{ github.run_number }})) bash launcher/build.sh
+        run: BUILD_TOOLS=34.0.0 VERSION_CODE=$((100 + ${{ github.run_number }})) launcher/build.sh
       - uses: actions/upload-artifact@v4
-        with: { name: HorizonHome, path: launcher/build/HorizonHome.apk }
+        with: { name: MantleHome, path: launcher/build/MantleHome.apk }
       - name: Publish as the "latest" release
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           gh release delete latest -y --cleanup-tag 2>/dev/null || true
-          gh release create latest launcher/build/HorizonHome.apk -t "Horizon Home (latest build)" \
-            -n "Built automatically from commit ${GITHUB_SHA::7}. Install with windows/install-horizon.bat."
+          gh release create latest launcher/build/MantleHome.apk -t "Mantle (latest build)" \
+            -n "Built automatically from commit ${GITHUB_SHA::7}. Install with windows/install-mantle.bat."
