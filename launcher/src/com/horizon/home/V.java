@@ -140,6 +140,7 @@ final class V {
         p.setFocusable(true);
         p.setFocusableInTouchMode(true);
         p.setBackground(shape(GLASS, heightDp / 2f, LINE));
+        p.setElevation(0.01f);
         p.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(heightDp)));
         final float r = heightDp / 2f;
         p.setOnFocusChangeListener((v, has) -> stylePill(p, has, r, null));
@@ -147,11 +148,43 @@ final class V {
     }
 
     static void stylePill(ViewGroup p, boolean focused, float radiusDp, Runnable extra) {
-        p.setBackground(focused ? shape(TEXT, radiusDp, 0) : shape(GLASS, radiusDp, LINE));
-        tint(p, focused ? INK : TEXT);
+        p.setBackground(focused ? glowShape(radiusDp) : shape(GLASS, radiusDp, LINE));
+        tint(p, TEXT);
+        if (focused) tintIcons(p, accent());
+        glow(p, focused);
         p.animate().scaleX(focused ? 1.03f : 1f).scaleY(focused ? 1.03f : 1f)
                 .setDuration(160).setInterpolator(new DecelerateInterpolator()).start();
         if (extra != null) extra.run();
+    }
+
+    /** Focused look: the glass stays, with a ring in the theme colour (the glow itself comes from glow()). */
+    static GradientDrawable glowShape(float radiusDp) {
+        int a = accent();
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(U.alpha(a, 0.14f));
+        g.setCornerRadius(dpf(radiusDp));
+        g.setStroke(Math.max(2, dp(2)), a);
+        return g;
+    }
+
+    /** Soft glow in the theme colour around a focused view (a coloured shadow, so it needs no extra views). */
+    static void glow(View v, boolean on) {
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            int a = accent();
+            v.setOutlineSpotShadowColor(a);
+            v.setOutlineAmbientShadowColor(U.alpha(a, 0.6f));
+        }
+        v.animate().translationZ(on ? dpf(14) : 0f).setDuration(160).start();
+        if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).setClipChildren(false);
+    }
+
+    /** Recolour only the drawn icons (not text) inside a view. */
+    static void tintIcons(View v, int color) {
+        if (v instanceof Icon) ((Icon) v).setColor(color);
+        else if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) tintIcons(g.getChildAt(i), color);
+        }
     }
 
     /** Recolour text and icons inside a pill (dim lines keep their dimness). */
