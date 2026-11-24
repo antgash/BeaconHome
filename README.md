@@ -23,7 +23,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 **Name and build**
 - **A "beacon" shortcut in the app list** (with the new icon and banner) that opens the home screen, next to "beacon settings".
 - Renamed from Horizon to **beacon** everywhere you can see it: the top-left pill, menus, launcher and screensaver labels, the Home-button accessibility service, the APK (`BeaconHome.apk`) and the Windows scripts (`install-beacon.bat`, `update-beacon.bat`, `use-beacon-home.bat`, `uninstall-beacon.bat`).
-- The internal package name is still `com.horizon.home`, so beacon installs over an existing Horizon and keeps your settings. Live TV guide links work with both `beacon://guide` and the old `horizon://guide`.
+- beacon has its own app id, `com.beacon.home`, so it installs **next to** an existing Horizon instead of replacing it. It starts fresh, so you'll need to pick beacon as the home app and set it up again; you can uninstall Horizon whenever you like. Live TV guide links work with both `beacon://guide` and the old `horizon://guide`.
 - GitHub Actions builds with `bash launcher/build.sh` (the script no longer needs its execute bit) and numbers each build from the run number.
 
 **Top bar and menu**
@@ -92,53 +92,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 
 - **Preview or in-app idle mode:** open the beacon menu (top-left pill) → *Start screensaver*. *Screensaver starts after* sets how long Home sits idle before it begins on its own.
 - **As the Android TV screensaver:** Settings → Device Preferences → Screen saver → choose **beacon**. If your device doesn't list it, run:
-  `adb shell settings put secure screensaver_components com.horizon.home/com.horizon.home.BeaconDream`
+  `adb shell settings put secure screensaver_components com.beacon.home/com.horizon.home.BeaconDream`
 - The system screensaver's own start time is set in Android's Screen saver settings (*When to start*). The menu's timer only controls beacon's in-app idle mode.
 - If you used the earlier Horizon build as your screensaver, choose beacon again once.
 - Set the weather city in the menu first so the screensaver can show the temperature.
-
-## Set it up with Claude (easiest)
-
-1. Download this repo (Code → Download ZIP) and unzip it on your Windows PC.
-2. Open the Claude desktop app, connect that folder, and say:
-   > Set up beacon on my TV using SETUP-WITH-CLAUDE.md
-3. Claude asks which parts you want and for the keys only you have:
-   - a free TMDB key;
-   - a free Cloudflare account for your own Live TV server.
-
-   It then builds and installs everything, step by step, checking the TV screen as it goes.
-
-Your keys only go into `windows/config.bat` on your PC and into your own addon links. Nothing is uploaded anywhere else.
-
-## Set it up yourself
-
-1. TV: enable Developer options → **Network debugging**.
-2. `windows/get-adb.bat`, then `find-projector.bat`, then `setup-config.bat` (asks for the address and optional keys, and writes `config.bat` for you).
-   - **Android 11+ / Google TV** (Mi Box S 2nd gen, Chromecast with Google TV, newer TVs) have *Wireless debugging* instead of *Network debugging*: run `pair-device.bat` first, it pairs with the code shown on the TV and saves the address.
-3. Live TV: follow `livetv-addon/README.md` (a 5-minute Cloudflare deploy). Add the link to Nuvio and to `config.bat`.
-4. Download `BeaconHome.apk` from **Releases → latest** into `windows/`, then run `install-beacon.bat`.
-5. Nuvio: `nuvio/addons.md` and `nuvio/README.md`.
-6. Optional: `speed-up.bat`, `xgimi-power-full-off.bat`.
-
-**Undo:** `use-original-home.bat` puts your old home screen back. `uninstall-beacon.bat` removes the app. Every tweak has an undo script. Keep the `backup` folder the scripts create.
-
-## Building the APK
-
-GitHub Actions builds it on every change (Releases → latest). Locally: `launcher/build.sh` (JDK 17, Android SDK build-tools + platform 30; no Gradle).
-
-`launcher/kit.keystore` is a public signing key so everyone's builds can update each other. Only install APKs from this repo or ones you built yourself.
-
-## Credits
-
-- Channel data: [iptv-org](https://github.com/iptv-org), [Free-TV/IPTV](https://github.com/Free-TV/IPTV), [AdeelWajid/iptv_validated_list](https://github.com/AdeelWajid/iptv_validated_list), Samsung TV Plus / Pluto TV / Roku listings via [i.mjh.nz](https://github.com/matthuisman/i.mjh.nz).
-- Guides: [epg.pw](https://epg.pw), epgshare01.
-- [Nuvio](https://nuvio.tv), [Nuvio Personalized](https://personalized.virtualpavi.com).
-- Font: Manrope (SIL Open Font License).
-
-Not affiliated with XGIMI, Google, Nuvio or any streaming service. The kit hosts no video; it only links to publicly available streams.
-
-## Troubleshooting
-
-- **`'Projector' is not recognized…` / `syntax is incorrect` / `Can't reach the projector at .`** — your `config.bat` lost its formatting (usually from editing it in a chat or a word processor). Delete it and run `setup-config.bat`.
-- **Mi Box S 2nd gen / Chromecast with Google TV / other Android 11+ devices** — turn on Developer options (Settings → System → About → click *Android TV OS build* 7 times), then Developer options → *Wireless debugging* → on, and run `pair-device.bat`. The port can change after a restart; just run it again.
-- **"Unauthorized"** — accept the *Allow debugging* prompt on the TV (tick *Always allow*).

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.horizon.home"
+    package="com.beacon.home"
     android:versionCode="4"
     android:versionName="2.0">
 
@@ -44,7 +44,7 @@
         android:theme="@style/Home">
 
         <activity
-            android:name=".HomeActivity"
+            android:name="com.horizon.home.HomeActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
@@ -67,7 +67,7 @@
         </activity>
 
         <service
-            android:name=".BeaconDream"
+            android:name="com.horizon.home.BeaconDream"
             android:exported="true"
             android:label="beacon"
             android:permission="android.permission.BIND_DREAM_SERVICE">
@@ -78,7 +78,7 @@
         </service>
 
         <service
-            android:name=".HomeButtonService"
+            android:name="com.horizon.home.HomeButtonService"
             android:exported="true"
             android:label="@string/a11y_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
@@ -91,24 +91,24 @@
         </service>
 
         <activity
-            android:name=".AllAppsActivity"
+            android:name="com.horizon.home.AllAppsActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode" />
 
         <activity
-            android:name=".ServiceActivity"
+            android:name="com.horizon.home.ServiceActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode" />
 
         <activity
-            android:name=".GuideActivity"
+            android:name="com.horizon.home.GuideActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:taskAffinity="com.horizon.home.guide"
+            android:taskAffinity="com.beacon.home.guide"
             android:label="Live TV"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode">
@@ -123,7 +123,7 @@
         </activity>
 
         <activity
-            android:name=".SettingsActivity"
+            android:name="com.horizon.home.SettingsActivity"
             android:exported="true"
             android:label="beacon settings"
             android:theme="@style/Settings"

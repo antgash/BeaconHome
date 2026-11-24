@@ -121,11 +121,11 @@ public class SettingsActivity extends Activity {
             } else {
                 confirmRun("Make beacon your home screen?",
                         "Switches Google's home off (it stays installed) and makes the Home button open beacon.",
-                        "cmd package set-home-activity " + getPackageName() + "/.HomeActivity"
-                                + "; settings put secure enabled_accessibility_services " + getPackageName() + "/" + getPackageName() + ".HomeButtonService"
+                        "cmd package set-home-activity " + getPackageName() + "/" + HomeActivity.class.getName()
+                                + "; settings put secure enabled_accessibility_services " + getPackageName() + "/" + HomeButtonService.class.getName()
                                 + "; settings put secure accessibility_enabled 1"
                                 + "; pm disable-user --user 0 " + TVREC + "; pm disable-user --user 0 " + TVLAUNCHER
-                                + "; am start -n " + getPackageName() + "/.HomeActivity");
+                                + "; am start -n " + getPackageName() + "/" + HomeActivity.class.getName());
             }
         });
 
