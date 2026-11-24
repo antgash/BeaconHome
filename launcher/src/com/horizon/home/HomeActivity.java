@@ -1588,7 +1588,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (has) {
                 stopGif();
                 setHero("svc:live", "Live TV", "TV Guide", null,
-                        "Channels with a full TV guide · watch here or in Nuvio", 0, null, null);
+                        "Channels with a full TV guide · watch here or in Nuvio", 0, null, "asset:live-backdrop-v4.jpg");
             }
         });
         t.setOnClickListener(v -> startActivity(new Intent(this, GuideActivity.class)));
