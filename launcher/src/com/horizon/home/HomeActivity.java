@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * beacon, Veil-style: artwork (or a living XGIMI scene) fills the wall, a calm hero tells you
+ * beacon, Veil-style: artwork (or a living video scene) fills the wall, a calm hero tells you
  * what's next, and three pill rows hold Continue watching, Nuvio's streaming services and your apps.
  */
 public class HomeActivity extends Activity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -2000,8 +2000,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void openHdmi() {
         Intent i = new Intent(Intent.ACTION_MAIN);
-        i.setComponent(new ComponentName("com.xgimi.xhplayer", "com.xgimi.xhplayer.InputActivity"));
-        if (Apps.start(this, i)) return;
         try {
             TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
             if (tim != null) for (TvInputInfo info : tim.getTvInputList()) {

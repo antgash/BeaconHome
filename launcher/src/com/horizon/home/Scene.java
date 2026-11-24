@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** One XGIMI Wall scene, stored on the projector as sNN.mp4 (+ sNN.jpg poster). */
+/** One wall scene, stored on the device as sNN.mp4 (+ sNN.jpg poster). */
 final class Scene {
     final String id;
     final String name;

@@ -27,8 +27,6 @@
             <action android:name="android.intent.action.VIEW" />
         </intent>
         <package android:name="com.nuvio.tv" />
-        <package android:name="com.xgimi.xhplayer" />
-        <package android:name="com.xgimi.atmosphere" />
         <package android:name="com.google.android.tvlauncher" />
     </queries>
 

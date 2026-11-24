@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Plays the XGIMI Wall scenes full screen on a SurfaceView, so the video goes straight to the display's
+ * Plays the wall scenes full screen on a SurfaceView, so the video goes straight to the display's
  * video plane and the launcher UI is not redrawn for every video frame (much smoother on TV chips).
  * Scene changes cross through the next scene's poster: poster fades in, video swaps underneath,
  * poster fades out once the new video is rendering.

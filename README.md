@@ -2,7 +2,7 @@
 
 An ad-free home screen for Android TV / Google TV / projectors, built around **Nuvio**, with a full **Live TV guide**, a Veil-style menu and a drifting-artwork screensaver. It also includes a Nuvio setup, speed tweaks, and a runbook so **Claude sets it all up for you**.
 
-beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed. The original was built on an XGIMI Horizon S Max (Android TV 11, 1.7 GB RAM); beacon should work on any Android TV 8+ box or projector, and is used on an NVIDIA Shield.
+beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed. The original was built for a low-memory Android TV 11 projector (1.7 GB RAM); beacon should work on any Android TV 8+ box or projector, and is used on an NVIDIA Shield.
 
 ![beacon home screen](screenshots/01-home.png)
 
@@ -86,7 +86,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 
 **Nuvio setup** (`nuvio/`): an addon list in order (no keys), and a Home layout template (5 collections, 58 folders: Discover, Streaming Services with Netflix/Prime/Apple TV/Hulu…, Genres, Anime, Formats).
 
-**Windows scripts** (`windows/`): install, update, switch back, speed tweaks, XGIMI power button. Every script backs up the original setting first and has an undo.
+**Windows scripts** (`windows/`): install, update, switch back, speed tweaks. Every script backs up the original setting first and has an undo.
 
 ## Using the screensaver
 

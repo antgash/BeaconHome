@@ -80,7 +80,7 @@ public class SettingsActivity extends Activity {
 
         TextView h = V.text(this, "beacon", 26, 800, 0xFFFFFFFF);
         list.addView(h);
-        TextView sub = U.text(this, "Ad-free by design · no tracking · your XGIMI home", 13, 0x99FFFFFF, U.REG);
+        TextView sub = U.text(this, "Ad-free by design · no tracking · your home screen", 13, 0x99FFFFFF, U.REG);
         list.addView(sub, U.llp(U.WRAP, U.WRAP, 0, 8, 0, 6));
 
         section("LOOK");
@@ -89,13 +89,6 @@ public class SettingsActivity extends Activity {
         toggle("Weather", "Temperature next to the clock (Open-Meteo, no account)", "weather", true);
 
         section("PROJECTOR CHANGES");
-        action("Power button", () -> fullOff() ? "Full shutdown \u00b7 logo on every start" : "Quick standby", () -> {
-            final boolean full = fullOff();
-            confirmRun(full ? "Switch Power Off to quick standby?" : "Make Power Off a full shutdown?",
-                    full ? "Turning on takes about 2 seconds. The XGIMI logo only plays after a full start (XGIMI does one on every 15th power-off)."
-                         : "Every Power Off uses XGIMI's own shutdown (cover closes). The XGIMI logo plays each time, but starting takes about 30\u201340 seconds.",
-                    full ? "settings delete system power_key_definition" : "settings put system power_key_definition 1");
-        });
         action("Animation speed", () -> fastAnim() ? "Fast (0.5\u00d7)" : "Normal", () -> {
             final boolean fast = fastAnim();
             confirmRun(fast ? "Back to normal animation speed?" : "Use fast animations?",
@@ -143,7 +136,7 @@ public class SettingsActivity extends Activity {
         toggle("Check for updates", "Looks at github.com/" + Updater.REPO + " about twice a day and tells you on Home", Updater.P_AUTO, true);
         action("Update beacon", () -> updateState, this::checkOrInstallUpdate);
 
-        action("About", () -> "Version " + version() + "  ·  ad-free home for your XGIMI", null);
+        action("About", () -> "Version " + version() + "  ·  ad-free home screen", null);
     }
 
     private void installLiveTv() {
@@ -321,7 +314,7 @@ public class SettingsActivity extends Activity {
         final List<Runnable> paint = new ArrayList<>();
         String[] modes = {U.MODE_SCENES, U.MODE_NUVIO};
         String[] titles = {"Scenes", "Artwork"};
-        String[] subs = {"XGIMI Wall videos, starting on Mars Base", "Full-screen artwork of what you're watching"};
+        String[] subs = {"Looping wall videos, starting on Mars Base", "Full-screen artwork of what you're watching"};
         for (int i = 0; i < 2; i++) {
             final String m = modes[i];
             final FrameLayout card = new FrameLayout(this);

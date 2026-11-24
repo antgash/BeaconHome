@@ -54,23 +54,22 @@ final class Apps {
                 "com.graymatrix.did", "com.sonyliv", "com.jio.jioplay.tv", "com.disney.disneyplus",
                 "com.plexapp.android", "org.xbmc.kodi", "org.videolan.vlc", "com.mxtech.videoplayer.ad",
                 "com.liskovsoft.smarttubetv.beta", "com.teamsmart.videomanager.tv", "org.jellyfin.androidtv",
-                "com.apple.atve.androidtv.appletv", "com.xgimi.gimiplayer", "com.zee5.tv", "com.sonyliv.tv"};
+                "com.apple.atve.androidtv.appletv", "com.zee5.tv", "com.sonyliv.tv"};
         String[] play = {"com.nvidia.geforcenow", "com.redphx.betterxc", "com.google.android.play.games",
                 "com.microsoft.xcloud", "com.valvesoftware.steamlink", "com.retroarch", "com.moonlight_stream.moonlight"};
-        String[] listen = {"com.google.android.youtube.tvmusic", "com.soundcloud.android", "com.xgimi.doubanfm",
+        String[] listen = {"com.google.android.youtube.tvmusic", "com.soundcloud.android",
                 "com.spotify.tv.android", "com.jio.media.jiobeats", "com.gaana", "com.amazon.music.tv",
                 "com.apple.android.music", "com.audible.application"};
-        String[] tools = {"com.esaba.downloader", "net.gtvbox.installer", "com.xgimi.filemanager",
-                "com.android.vending", "com.android.tv.settings", "com.termux", "com.xgimi.atmosphere",
-                "com.xgimi.upgrade", "com.google.android.tvlauncher", "com.cxinventor.file.explorer",
-                "com.estrongs.android.pop", "com.xgimi.uiconfiguration"};
+        String[] tools = {"com.esaba.downloader", "net.gtvbox.installer",
+                "com.android.vending", "com.android.tv.settings", "com.termux",
+                "com.google.android.tvlauncher", "com.cxinventor.file.explorer",
+                "com.estrongs.android.pop"};
         for (String s : watch) KNOWN.put(s, WATCH);
         for (String s : play) KNOWN.put(s, PLAY);
         for (String s : listen) KNOWN.put(s, LISTEN);
         for (String s : tools) KNOWN.put(s, TOOLS);
-        Collections.addAll(HIDDEN, "com.android.camera2", "com.xgimi.bugreportsender",
-                "com.mediatek.wwtv.webview", "com.thorium.webview", "com.android.tv.settings.system",
-                "com.xgimi.uiconfiguration");
+        Collections.addAll(HIDDEN, "com.android.camera2",
+                "com.mediatek.wwtv.webview", "com.thorium.webview", "com.android.tv.settings.system");
     }
 
     private Apps() {}
@@ -99,7 +98,6 @@ final class Apps {
         a.component = new ComponentName(pkg, ri.activityInfo.name);
         CharSequence l = ri.loadLabel(pm);
         a.label = l == null ? pkg : l.toString();
-        if ("com.xgimi.atmosphere".equals(pkg)) a.label = "XGIMI Wall";
         if ("com.android.tv.settings".equals(pkg)) a.label = "Settings";
         try { a.banner = ri.activityInfo.loadBanner(pm); } catch (Throwable ignored) {}
         if (a.banner == null) {
