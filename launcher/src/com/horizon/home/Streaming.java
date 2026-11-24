@@ -357,19 +357,42 @@ final class Streaming {
     }
 
     private static String logoFor(Context c, Nuvio.Item it, String type) {
+        JSONObject m = metaFor(c, it, type);
+        if (m == null) return null;
+        String logo = m.optString("logo", "");
+        if (!TextUtils.isEmpty(logo) && !"null".equals(logo)) return logo;
+        String imdb = m.optString("imdb_id", m.optString("id", ""));
+        return imdb.startsWith("tt") ? "https://images.metahub.space/logo/medium/" + imdb + "/img" : null;
+    }
+
+    private static JSONObject metaFor(Context c, Nuvio.Item it, String type) {
         String q = it.title;
-        String l = logoFromSearch(c, it, type, q);
-        if (l != null) return l;
+        JSONObject m = metaFromSearch(c, it, type, q);
+        if (m != null) return m;
         // "Roald Dahl's The Witches" is usually listed as just "The Witches": retry without the "Someone's" lead-in.
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^.+?['\u2019]s\\s+(.+)$").matcher(q);
-        return m.matches() ? logoFromSearch(c, it, type, m.group(1)) : null;
+        java.util.regex.Matcher mm = java.util.regex.Pattern.compile("^.+?['\u2019]s\\s+(.+)$").matcher(q);
+        return mm.matches() ? metaFromSearch(c, it, type, mm.group(1)) : null;
+    }
+
+    /** The IMDb id and type ("movie" or "series") of a title found by name, or null. Call off the main thread. */
+    static String[] resolveByTitle(Context c, Nuvio.Item it) {
+        if (it == null || TextUtils.isEmpty(it.title)) return null;
+        boolean series = !TextUtils.isEmpty(it.episode) || "series".equals(it.type);
+        String[] types = series ? new String[] {"series", "movie"} : new String[] {"movie", "series"};
+        for (String type : types) {
+            JSONObject m = metaFor(c, it, type);
+            if (m == null) continue;
+            String imdb = m.optString("imdb_id", m.optString("id", ""));
+            if (imdb.startsWith("tt")) return new String[] {imdb, type};
+        }
+        return null;
     }
 
     /**
      * A result only counts when its name and the title agree word for word (one contains all the words of the
      * other). Better no artwork than the wrong artwork. Among agreeing results, an exact name and a matching year win.
      */
-    private static String logoFromSearch(Context c, Nuvio.Item it, String type, String query) {
+    private static JSONObject metaFromSearch(Context c, Nuvio.Item it, String type, String query) {
         try {
             String url = "https://v3-cinemeta.strem.io/catalog/" + type + "/top/search=" + Uri.encode(query) + ".json";
             JSONArray metas = cachedGet(c, url, "metas");
@@ -389,13 +412,10 @@ final class Streaming {
                 int score = (exact ? 4 : 0) + (year ? 2 : 0) + (i == 0 ? 1 : 0);
                 if (score > best) { best = score; pick = o; }
             }
-            if (pick == null) { Log.w(TAG, "no title match for " + it.title + " (" + type + ")"); return null; }
-            String logo = pick.optString("logo", "");
-            if (!TextUtils.isEmpty(logo) && !"null".equals(logo)) return logo;
-            String imdb = pick.optString("imdb_id", pick.optString("id", ""));
-            return imdb.startsWith("tt") ? "https://images.metahub.space/logo/medium/" + imdb + "/img" : null;
+            if (pick == null) Log.w(TAG, "no title match for " + it.title + " (" + type + ")");
+            return pick;
         } catch (Throwable t) {
-            Log.w(TAG, "logoByTitle", t);
+            Log.w(TAG, "metaFromSearch", t);
             return null;
         }
     }
@@ -446,18 +466,53 @@ final class Streaming {
 
     static boolean open(Context c, Nuvio.Item it) {
         if (it == null) return false;
+        return openLink(c, it.type, it.imdbId, it.tmdbId);
+    }
+
+    private static boolean openLink(Context c, String type, String imdb, long tmdb) {
         List<String> links = new ArrayList<>();
-        if (it.tmdbId > 0) {
-            links.add("nuvio://tmdb/" + it.type + "/" + it.tmdbId);
+        if (tmdb > 0) {
+            links.add("nuvio://tmdb/" + type + "/" + tmdb);
         } else {
-            links.add("nuvio://" + it.type + "/" + it.imdbId);
-            links.add("nuvio://detail/" + it.type + "/" + it.imdbId);
+            links.add("nuvio://" + type + "/" + imdb);
+            links.add("nuvio://detail/" + type + "/" + imdb);
         }
         for (String l : links) {
             Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(l)).setPackage(U.NUVIO);
             if (Apps.start(c, i)) { Apps.noteLaunch(c, U.NUVIO); return true; }
         }
         return Apps.launchPackage(c, U.NUVIO);
+    }
+
+    /**
+     * Opens the title's information page in Nuvio (never starts playback). Titles that only have a name, such as
+     * Continue watching entries, are looked up first; if that fails, Nuvio is simply opened.
+     */
+    static void openResolved(Context c, Nuvio.Item it, String[] res) {
+        String type = res != null ? res[1] : it.type, imdb = res != null ? res[0] : it.imdbId;
+        if (TextUtils.isEmpty(type)) type = !TextUtils.isEmpty(it.episode) ? "series" : "movie";
+        if (!TextUtils.isEmpty(imdb) || it.tmdbId > 0) openLink(c, type, imdb, it.tmdbId);
+        else Apps.launchPackage(c, U.NUVIO);
+    }
+
+    static void openDetails(final Context c, final Nuvio.Item it) {
+        if (it == null) return;
+        final Context app = c.getApplicationContext();
+        U.IO.execute(() -> {
+            String type = it.type, imdb = it.imdbId;
+            long tmdb = it.tmdbId;
+            if (TextUtils.isEmpty(imdb) && tmdb <= 0) {
+                String[] r = resolveByTitle(app, it);
+                if (r != null) { imdb = r[0]; type = r[1]; }
+            }
+            if (TextUtils.isEmpty(type)) type = !TextUtils.isEmpty(it.episode) ? "series" : "movie";
+            final String ft = type, fi = imdb;
+            final long fm = tmdb;
+            U.MAIN.post(() -> {
+                if (!TextUtils.isEmpty(fi) || fm > 0) openLink(app, ft, fi, fm);
+                else Apps.launchPackage(app, U.NUVIO);
+            });
+        });
     }
 
     // ---------------------------------------------------------------- http + disk cache

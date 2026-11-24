@@ -35,6 +35,8 @@ final class AmbientView extends FrameLayout {
     private int idx;
     private boolean running;
     private int token;
+    private Nuvio.Item current;
+    private String[] currentRes; // imdb id + type found by name for the title on screen
 
     AmbientView(Context c) {
         super(c);
@@ -112,6 +114,24 @@ final class AmbientView extends FrameLayout {
         bl.bottomMargin = V.dp(56);
         addView(text, bl);
         text.setAlpha(0f);
+
+        // small hint along the bottom edge
+        TextView hint = V.text(c, "Select to load content, back to exit", 11, 400, U.alpha(V.TEXT, 0.6f));
+        hint.setLetterSpacing(0.04f);
+        LayoutParams hl = new LayoutParams(U.WRAP, U.WRAP, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        hl.bottomMargin = V.dp(16);
+        addView(hint, hl);
+    }
+
+    /** The title on screen right now (what Select opens), or null before the first one appears. */
+    Nuvio.Item current() { return current; }
+
+    /** Opens the title on screen in Nuvio (its info page, not playback). */
+    void openCurrent() {
+        Nuvio.Item it = current;
+        if (it == null) return;
+        if (TextUtils.isEmpty(it.imdbId) && it.tmdbId <= 0 && currentRes == null) Streaming.openDetails(getContext(), it); // lookup not done yet
+        else Streaming.openResolved(getContext(), it, currentRes);
     }
 
     void setItems(List<Nuvio.Item> pool) {
@@ -182,6 +202,12 @@ final class AmbientView extends FrameLayout {
         text.animate().cancel();
         text.animate().alpha(0f).setDuration(tk == 1 ? 0 : 600).withEndAction(() -> {
             if (tk != token) return;
+            current = it;
+            currentRes = null;
+            if (TextUtils.isEmpty(it.imdbId) && it.tmdbId <= 0) U.IO.execute(() -> {
+                final String[] r = Streaming.resolveByTitle(getContext().getApplicationContext(), it);
+                U.MAIN.post(() -> { if (current == it) currentRes = r; });
+            });
             label.setTextColor(V.accent());
             label.setText(it.watchNext ? "Continue watching" : !TextUtils.isEmpty(it.channel) ? it.channel : "From Nuvio");
             title.setText(it.title);

@@ -242,6 +242,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (e.getAction() == KeyEvent.ACTION_DOWN) {
                 int k = e.getKeyCode();
                 if (k == KeyEvent.KEYCODE_VOLUME_UP || k == KeyEvent.KEYCODE_VOLUME_DOWN || k == KeyEvent.KEYCODE_VOLUME_MUTE) return super.dispatchKeyEvent(e);
+                boolean select = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER;
+                AmbientView shown = select ? ambientView : null;
+                if (shown != null) shown.openCurrent();
                 exitAmbient(true);
                 swallowUp = true;
             }
