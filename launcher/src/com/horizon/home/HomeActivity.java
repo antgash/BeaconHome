@@ -1715,6 +1715,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
     /** After a switch the row starts again from its first item, wherever it was scrolled to. */
+    /** After a profile switch, put the selection on the first Continue watching item. */
+    private void selectFirstCw() {
+        if (menuOpen || ambient || !started || cwRow == null || cwRow.getChildCount() == 0) return;
+        View first = cwRow.getChildAt(0);
+        if (first != null && first.isFocusable()) first.requestFocus();
+    }
+
     private void scrollCwToStart() {
         if (!(cwRow.getParent() instanceof HorizontalScrollView)) return;
         final HorizontalScrollView hs = (HorizontalScrollView) cwRow.getParent();
@@ -1742,32 +1749,26 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     /** The "Continue watching updated" popup, styled like the long-press sheets and lifted over the row. */
     private void showCwNotice() {
         if (cwNotice != null) { ui.removeView(cwNotice); cwNotice = null; }
+        // A see-through pill like the other pills on the home screen, sitting just above the Continue watching row.
         LinearLayout sheet = new LinearLayout(this);
-        sheet.setOrientation(LinearLayout.VERTICAL);
-        sheet.setPadding(V.dp(9), V.dp(9), V.dp(9), V.dp(9));
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor((0xED << 24) | (U.mix(V.BG, 0xFFFFFFFF, 0.1f) & 0x00FFFFFF));
-        bg.setCornerRadius(V.dpf(18));
-        sheet.setBackground(bg);
-        LinearLayout cap = new LinearLayout(this);
-        cap.setOrientation(LinearLayout.HORIZONTAL);
-        cap.setGravity(Gravity.CENTER_VERTICAL);
-        cap.setPadding(V.dp(11), 0, V.dp(14), 0);
-        cap.setBackground(V.shape(V.TEXT, 25, 0)); // the look of a focused option: solid, dark text
+        sheet.setOrientation(LinearLayout.HORIZONTAL);
+        sheet.setGravity(Gravity.CENTER_VERTICAL);
+        sheet.setPadding(V.dp(14), 0, V.dp(18), 0);
+        sheet.setBackground(V.shape(V.GLASS, 25, V.LINE));
         Icon ic = new Icon(this, Icon.BEACON);
-        ic.setColor(V.INK);
-        cap.addView(ic, new LinearLayout.LayoutParams(V.dp(12), V.dp(12)));
-        TextView tv = V.text(this, "Continue watching updated", 11.5f, 600, V.INK);
+        ic.setColor(V.accent());
+        sheet.addView(ic, new LinearLayout.LayoutParams(V.dp(13), V.dp(13)));
+        TextView tv = V.text(this, "Continue watching updated", 12f, 600, V.TEXT);
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(U.WRAP, U.WRAP);
-        tp.leftMargin = V.dp(8);
-        cap.addView(tv, tp);
-        sheet.addView(cap, new LinearLayout.LayoutParams(U.WRAP, V.dp(34)));
+        tp.leftMargin = V.dp(9);
+        sheet.addView(tv, tp);
 
         int[] a = new int[2], b = new int[2];
         cwBlock.getLocationInWindow(a);
         ui.getLocationInWindow(b);
-        int top = cwBlock.getVisibility() == View.VISIBLE ? a[1] - b[1] - V.dp(6) : ui.getHeight() * 6 / 10;
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(U.WRAP, U.WRAP, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        int h = V.dp(36);
+        int top = cwBlock.getVisibility() == View.VISIBLE ? a[1] - b[1] - h - V.dp(8) : ui.getHeight() * 5 / 10;
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(U.WRAP, h, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         lp.topMargin = Math.max(V.dp(40), top);
         ui.addView(sheet, lp);
         cwNotice = sheet;
@@ -1799,7 +1800,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 stopAtEdges(cwRow);
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
-                if (switched) { rowMemory[0] = 0; cwFresh = true; scrollCwToStart(); flashCw(); } // row 0 is Continue watching: forget the old place
+                if (switched) { rowMemory[0] = 0; cwFresh = true; scrollCwToStart(); flashCw(); cwRow.post(this::selectFirstCw); } // row 0 is Continue watching: forget the old place
                 if (onCw || getCurrentFocus() == null) focusDefault();
             };
             U.MAIN.post(show);
