@@ -532,9 +532,9 @@ public class SettingsActivity extends Activity {
         setUpdateState("Checking\u2026");
         Updater.check(this, (info, ok) -> {
             if (!ok) { setUpdateState("Couldn't reach GitHub \u00b7 tap to retry"); return; }
-            if (info == null) { setUpdateState("You're up to date \u00b7 tap to check again"); return; }
+            if (info == null) { setUpdateState("You're up to date (build " + Updater.installedCode(this) + ") \u00b7 tap to check again"); return; }
             pendingUpdate = info;
-            setUpdateState("New build available \u00b7 tap to install");
+            setUpdateState("New build available (" + Updater.why(this, info) + ") \u00b7 tap to install");
         });
     }
 

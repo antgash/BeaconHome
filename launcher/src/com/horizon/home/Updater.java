@@ -37,7 +37,7 @@ final class Updater {
     static final String ACTION = "com.horizon.home.UPDATE_RESULT";
 
     static final class Info {
-        long code;
+        long code, published;
         String name, notes, url;
         long size;
     }
@@ -79,6 +79,7 @@ final class Updater {
                     }
                     if (apk != null) {
                         long code = 0;
+                        long published = parseDate(j.optString("published_at", ""));
                         Matcher m = Pattern.compile("versionCode:\\s*(\\d+)").matcher(notes);
                         if (m.find()) code = Long.parseLong(m.group(1));
                         PackageInfo me = self(app);
@@ -87,12 +88,12 @@ final class Updater {
                             newer = code > longCode(me);
                         } else {
                             // no number in the notes: compare dates (with slack for the time it takes to install)
-                            long published = parseDate(j.optString("published_at", ""));
                             newer = me != null && published > 0 && published > me.lastUpdateTime + 10 * 60 * 1000L;
                         }
                         if (newer) {
                             Info i = new Info();
                             i.code = code;
+                            i.published = published;
                             i.name = j.optString("name", "latest");
                             i.notes = notes;
                             i.url = apk.optString("browser_download_url");
@@ -109,6 +110,20 @@ final class Updater {
             if (good) U.prefs(app).edit().putLong(P_LAST, System.currentTimeMillis()).apply();
             U.MAIN.post(() -> cb.done(f, good));
         });
+    }
+
+    /** This copy's build number. */
+    static long installedCode(Context c) {
+        PackageInfo p = self(c);
+        return p == null ? 0 : longCode(p);
+    }
+
+    /** Short description of why a build counts as newer, for the settings row. */
+    static String why(Context c, Info i) {
+        PackageInfo p = self(c);
+        if (i.code > 0) return "GitHub build " + i.code + " \u00b7 yours " + installedCode(c);
+        java.text.DateFormat f = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT);
+        return "released " + f.format(new java.util.Date(i.published)) + " \u00b7 yours installed " + (p == null ? "?" : f.format(new java.util.Date(p.lastUpdateTime)));
     }
 
     /** True when the automatic check is on and it has been at least half a day since the last one. */
