@@ -1696,7 +1696,54 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             a.addUpdateListener(an -> cwHead.setTextColor((Integer) an.getAnimatedValue()));
             a.start();
         }
-        Toast.makeText(this, "Continue watching updated", Toast.LENGTH_SHORT).show();
+        cwBlock.post(this::showCwNotice);
+    }
+
+    private View cwNotice;
+
+    /** The "Continue watching updated" popup, styled like the long-press sheets and lifted over the row. */
+    private void showCwNotice() {
+        if (cwNotice != null) { ui.removeView(cwNotice); cwNotice = null; }
+        LinearLayout sheet = new LinearLayout(this);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        sheet.setPadding(V.dp(9), V.dp(9), V.dp(9), V.dp(9));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor((0xED << 24) | (U.mix(V.BG, 0xFFFFFFFF, 0.1f) & 0x00FFFFFF));
+        bg.setCornerRadius(V.dpf(18));
+        sheet.setBackground(bg);
+        LinearLayout cap = new LinearLayout(this);
+        cap.setOrientation(LinearLayout.HORIZONTAL);
+        cap.setGravity(Gravity.CENTER_VERTICAL);
+        cap.setPadding(V.dp(11), 0, V.dp(14), 0);
+        cap.setBackground(V.shape(V.TEXT, 25, 0)); // the look of a focused option: solid, dark text
+        Icon ic = new Icon(this, Icon.BEACON);
+        ic.setColor(V.INK);
+        cap.addView(ic, new LinearLayout.LayoutParams(V.dp(12), V.dp(12)));
+        TextView tv = V.text(this, "Continue watching updated", 11.5f, 600, V.INK);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(U.WRAP, U.WRAP);
+        tp.leftMargin = V.dp(8);
+        cap.addView(tv, tp);
+        sheet.addView(cap, new LinearLayout.LayoutParams(U.WRAP, V.dp(34)));
+
+        int[] a = new int[2], b = new int[2];
+        cwBlock.getLocationInWindow(a);
+        ui.getLocationInWindow(b);
+        int top = cwBlock.getVisibility() == View.VISIBLE ? a[1] - b[1] - V.dp(6) : ui.getHeight() * 6 / 10;
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(U.WRAP, U.WRAP, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        lp.topMargin = Math.max(V.dp(40), top);
+        ui.addView(sheet, lp);
+        cwNotice = sheet;
+        sheet.setAlpha(0f);
+        sheet.setTranslationY(V.dpf(14));
+        sheet.animate().alpha(1f).translationY(0).setDuration(240).start();
+        final View me = sheet;
+        U.MAIN.postDelayed(() -> {
+            if (cwNotice != me) return;
+            me.animate().alpha(0f).translationY(-V.dpf(8)).setDuration(260).withEndAction(() -> {
+                if (cwNotice == me) cwNotice = null;
+                ui.removeView(me);
+            }).start();
+        }, 2600);
     }
 
     private void loadNuvio() {
