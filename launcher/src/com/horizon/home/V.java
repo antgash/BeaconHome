@@ -157,24 +157,80 @@ final class V {
         if (extra != null) extra.run();
     }
 
-    /** Focused look: the glass stays, with a ring in the theme colour (the glow itself comes from glow()). */
-    static GradientDrawable glowShape(float radiusDp) {
-        int a = accent();
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(U.alpha(a, 0.14f));
-        g.setCornerRadius(dpf(radiusDp));
-        g.setStroke(Math.max(2, dp(2)), a);
-        return g;
+    /** Focused look: the glass stays, with a ring in the theme colour and a soft glow drawn around it. */
+    static android.graphics.drawable.Drawable glowShape(float radiusDp) {
+        return new Glow(radiusDp, 0.14f);
     }
 
-    /** Soft glow in the theme colour around a focused view (a coloured shadow, so it needs no extra views). */
-    static void glow(View v, boolean on) {
-        if (android.os.Build.VERSION.SDK_INT >= 28) {
+    /** A rounded ring with a blurred halo in the theme colour. Draws outside its bounds (parents must not clip). */
+    static class Glow extends android.graphics.drawable.Drawable {
+        private final float r;
+        private final float fillAlpha;
+        private final android.graphics.Paint halo = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Paint ring = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.RectF rect = new android.graphics.RectF();
+
+        private final int mode; // 0 ring + halo, 1 ring only, 2 halo only
+
+        Glow(float radiusDp, float fillAlpha) { this(radiusDp, fillAlpha, 0); }
+
+        Glow(float radiusDp, float fillAlpha, int mode) {
+            this.mode = mode;
+            this.r = dpf(radiusDp);
+            this.fillAlpha = fillAlpha;
             int a = accent();
-            v.setOutlineSpotShadowColor(a);
-            v.setOutlineAmbientShadowColor(a);
+            halo.setStyle(android.graphics.Paint.Style.STROKE);
+            halo.setStrokeWidth(dpf(7));
+            halo.setColor(U.alpha(a, 0.85f));
+            halo.setMaskFilter(new android.graphics.BlurMaskFilter(dpf(11), android.graphics.BlurMaskFilter.Blur.NORMAL));
+            fill.setColor(U.alpha(a, fillAlpha));
+            ring.setStyle(android.graphics.Paint.Style.STROKE);
+            ring.setStrokeWidth(Math.max(2, dp(2)));
+            ring.setColor(a);
         }
-        v.animate().translationZ(on ? dpf(22) : 0f).setDuration(160).start();
+
+        @Override public void draw(android.graphics.Canvas c) {
+            android.graphics.Rect b = getBounds();
+            float s = ring.getStrokeWidth() / 2f;
+            rect.set(b.left + s, b.top + s, b.right - s, b.bottom - s);
+            if (mode != 1) c.drawRoundRect(rect, r, r, halo);
+            if (mode == 2) return;
+            if (fillAlpha > 0f) c.drawRoundRect(rect, r, r, fill);
+            c.drawRoundRect(rect, r, r, ring);
+        }
+        @Override public void setAlpha(int alpha) {}
+        @Override public void setColorFilter(android.graphics.ColorFilter cf) {}
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+    }
+
+    private static final int R_HALO = 0x7f0f0102;
+
+    /**
+     * Glow for a tile that clips itself to rounded corners: the halo is drawn in the row's overlay instead,
+     * sized to the tile's focused (scaled) bounds, and removed again on blur.
+     */
+    static void tileGlow(View t, boolean on, float radiusDp, float scale) {
+        if (!(t.getParent() instanceof ViewGroup)) return;
+        ViewGroup row = (ViewGroup) t.getParent();
+        row.setClipChildren(false);
+        Object old = t.getTag(R_HALO);
+        if (old instanceof android.graphics.drawable.Drawable) {
+            row.getOverlay().remove((android.graphics.drawable.Drawable) old);
+            t.setTag(R_HALO, null);
+        }
+        if (!on) return;
+        android.graphics.drawable.Drawable d = new Glow(radiusDp * scale, 0f, 2);
+        float cx = (t.getLeft() + t.getRight()) / 2f, cy = (t.getTop() + t.getBottom()) / 2f;
+        float hw = t.getWidth() * scale / 2f, hh = t.getHeight() * scale / 2f;
+        d.setBounds(Math.round(cx - hw), Math.round(cy - hh), Math.round(cx + hw), Math.round(cy + hh));
+        row.getOverlay().add(d);
+        t.setTag(R_HALO, d);
+    }
+
+    /** Lets a view's glow spill past its edges. */
+    static void glow(View v, boolean on) {
+        if (v instanceof ViewGroup) ((ViewGroup) v).setClipChildren(false);
         if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).setClipChildren(false);
     }
 

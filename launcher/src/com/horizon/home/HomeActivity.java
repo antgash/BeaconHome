@@ -1361,9 +1361,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             gif.setAlpha(0f);
             t.addView(gif, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
             final View ring = new View(this);
-            GradientDrawable rg = V.shape(0, 11, 0);
-            rg.setStroke(V.dp(2), V.accent());
-            ring.setBackground(new android.graphics.drawable.InsetDrawable(rg, V.dp(1)));
+            ring.setBackground(new V.Glow(11, 0f, 1));
             ring.setAlpha(0f);
             t.addView(ring, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
             t.setContentDescription(sv.name);
@@ -1371,7 +1369,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
                         .setDuration(170).setInterpolator(new DecelerateInterpolator()).start();
                 ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
-                V.glow(t, has);
+                V.tileGlow(t, has, 12, 1.08f);
                 if (has) {
                     playGif(t, gif, Streaming.gif(sv.key), tw, th);
                     setHero("svc:" + sv.key, "Streaming on Nuvio", sv.name, sv.logo,
@@ -1398,9 +1396,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         plus.setColor(V.TEXT);
         t.addView(plus, new FrameLayout.LayoutParams(V.dp(22), V.dp(22), Gravity.CENTER));
         final View ring = new View(this);
-        GradientDrawable rg = V.shape(0, 11, 0);
-        rg.setStroke(V.dp(2), V.accent());
-        ring.setBackground(new android.graphics.drawable.InsetDrawable(rg, V.dp(1)));
+        ring.setBackground(new V.Glow(11, 0f, 1));
         ring.setAlpha(0f);
         t.addView(ring, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
         t.setContentDescription("Add streaming services back");
@@ -1408,7 +1404,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
                     .setDuration(170).setInterpolator(new DecelerateInterpolator()).start();
             ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
-                V.glow(t, has);
+                V.tileGlow(t, has, 12, 1.08f);
         });
         t.setOnClickListener(v -> hiddenMenu());
         addToRow(svcRow, t);
@@ -1557,9 +1553,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         col.addView(name, np);
         t.addView(col, new FrameLayout.LayoutParams(tw, th, Gravity.CENTER));
         final View ring = new View(this);
-        GradientDrawable rg = V.shape(0, 11, 0);
-        rg.setStroke(V.dp(2), V.accent());
-        ring.setBackground(new android.graphics.drawable.InsetDrawable(rg, V.dp(1)));
+        ring.setBackground(new V.Glow(11, 0f, 1));
         ring.setAlpha(0f);
         t.addView(ring, new FrameLayout.LayoutParams(-1, -1));
         t.setContentDescription("Live TV guide");
@@ -1567,7 +1561,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
                     .setDuration(170).setInterpolator(new DecelerateInterpolator()).start();
             ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
-                V.glow(t, has);
+                V.tileGlow(t, has, 12, 1.08f);
             if (has) {
                 stopGif();
                 setHero("svc:live", "Live TV", "TV Guide", null,
