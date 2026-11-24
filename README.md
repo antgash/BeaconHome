@@ -4,11 +4,11 @@ An ad-free home screen for Android TV / Google TV / projectors, built around **N
 
 beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed. The original was built on an XGIMI Horizon S Max (Android TV 11, 1.7 GB RAM); beacon should work on any Android TV 8+ box or projector, and is used on an NVIDIA Shield.
 
-> The screenshots and demo video below are from the original Horizon Home Kit. beacon keeps the same layout, but the top bar, menu and screensaver look different now.
+![beacon home screen](screenshots/01-home.png)
 
-![Home](screenshots/01-home.png)
+> The first image is beacon itself. **Most of the other images and the demo video are from the original Horizon Home Kit.** beacon keeps the same layout, but the top bar, menu, focus style and screensaver look different now.
 
-▶️ **[Watch the original demo video](screenshots/horizon-demo.mp4)**
+▶️ **[Watch the original Horizon demo video](screenshots/horizon-demo.mp4)**
 
 | | |
 |---|---|
@@ -30,7 +30,8 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 - The top-left pill opens a **Veil-style dropdown menu**:
   - **Start screensaver**: preview it right now (any key leaves).
   - **Screensaver starts after**: Off, 1, 3, 5, 10 or 20 minutes.
-  - **Theme** colour bubbles and a **Colours from artwork** toggle.
+  - **Theme** colour bubbles, a **Colours from artwork** toggle, **Focus style** (Glow or Fill) and **Title artwork**.
+  - **Sound**: navigation sounds on/off and an 8-step volume.
   - **Weather** toggle and **Weather location**: search for a city by name, or go back to automatic.
   - **Use as Android TV screensaver**: jumps to the system screensaver picker.
   - **More settings**: the full settings screen.
@@ -53,6 +54,8 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 - The long-press menu uses a Veil-style action sheet.
 - **Streaming tiles** can be **rearranged** the same way, and **hidden** (long-press → *Hide from Home*). Once any are hidden, a blank tile with a **+** at the end of the row lists them so you can add them back (one at a time or *Add all*).
 - **Continue Watching refreshes right away when you switch profiles in Nuvio**, without opening Nuvio again. When most of the list is replaced (a profile switch), the row slides in fresh from its first item, the heading flashes in the accent colour and a short "Continue watching updated" message appears.
+- **Title artwork instead of text.** The focused show or movie's title graphic (its logo) replaces the plain-text title when one can be found. It's looked up by name, with a strict match so a similar title never shows the wrong art, and falls back to text. Turn it off with *Title artwork* in the menu.
+- **Focus glow.** The item you've selected gets a ring and a soft outward glow in your theme colour instead of filling solid white. *Focus style* in the menu switches between **Glow** and the original **Fill**.
 - **Navigation sounds**, ported from Veil: soft synthesised tones (no audio files) for moving, selecting, going back and toggles. The beacon menu has a **Sound** section with an on/off toggle and an 8-step volume (Left/Right to change it).
 - **Episode wallpapers use the series artwork**, not the episode still.
 - **Long titles shrink to fit on one row** instead of wrapping or being cut off.
