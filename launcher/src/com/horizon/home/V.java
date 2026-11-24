@@ -182,9 +182,9 @@ final class V {
             this.fillAlpha = fillAlpha;
             int a = accent();
             halo.setStyle(android.graphics.Paint.Style.STROKE);
-            halo.setStrokeWidth(dpf(9));
-            halo.setColor(U.alpha(a, 0.85f));
-            halo.setMaskFilter(new android.graphics.BlurMaskFilter(dpf(11), android.graphics.BlurMaskFilter.Blur.NORMAL));
+            halo.setStrokeWidth(dpf(6));
+            halo.setColor(U.alpha(a, 0.5f));
+            halo.setMaskFilter(new android.graphics.BlurMaskFilter(dpf(7), android.graphics.BlurMaskFilter.Blur.NORMAL));
             fill.setColor(U.alpha(a, fillAlpha));
             ring.setStyle(android.graphics.Paint.Style.STROKE);
             ring.setStrokeWidth(Math.max(2, dp(2)));
