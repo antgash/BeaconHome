@@ -24,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Looks at this project's "latest" GitHub release for a newer beacon build, downloads it and hands it to
+ * Looks at this project's newest GitHub release for a newer beacon build, downloads it and hands it to
  * Android's installer (which asks you to confirm). Nothing is sent anywhere except the GitHub request itself.
  *
  * The release notes carry "versionCode: N" (written by the build workflow). Without it, the release date is
@@ -62,7 +62,7 @@ final class Updater {
             Info found = null;
             boolean ok = false;
             try {
-                HttpURLConnection h = (HttpURLConnection) new URL("https://api.github.com/repos/" + REPO + "/releases/tags/latest").openConnection();
+                HttpURLConnection h = (HttpURLConnection) new URL("https://api.github.com/repos/" + REPO + "/releases/latest").openConnection();
                 h.setConnectTimeout(8000);
                 h.setReadTimeout(10000);
                 h.setRequestProperty("Accept", "application/vnd.github+json");
