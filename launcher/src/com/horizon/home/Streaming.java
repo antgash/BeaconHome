@@ -340,26 +340,41 @@ final class Streaming {
      */
     static String logoByTitle(Context c, Nuvio.Item it) {
         if (it == null || TextUtils.isEmpty(it.title)) return null;
+        boolean series = !TextUtils.isEmpty(it.episode) || "series".equals(it.type);
+        String[] types = series ? new String[] {"series", "movie"} : new String[] {"movie", "series"};
+        for (String type : types) {
+            String l = logoFor(c, it, type);
+            if (l != null) return l;
+        }
+        return null;
+    }
+
+    private static String norm(String s) {
+        return s == null ? "" : s.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "");
+    }
+
+    private static String logoFor(Context c, Nuvio.Item it, String type) {
         try {
-            String type = !TextUtils.isEmpty(it.episode) || "series".equals(it.type) ? "series" : "movie";
-            String q = Uri.encode(it.title);
-            JSONArray metas = cachedGet(c, "https://v3-cinemeta.strem.io/catalog/" + type + "/top/search=" + q + ".json", "metas");
-            if (metas == null || metas.length() == 0) return null;
+            String url = "https://v3-cinemeta.strem.io/catalog/" + type + "/top/search=" + Uri.encode(it.title) + ".json";
+            JSONArray metas = cachedGet(c, url, "metas");
+            if (metas == null || metas.length() == 0) { Log.w(TAG, "no title match for " + it.title + " (" + type + ")"); return null; }
+            String want = norm(it.title);
             JSONObject pick = null;
-            for (int i = 0; i < metas.length() && i < 8; i++) {
+            for (int i = 0; i < metas.length() && i < 10; i++) {
                 JSONObject o = metas.optJSONObject(i);
-                if (o == null || TextUtils.isEmpty(o.optString("logo"))) continue;
-                boolean name = it.title.equalsIgnoreCase(o.optString("name"));
+                if (o == null || !want.equals(norm(o.optString("name")))) continue;
                 boolean year = !TextUtils.isEmpty(it.year) && o.optString("releaseInfo", "").startsWith(it.year);
-                if (name && (year || TextUtils.isEmpty(it.year))) { pick = o; break; }
-                if (name && pick == null) pick = o;
+                if (pick == null || year) pick = o;
+                if (year) break;
             }
-            if (pick == null) {
-                JSONObject f = metas.optJSONObject(0);
-                if (f != null && it.title.equalsIgnoreCase(f.optString("name"))) pick = f;
-            }
-            return pick == null ? null : pick.optString("logo", null);
+            if (pick == null) pick = metas.optJSONObject(0); // search is already ranked by relevance
+            if (pick == null) return null;
+            String logo = pick.optString("logo", "");
+            if (!TextUtils.isEmpty(logo) && !"null".equals(logo)) return logo;
+            String imdb = pick.optString("imdb_id", pick.optString("id", ""));
+            return imdb.startsWith("tt") ? "https://images.metahub.space/logo/medium/" + imdb + "/img" : null;
         } catch (Throwable t) {
+            Log.w(TAG, "logoByTitle", t);
             return null;
         }
     }
