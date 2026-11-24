@@ -128,6 +128,8 @@ final class Img {
                     break;
                 }
                 in = con.getInputStream();
+            } else if (uri.startsWith("asset:")) {
+                in = c.getAssets().open(uri.substring(6)); // artwork bundled in the APK
             } else {
                 in = c.getContentResolver().openInputStream(Uri.parse(uri));
             }
