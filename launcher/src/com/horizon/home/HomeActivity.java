@@ -484,20 +484,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
         menuPanel.addView(menuLabel("Theme"));
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
-        menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
 
         menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Title artwork", "title_logo", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
-        if (cwHiddenCount() > 0) {
-            menuPanel.addView(menuLabel("Continue watching"));
-            menuPanel.addView(menuButton(Icon.EYE, "Restore hidden items", cwHiddenCount() + " hidden", () -> {
-                prefs.edit().remove(P_CW_DONE).remove(P_CW_GONE).apply();
-                closeMenu();
-                fillContinue();
-                stopAtEdges(cwRow);
-            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-        }
 
         menuPanel.addView(menuLabel("Sound"));
         menuPanel.addView(soundToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -1278,7 +1269,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void fillContinue() {
         cwRow.removeAllViews();
         cwItems.clear();
-        if (nuvio != null) for (Nuvio.Item it : nuvio.continueWatching) { if (cwItems.size() < 12 && !cwHidden(it)) cwItems.add(it); }
+        if (nuvio != null) for (Nuvio.Item it : nuvio.continueWatching) { if (cwItems.size() < 12) cwItems.add(it); }
         cwBlock.setVisibility(cwItems.isEmpty() ? View.GONE : View.VISIBLE);
         int queued = 0;
         for (int i = 0; i < cwItems.size(); i++) {
@@ -1330,7 +1321,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 }
             });
             p.setOnClickListener(v -> Nuvio.open(this, it));
-            p.setOnLongClickListener(v -> { cwMenu(it, idx); return true; });
             addToRow(cwRow, p);
         }
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
@@ -1679,52 +1669,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     /** Pinned apps, in the order you set (Pin to Home adds to the end; Move left / right reorders). */
     private List<Apps.App> pinned() {
         return Apps.pinned(this, apps);
-    }
-
-    // ---- Continue watching: hide items you're done with (kept in beacon only; Nuvio's own list is untouched)
-
-    private static final String P_CW_DONE = "cw_done", P_CW_GONE = "cw_gone";
-
-    private java.util.Set<String> cwSet(String key) {
-        return new java.util.HashSet<>(prefs.getStringSet(key, new java.util.HashSet<String>()));
-    }
-
-    private boolean cwHidden(Nuvio.Item it) {
-        return cwSet(P_CW_DONE).contains(it.key()) || (it.title != null && cwSet(P_CW_GONE).contains(it.title));
-    }
-
-    private int cwHiddenCount() { return cwSet(P_CW_DONE).size() + cwSet(P_CW_GONE).size(); }
-
-    /** Long-press options for a Continue watching item. */
-    private void cwMenu(final Nuvio.Item it, final int idx) {
-        new ActionSheet(this, it.title)
-                .add("Play", Icon.PLAY, () -> Nuvio.open(this, it))
-                .add("Mark as watched", Icon.CHECK, () -> {
-                    java.util.Set<String> set = cwSet(P_CW_DONE);
-                    set.add(it.key());
-                    prefs.edit().putStringSet(P_CW_DONE, set).apply();
-                    afterCwHide(idx);
-                })
-                .add("Remove", Icon.UNPIN, () -> {
-                    java.util.Set<String> set = cwSet(P_CW_GONE);
-                    if (it.title != null) set.add(it.title);
-                    prefs.edit().putStringSet(P_CW_GONE, set).apply();
-                    afterCwHide(idx);
-                })
-                .show();
-    }
-
-    private void afterCwHide(int idx) {
-        fillContinue();
-        stopAtEdges(cwRow);
-        int n = cwRow.getChildCount();
-        if (n > 0) {
-            final View next = cwRow.getChildAt(Math.min(idx, n - 1));
-            defaultFocusId = cwRow.getChildAt(0).getId();
-            next.post(next::requestFocus);
-        } else {
-            focusFirstApp();
-        }
     }
 
     private void appMenu(final Apps.App a) {
