@@ -68,7 +68,7 @@ final class Apps {
         for (String s : play) KNOWN.put(s, PLAY);
         for (String s : listen) KNOWN.put(s, LISTEN);
         for (String s : tools) KNOWN.put(s, TOOLS);
-        Collections.addAll(HIDDEN, "com.horizon.home", "com.android.camera2", "com.xgimi.bugreportsender",
+        Collections.addAll(HIDDEN, "com.android.camera2", "com.xgimi.bugreportsender",
                 "com.mediatek.wwtv.webview", "com.thorium.webview", "com.android.tv.settings.system",
                 "com.xgimi.uiconfiguration");
     }
@@ -91,6 +91,8 @@ final class Apps {
     private static void add(Context c, PackageManager pm, SharedPreferences prefs, Map<String, App> map, ResolveInfo ri) {
         if (ri.activityInfo == null) return;
         String pkg = ri.activityInfo.packageName;
+        // beacon lists itself once, as its settings screen (opening the home screen from the home screen does nothing)
+        if (pkg.equals(c.getPackageName()) && !ri.activityInfo.name.endsWith("SettingsActivity")) return;
         if (map.containsKey(pkg) || HIDDEN.contains(pkg) || prefs.getBoolean("hide_" + pkg, false)) return;
         App a = new App();
         a.pkg = pkg;
