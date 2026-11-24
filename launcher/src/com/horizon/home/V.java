@@ -52,7 +52,11 @@ final class V {
 
     static int accent() { return artAccent != null ? artAccent : themeAccent; }
 
+    /** Focus style: true = accent ring + glow, false = the original solid fill. */
+    static boolean glowFocus = true;
+
     static void loadTheme(Context c) {
+        glowFocus = U.prefs(c).getBoolean("focus_glow", true);
         String id = U.prefs(c).getString("theme", "ember");
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); return; }
     }
@@ -148,10 +152,15 @@ final class V {
     }
 
     static void stylePill(ViewGroup p, boolean focused, float radiusDp, Runnable extra) {
-        p.setBackground(focused ? glowShape(radiusDp) : shape(GLASS, radiusDp, LINE));
-        tint(p, TEXT);
-        if (focused) tintIcons(p, accent());
-        glow(p, focused);
+        if (!glowFocus) {
+            p.setBackground(focused ? shape(TEXT, radiusDp, 0) : shape(GLASS, radiusDp, LINE));
+            tint(p, focused ? INK : TEXT);
+        } else {
+            p.setBackground(focused ? glowShape(radiusDp) : shape(GLASS, radiusDp, LINE));
+            tint(p, TEXT);
+            if (focused) tintIcons(p, accent());
+            glow(p, focused);
+        }
         p.animate().scaleX(focused ? 1.03f : 1f).scaleY(focused ? 1.03f : 1f)
                 .setDuration(160).setInterpolator(new DecelerateInterpolator()).start();
         if (extra != null) extra.run();
@@ -188,14 +197,14 @@ final class V {
             fill.setColor(U.alpha(a, fillAlpha));
             ring.setStyle(android.graphics.Paint.Style.STROKE);
             ring.setStrokeWidth(Math.max(2, dp(2)));
-            ring.setColor(a);
+            ring.setColor(glowFocus ? a : TEXT);
         }
 
         @Override public void draw(android.graphics.Canvas c) {
             android.graphics.Rect b = getBounds();
             float s = ring.getStrokeWidth() / 2f;
             rect.set(b.left + s, b.top + s, b.right - s, b.bottom - s);
-            if (mode != 1) {
+            if (mode != 1 && glowFocus) {
                 // Only outward: cut the shape itself out of the halo so nothing spills inside the item.
                 c.save();
                 path.rewind();
@@ -220,7 +229,7 @@ final class V {
      * sized to the tile's focused (scaled) bounds, and removed again on blur.
      */
     static void tileGlow(View t, boolean on, float radiusDp, float scale) {
-        if (!(t.getParent() instanceof ViewGroup)) return;
+        if (!glowFocus || !(t.getParent() instanceof ViewGroup)) return;
         ViewGroup row = (ViewGroup) t.getParent();
         row.setClipChildren(false);
         Object old = t.getTag(R_HALO);

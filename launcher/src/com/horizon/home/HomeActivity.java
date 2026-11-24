@@ -258,7 +258,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override public void onSharedPreferenceChanged(SharedPreferences p, String key) {
         if (key == null || key.startsWith("last_") || key.startsWith("count_") || key.equals("svc")) return;
-        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key)) {
+        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key) || "focus_glow".equals(key)) {
             V.loadTheme(this);
             if (player != null) player.stop();
             build();
@@ -485,6 +485,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(menuLabel("Theme"));
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+        menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
         if (cwHiddenCount() > 0) {
             menuPanel.addView(menuLabel("Continue watching"));
@@ -717,6 +719,21 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             prefs.edit().putBoolean(key, !prefs.getBoolean(key, def)).apply();
             paint.run();
             if ("weather".equals(key)) loadWeather();
+        });
+        return row;
+    }
+
+    /** Focus look on the home screen: accent glow (new) or the original solid fill. */
+    private View focusStyleToggle() {
+        final LinearLayout row = menuButton(Icon.BEACON, "Focus style", null, () -> {});
+        final TextView state = V.text(this, prefs.getBoolean("focus_glow", true) ? "GLOW" : "FILL", 10, 800, V.TEXT);
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(state);
+        V.tint(row, V.TEXT);
+        row.setOnClickListener(v -> {
+            reopenMenu = true;
+            prefs.edit().putBoolean("focus_glow", !prefs.getBoolean("focus_glow", true)).apply();
         });
         return row;
     }
