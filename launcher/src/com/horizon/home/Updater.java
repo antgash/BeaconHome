@@ -46,6 +46,9 @@ final class Updater {
     interface Progress { void at(int percent); }
     interface Done { void done(File apk); }
 
+    /** PendingIntent.FLAG_MUTABLE (API 31), written out because the build compiles against API 30. */
+    private static final int FLAG_MUTABLE = 1 << 25;
+
     private Updater() {}
 
     static PackageInfo self(Context c) {
@@ -162,7 +165,7 @@ final class Updater {
                 }
                 Intent it = new Intent(c, Result.class).setAction(ACTION);
                 PendingIntent pend = PendingIntent.getBroadcast(c, id, it,
-                        PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
+                        PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? FLAG_MUTABLE : 0));
                 s.commit(pend.getIntentSender());
             }
             return true;
