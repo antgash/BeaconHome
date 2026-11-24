@@ -170,6 +170,7 @@ final class V {
         private final android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Paint ring = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.RectF rect = new android.graphics.RectF();
+        private final android.graphics.Path path = new android.graphics.Path();
 
         private final int mode; // 0 ring + halo, 1 ring only, 2 halo only
 
@@ -181,7 +182,7 @@ final class V {
             this.fillAlpha = fillAlpha;
             int a = accent();
             halo.setStyle(android.graphics.Paint.Style.STROKE);
-            halo.setStrokeWidth(dpf(7));
+            halo.setStrokeWidth(dpf(9));
             halo.setColor(U.alpha(a, 0.85f));
             halo.setMaskFilter(new android.graphics.BlurMaskFilter(dpf(11), android.graphics.BlurMaskFilter.Blur.NORMAL));
             fill.setColor(U.alpha(a, fillAlpha));
@@ -194,7 +195,15 @@ final class V {
             android.graphics.Rect b = getBounds();
             float s = ring.getStrokeWidth() / 2f;
             rect.set(b.left + s, b.top + s, b.right - s, b.bottom - s);
-            if (mode != 1) c.drawRoundRect(rect, r, r, halo);
+            if (mode != 1) {
+                // Only outward: cut the shape itself out of the halo so nothing spills inside the item.
+                c.save();
+                path.rewind();
+                path.addRoundRect(new android.graphics.RectF(b), r, r, android.graphics.Path.Direction.CW);
+                c.clipOutPath(path);
+                c.drawRoundRect(rect, r, r, halo);
+                c.restore();
+            }
             if (mode == 2) return;
             if (fillAlpha > 0f) c.drawRoundRect(rect, r, r, fill);
             c.drawRoundRect(rect, r, r, ring);
