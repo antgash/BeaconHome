@@ -21,6 +21,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 ## What's new in beacon (compared with Horizon Home Kit)
 
 **Name and build**
+- **A "beacon" shortcut in the app list** (with the new icon and banner) that opens the home screen, next to "beacon settings".
 - Renamed from Horizon to **beacon** everywhere you can see it: the top-left pill, menus, launcher and screensaver labels, the Home-button accessibility service, the APK (`BeaconHome.apk`) and the Windows scripts (`install-beacon.bat`, `update-beacon.bat`, `use-beacon-home.bat`, `uninstall-beacon.bat`).
 - The internal package name is still `com.horizon.home`, so beacon installs over an existing Horizon and keeps your settings. Live TV guide links work with both `beacon://guide` and the old `horizon://guide`.
 - GitHub Actions builds with `bash launcher/build.sh` (the script no longer needs its execute bit) and numbers each build from the run number.
