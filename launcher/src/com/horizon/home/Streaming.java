@@ -349,26 +349,47 @@ final class Streaming {
         return null;
     }
 
-    private static String norm(String s) {
-        return s == null ? "" : s.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "");
+    private static Set<String> words(String s) {
+        Set<String> out = new HashSet<>();
+        if (s == null) return out;
+        for (String w : s.toLowerCase(java.util.Locale.ROOT).replaceAll("['\u2019]", "").split("[^a-z0-9]+")) if (!w.isEmpty()) out.add(w);
+        return out;
     }
 
     private static String logoFor(Context c, Nuvio.Item it, String type) {
+        String q = it.title;
+        String l = logoFromSearch(c, it, type, q);
+        if (l != null) return l;
+        // "Roald Dahl's The Witches" is usually listed as just "The Witches": retry without the "Someone's" lead-in.
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^.+?['\u2019]s\\s+(.+)$").matcher(q);
+        return m.matches() ? logoFromSearch(c, it, type, m.group(1)) : null;
+    }
+
+    /**
+     * A result only counts when its name and the title agree word for word (one contains all the words of the
+     * other). Better no artwork than the wrong artwork. Among agreeing results, an exact name and a matching year win.
+     */
+    private static String logoFromSearch(Context c, Nuvio.Item it, String type, String query) {
         try {
-            String url = "https://v3-cinemeta.strem.io/catalog/" + type + "/top/search=" + Uri.encode(it.title) + ".json";
+            String url = "https://v3-cinemeta.strem.io/catalog/" + type + "/top/search=" + Uri.encode(query) + ".json";
             JSONArray metas = cachedGet(c, url, "metas");
-            if (metas == null || metas.length() == 0) { Log.w(TAG, "no title match for " + it.title + " (" + type + ")"); return null; }
-            String want = norm(it.title);
+            if (metas == null || metas.length() == 0) return null;
+            Set<String> want = words(it.title);
             JSONObject pick = null;
+            int best = -1;
             for (int i = 0; i < metas.length() && i < 10; i++) {
                 JSONObject o = metas.optJSONObject(i);
-                if (o == null || !want.equals(norm(o.optString("name")))) continue;
+                if (o == null) continue;
+                Set<String> got = words(o.optString("name"));
+                if (got.isEmpty()) continue;
+                boolean exact = got.equals(want);
+                boolean agrees = exact || want.containsAll(got) || got.containsAll(want);
+                if (!agrees) continue;
                 boolean year = !TextUtils.isEmpty(it.year) && o.optString("releaseInfo", "").startsWith(it.year);
-                if (pick == null || year) pick = o;
-                if (year) break;
+                int score = (exact ? 4 : 0) + (year ? 2 : 0) + (i == 0 ? 1 : 0);
+                if (score > best) { best = score; pick = o; }
             }
-            if (pick == null) pick = metas.optJSONObject(0); // search is already ranked by relevance
-            if (pick == null) return null;
+            if (pick == null) { Log.w(TAG, "no title match for " + it.title + " (" + type + ")"); return null; }
             String logo = pick.optString("logo", "");
             if (!TextUtils.isEmpty(logo) && !"null".equals(logo)) return logo;
             String imdb = pick.optString("imdb_id", pick.optString("id", ""));
