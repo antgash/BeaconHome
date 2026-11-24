@@ -1,6 +1,6 @@
 # beacon
 
-An ad-free home screen for Android TV / Google TV / projectors, built around **Nuvio**, with a full **Live TV guide**, a Veil-style menu and a drifting-artwork screensaver. It also includes a Nuvio setup, speed tweaks, and a runbook so **Claude sets it all up for you**.
+An ad-free home screen for Android TV / Google TV / projectors, built around **Nuvio**, with a full **Live TV guide**, a Veil-style menu and a drifting-artwork screensaver. It also includes a Nuvio setup, speed tweaks, and a built-in updater that installs new builds straight from this repo's Releases.
 
 beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed. The original was built for a low-memory Android TV 11 projector (1.7 GB RAM); beacon should work on any Android TV 8+ box or projector, and is used on an NVIDIA Shield.
 
@@ -18,13 +18,32 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 | ![Overlay](screenshots/10-guide-overlay.png) See-through guide while watching | ![Nuvio home](screenshots/11-nuvio-home.png) Nuvio home with the kit's layout |
 | ![Nuvio Discover](screenshots/12-nuvio-discover.png) Nuvio Discover collection | ![Nuvio streaming services](screenshots/13-nuvio-streaming-services.png) Nuvio Streaming Services collection |
 
+## Installation
+
+1. Open this repo's **Releases** page and download **`BeaconHome.apk`** from the newest release (under *Assets*).
+2. Install it on your TV, either way:
+   - **On the TV:** copy the APK over (USB stick, the *Downloader* app, or a file manager) and open it. Allow *Install unknown apps* if Android asks.
+   - **From a PC:** `adb install -r BeaconHome.apk`, or put the APK in the `windows` folder and run `install-beacon.bat`.
+3. Open **beacon** from your app list. To make it the home screen, use *beacon settings → Home screen* (or run `windows/use-beacon-home.bat`).
+
+Needs Android TV / Google TV 8 or newer. Install the Android TV build of Nuvio too if you want *Continue watching*.
+
+## Updating
+
+beacon updates itself from this repo's Releases:
+
+- Open **beacon settings → Updates → Update beacon**. It checks GitHub and shows whether you're up to date; if a newer build exists, press it again to download and install it, then confirm Android's install prompt. The first time, Android may ask you to allow installs from beacon (*Settings → Apps → Special app access → Install unknown apps*).
+- With **Check for updates** switched on (the default), beacon checks about twice a day and shows a small notice on Home when a new build is out.
+- Every build is published as its own numbered release (for example `v3.3.108`), and the build number is shown in *About*. You can always download an APK from Releases by hand instead.
+
 ## What's new in beacon (compared with Horizon Home Kit)
 
 **Name and build**
 - **A "beacon" shortcut in the app list** (with the new icon and banner) that opens the home screen, next to "beacon settings".
 - Renamed from Horizon to **beacon** everywhere you can see it: the top-left pill, menus, launcher and screensaver labels, the Home-button accessibility service, the APK (`BeaconHome.apk`) and the Windows scripts (`install-beacon.bat`, `update-beacon.bat`, `use-beacon-home.bat`, `uninstall-beacon.bat`).
 - beacon has its own app id, `com.beacon.home`, so it installs **next to** an existing Horizon instead of replacing it. It starts fresh, so you'll need to pick beacon as the home app and set it up again; you can uninstall Horizon whenever you like. Live TV guide links work with both `beacon://guide` and the old `horizon://guide`.
-- GitHub Actions builds with `bash launcher/build.sh` (the script no longer needs its execute bit) and numbers each build from the run number.
+- GitHub Actions builds with `bash launcher/build.sh`, numbers each build from the run number and publishes it as its own release (the newest 10 are kept).
+- **Built-in updater**: *beacon settings → Updates* checks this repo's newest release, downloads it and hands it to Android's installer. It also checks about twice a day and tells you on Home. See *Updating* above.
 
 **Top bar and menu**
 - The top-left pill opens a **Veil-style dropdown menu**:
@@ -43,6 +62,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 - It drifts slowly across artwork, cross-fades between titles and shows the title (or its logo), where it came from ("Continue watching", or the row name such as "Netflix · Top Series"), an episode or year line, the clock and the weather.
 - It mixes **Continue Watching, Nuvio's own rows and titles from five random streaming services' lists**, shuffled. Hidden services are skipped.
 - Episodes use the **series' wallpaper** instead of the episode still.
+- **Press Select on a title to open its info page in Nuvio** (not playback). A small hint at the bottom says "Select to load content, back to exit". Back, or any other button, wakes the screen as usual.
 
 **Home screen behaviour**
 - **Left and Right stop at the end of a row** instead of jumping to another row.
@@ -73,7 +93,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
   - Full screen with channel up/down and a see-through guide.
   - Favourites, and "Open in Nuvio".
   - Picks the sharpest version of each stream (up to 1080p).
-- **Settings on the TV itself** (no PC needed): animation speed, Google TV recommendations, power button, and the home screen switch. Each change has an undo.
+- **Settings on the TV itself** (no PC needed): updates, animation speed, Google TV recommendations, and the home screen switch. Each change has an undo.
 - **Switch back to the Google TV home any time** from beacon's settings on the TV (or `use-original-home.bat` from the PC), and back to beacon again.
 - The remote's **Home button** always brings you to beacon.
 
