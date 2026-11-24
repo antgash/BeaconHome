@@ -1005,11 +1005,32 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         U.MAIN.postDelayed(pendingHero, heroKey == null && "greet".equals(key) ? 0 : 140);
     }
 
+    private Object wantKey;
+    private String wantLogo;
+    private boolean heroSwapping;
+
+    private void loadHeroLogo(final int token, String url) {
+        Img.load(this, url, V.dp(420), bm -> {
+            if (token != heroToken || bm == null) return;
+            heroLogo.setImageBitmap(bm);
+            heroLogo.setVisibility(View.VISIBLE);
+            heroTitle.setVisibility(View.GONE);
+        });
+    }
+
+    /** A logo found after the hero was already queued: shown now if the text has landed, else when it does. */
+    private void applyHeroLogo(Object key, String url) {
+        wantKey = key;
+        wantLogo = url;
+        if (key != null && key.equals(heroKey) && !heroSwapping) loadHeroLogo(heroToken, url);
+    }
+
     private void setHeroNow(Object key, String label, String title, String logoUrl, String line,
                             float progress, String remaining, String art) {
         if (key != null && key.equals(heroKey)) return;
         heroKey = key;
         final int token = ++heroToken;
+        heroSwapping = true;
         hero.animate().cancel();
         hero.animate().alpha(0f).setDuration(140).withLayer().withEndAction(() -> {
             if (token != heroToken) return;
@@ -1029,14 +1050,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             hero.setTranslationY(V.dpf(12));
             hero.animate().alpha(ambient ? 0f : 1f).translationY(0).setStartDelay(60).setDuration(420)
                     .setInterpolator(new DecelerateInterpolator(1.6f)).withLayer().start();
-            if (!TextUtils.isEmpty(logoUrl)) {
-                Img.load(this, logoUrl, V.dp(420), bm -> {
-                    if (token != heroToken || bm == null) return;
-                    heroLogo.setImageBitmap(bm);
-                    heroLogo.setVisibility(View.VISIBLE);
-                    heroTitle.setVisibility(View.GONE);
-                });
-            }
+            heroSwapping = false;
+            if (!TextUtils.isEmpty(logoUrl)) loadHeroLogo(token, logoUrl);
+            else if (key != null && key.equals(wantKey) && wantLogo != null) loadHeroLogo(token, wantLogo);
         }).start();
         if (!TextUtils.isEmpty(art)) {
             // Full-screen fades are the heaviest thing this GPU draws, so the backdrop only changes once
@@ -1340,18 +1356,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         String logo = art ? it.logo : null;
         setHero(it.key(), label, it.title, logo, line, it.progress(), remaining, Img.sized(it.art(), "w1280"));
         if (art && TextUtils.isEmpty(logo)) {
-            final Object k = heroKey;
+            final Object k = it.key();
             U.IO.execute(() -> {
                 Context ac = getApplicationContext();
                 String l = it.tmdbId > 0 ? Streaming.tmdbLogo(ac, it) : null;
                 if (l == null) l = Streaming.logoByTitle(ac, it);
                 final String found = l;
-                if (found != null) U.MAIN.post(() -> {
-                    it.logo = found;
-                    if (k != null && k.equals(heroKey)) Img.load(this, found, V.dp(420), bm -> {
-                        if (bm != null && k.equals(heroKey)) { heroLogo.setImageBitmap(bm); heroLogo.setVisibility(View.VISIBLE); heroTitle.setVisibility(View.GONE); }
-                    });
-                });
+                if (found != null) U.MAIN.post(() -> { it.logo = found; applyHeroLogo(k, found); });
             });
         }
     }
