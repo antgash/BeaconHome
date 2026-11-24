@@ -139,6 +139,10 @@ public class SettingsActivity extends Activity {
         action("Your name", () -> prefs.getString(U.P_NAME, ""), this::editName);
         action("Show hidden apps again", () -> hiddenCount() + " hidden", this::unhideAll);
         action("Projector settings", () -> "Picture, keystone, 3D, sound", () -> Apps.start(this, new Intent(Settings.ACTION_SETTINGS)));
+        section("UPDATES");
+        toggle("Check for updates", "Looks at github.com/" + Updater.REPO + " about twice a day and tells you on Home", Updater.P_AUTO, true);
+        action("Update beacon", () -> updateState, this::checkOrInstallUpdate);
+
         action("About", () -> "Version " + version() + "  ·  ad-free home for your XGIMI", null);
     }
 
@@ -513,6 +517,34 @@ public class SettingsActivity extends Activity {
         Intent i = new Intent(Intent.ACTION_MAIN);
         i.setComponent(new ComponentName("com.google.android.tvlauncher", "com.google.android.tvlauncher.MainActivity"));
         if (!Apps.start(this, i)) Toast.makeText(this, "Google TV home isn't available", Toast.LENGTH_SHORT).show();
+    }
+
+    private String updateState = "Tap to check for a new build";
+    private Updater.Info pendingUpdate;
+
+    private void setUpdateState(String s) {
+        updateState = s;
+        for (Runnable r : refreshers) r.run();
+    }
+
+    private void checkOrInstallUpdate() {
+        if (pendingUpdate != null) { downloadAndInstall(pendingUpdate); return; }
+        setUpdateState("Checking\u2026");
+        Updater.check(this, (info, ok) -> {
+            if (!ok) { setUpdateState("Couldn't reach GitHub \u00b7 tap to retry"); return; }
+            if (info == null) { setUpdateState("You're up to date \u00b7 tap to check again"); return; }
+            pendingUpdate = info;
+            setUpdateState("New build available \u00b7 tap to install");
+        });
+    }
+
+    private void downloadAndInstall(final Updater.Info info) {
+        setUpdateState("Downloading\u2026 0%");
+        Updater.download(this, info, pct -> setUpdateState("Downloading\u2026 " + pct + "%"), apk -> {
+            if (apk == null) { setUpdateState("Download failed \u00b7 tap to retry"); return; }
+            if (Updater.install(this, apk)) setUpdateState("Confirm the install on screen");
+            else setUpdateState("Couldn't start the installer \u00b7 tap to retry");
+        });
     }
 
     private String version() {

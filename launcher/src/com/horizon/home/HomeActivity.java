@@ -184,6 +184,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         super.onResume();
         lastInput = System.currentTimeMillis();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
+        if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> {
+            if (info != null && started && !menuOpen && !ambient)
+                showNotice("A new beacon build is available \u00b7 beacon settings \u2192 Update beacon");
+        }), 6000);
     }
 
     @Override protected void onStop() {
@@ -1747,7 +1751,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private View cwNotice;
 
     /** The "Continue watching updated" popup, styled like the long-press sheets and lifted over the row. */
-    private void showCwNotice() {
+    private void showCwNotice() { showNotice("Continue watching updated"); }
+
+    private void showNotice(String text) {
         if (cwNotice != null) { ui.removeView(cwNotice); cwNotice = null; }
         // A see-through pill like the other pills on the home screen, sitting just above the Continue watching row.
         LinearLayout sheet = new LinearLayout(this);
@@ -1758,7 +1764,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         Icon ic = new Icon(this, Icon.BEACON);
         ic.setColor(V.accent());
         sheet.addView(ic, new LinearLayout.LayoutParams(V.dp(13), V.dp(13)));
-        TextView tv = V.text(this, "Continue watching updated", 12f, 600, V.TEXT);
+        TextView tv = V.text(this, text, 12f, 600, V.TEXT);
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(U.WRAP, U.WRAP);
         tp.leftMargin = V.dp(9);
         sheet.addView(tv, tp);
