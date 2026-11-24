@@ -172,9 +172,9 @@ final class V {
         if (android.os.Build.VERSION.SDK_INT >= 28) {
             int a = accent();
             v.setOutlineSpotShadowColor(a);
-            v.setOutlineAmbientShadowColor(U.alpha(a, 0.6f));
+            v.setOutlineAmbientShadowColor(a);
         }
-        v.animate().translationZ(on ? dpf(14) : 0f).setDuration(160).start();
+        v.animate().translationZ(on ? dpf(22) : 0f).setDuration(160).start();
         if (v.getParent() instanceof ViewGroup) ((ViewGroup) v.getParent()).setClipChildren(false);
     }
 

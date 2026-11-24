@@ -1089,7 +1089,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         r.setClipChildren(false);
         r.setTag(spacing);
         hs.addView(r, new FrameLayout.LayoutParams(U.WRAP, U.WRAP));
-        block.addView(hs, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
+        // Room for the focus glow: the scroller clips what it draws, so pad it and pull the layout back with margins.
+        int gp = V.dp(30);
+        hs.setPadding(0, gp, 0, gp);
+        hs.setClipChildren(false);
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(U.MATCH, U.WRAP);
+        hp.topMargin = -gp;
+        hp.bottomMargin = -gp;
+        block.addView(hs, hp);
         return r;
     }
 
