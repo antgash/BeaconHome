@@ -334,6 +334,36 @@ final class Streaming {
         return best == null ? null : "https://image.tmdb.org/t/p/w500" + best.optString("file_path");
     }
 
+    /**
+     * Title artwork for an item that only has a name (Continue watching from Nuvio carries no ids): searches the
+     * public Cinemeta catalogue, no key needed, and returns the logo of the best match (null when none).
+     */
+    static String logoByTitle(Context c, Nuvio.Item it) {
+        if (it == null || TextUtils.isEmpty(it.title)) return null;
+        try {
+            String type = !TextUtils.isEmpty(it.episode) || "series".equals(it.type) ? "series" : "movie";
+            String q = Uri.encode(it.title);
+            JSONArray metas = cachedGet(c, "https://v3-cinemeta.strem.io/catalog/" + type + "/top/search=" + q + ".json", "metas");
+            if (metas == null || metas.length() == 0) return null;
+            JSONObject pick = null;
+            for (int i = 0; i < metas.length() && i < 8; i++) {
+                JSONObject o = metas.optJSONObject(i);
+                if (o == null || TextUtils.isEmpty(o.optString("logo"))) continue;
+                boolean name = it.title.equalsIgnoreCase(o.optString("name"));
+                boolean year = !TextUtils.isEmpty(it.year) && o.optString("releaseInfo", "").startsWith(it.year);
+                if (name && (year || TextUtils.isEmpty(it.year))) { pick = o; break; }
+                if (name && pick == null) pick = o;
+            }
+            if (pick == null) {
+                JSONObject f = metas.optJSONObject(0);
+                if (f != null && it.title.equalsIgnoreCase(f.optString("name"))) pick = f;
+            }
+            return pick == null ? null : pick.optString("logo", null);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     // ---------------------------------------------------------------- public catalog fallback
 
     private static List<Row> catalogRows(Context c, Service s) {

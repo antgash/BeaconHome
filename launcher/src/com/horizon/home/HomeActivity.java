@@ -486,7 +486,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
-        menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+        menuPanel.addView(toggleButton(Icon.EYE, "Title artwork", "title_logo", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
         if (cwHiddenCount() > 0) {
             menuPanel.addView(menuLabel("Continue watching"));
@@ -1335,15 +1336,19 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             c.add(Calendar.MILLISECOND, (int) left);
             remaining = Nuvio.duration(left) + " left · done by " + DateFormat.getTimeFormat(this).format(c.getTime());
         }
-        String logo = it.logo;
+        final boolean art = prefs.getBoolean("title_logo", true);
+        String logo = art ? it.logo : null;
         setHero(it.key(), label, it.title, logo, line, it.progress(), remaining, Img.sized(it.art(), "w1280"));
-        if (TextUtils.isEmpty(logo) && it.tmdbId > 0) {
+        if (art && TextUtils.isEmpty(logo)) {
             final Object k = heroKey;
             U.IO.execute(() -> {
-                String l = Streaming.tmdbLogo(getApplicationContext(), it);
-                if (l != null) U.MAIN.post(() -> {
-                    it.logo = l;
-                    if (k.equals(heroKey)) Img.load(this, l, V.dp(420), bm -> {
+                Context ac = getApplicationContext();
+                String l = it.tmdbId > 0 ? Streaming.tmdbLogo(ac, it) : null;
+                if (l == null) l = Streaming.logoByTitle(ac, it);
+                final String found = l;
+                if (found != null) U.MAIN.post(() -> {
+                    it.logo = found;
+                    if (k != null && k.equals(heroKey)) Img.load(this, found, V.dp(420), bm -> {
                         if (bm != null && k.equals(heroKey)) { heroLogo.setImageBitmap(bm); heroLogo.setVisibility(View.VISIBLE); heroTitle.setVisibility(View.GONE); }
                     });
                 });
