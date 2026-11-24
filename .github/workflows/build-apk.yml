@@ -22,6 +22,13 @@ jobs:
       - name: Publish as the "latest" release
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          gh release delete latest -y --cleanup-tag 2>/dev/null || true
-          gh release create latest launcher/build/BeaconHome.apk -t "beacon (latest build)" \
-            -n "Built automatically from commit ${GITHUB_SHA::7}. Install with windows/install-beacon.bat."
+          # Clear out any earlier "latest" release and its tag (each step may fail harmlessly if there is nothing there).
+          gh release delete latest -y --cleanup-tag || true
+          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/latest" || true
+          sleep 3
+          NOTES="Built automatically from commit ${GITHUB_SHA::7}. Install with windows/install-beacon.bat."
+          if ! gh release create latest launcher/build/BeaconHome.apk --target "$GITHUB_SHA" -t "beacon (latest build)" -n "$NOTES"; then
+            # The old release could not be removed: update it in place instead.
+            gh release upload latest launcher/build/BeaconHome.apk --clobber
+            gh release edit latest -t "beacon (latest build)" -n "$NOTES"
+          fi
