@@ -262,7 +262,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override public void onBackPressed() {
         if (ambient) { exitAmbient(true); return; }
-        if (menuOpen) { closeMenu(); return; }
+        if (menuOpen) { if (menuPage != null) openMenuPage(null); else closeMenu(); return; }
         View f = getCurrentFocus();
         if (f != null && f.getId() != defaultFocusId) focusDefault(); else enterAmbient();
     }
@@ -508,64 +508,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuHost = sv;
         sv.setAlpha(0f);
 
-        menuPanel.addView(V.text(this, "beacon", 24, 800, V.TEXT));
-        menuPanel.addView(V.dim(V.caps(this, "Home & screensaver", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
-
-        View first = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
-            closeMenu();
-            U.MAIN.postDelayed(this::enterAmbient, 350);
-        });
-        menuPanel.addView(first, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-
-        menuPanel.addView(menuLabel("Screensaver starts after"));
-        final int[] mins = {0, 1, 3, 5, 10, 20};
-        String[] names = {"Off", "1m", "3m", "5m", "10m", "20m"};
-        int cur = prefs.getInt(U.P_AMBIENT_MIN, 3), sel = 2;
-        for (int i = 0; i < mins.length; i++) if (mins[i] == cur) sel = i;
-        menuPanel.addView(chipRow(names, sel, i -> {
-            prefs.edit().putInt(U.P_AMBIENT_MIN, mins[i]).apply();
-            lastInput = System.currentTimeMillis();
-        }), lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
-
-        menuPanel.addView(menuLabel("Artwork changes every"));
-        final int[] secs = {8, 12, 20, 30, 60};
-        String[] sNames = {"8s", "12s", "20s", "30s", "1m"};
-        int curS = prefs.getInt(U.P_HERO_SECS, 12), selS = 1;
-        for (int i = 0; i < secs.length; i++) if (secs[i] == curS) selS = i;
-        menuPanel.addView(chipRow(sNames, selS, i -> prefs.edit().putInt(U.P_HERO_SECS, secs[i]).apply()),
-                lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
-
-        menuPanel.addView(menuLabel("Theme"));
-        menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
-        menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-
-        menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-        menuPanel.addView(cwStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-        menuPanel.addView(toggleButton(Icon.EYE, "Title artwork", "title_logo", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-
-
-        menuPanel.addView(menuLabel("Sound"));
-        menuPanel.addView(soundToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-        volumeRow = buildVolumeRow();
-        volumeRow.setAlpha(Sfx.isEnabled() ? 1f : 0.45f);
-        menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-
-        menuPanel.addView(menuLabel("Weather"));
-        menuPanel.addView(toggleButton(Icon.SUN, "Show weather by the clock", "weather", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-
-        String city = prefs.getString("wx_city", "");
-        menuPanel.addView(menuButton(Icon.SEARCH, "Weather location", TextUtils.isEmpty(city) ? "Automatic \u00b7 search for a city" : city + " \u00b7 search for another", () -> {
-            closeMenu();
-            U.MAIN.postDelayed(this::editWeatherCity, 250);
-        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-
-        menuPanel.addView(menuLabel("System"));
-        menuPanel.addView(menuButton(Icon.MOON, "Use as Android TV screensaver", "Opens the system screensaver picker", this::openDreamSettings), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-        menuPanel.addView(menuButton(Icon.GEAR, "More settings", "Display, general, and updates", () -> {
-            closeMenu();
-            startActivity(new Intent(this, SettingsActivity.class));
-        }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
-        menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
+        menuScroll = sv;
+        menuMaxH = maxH;
+        buildMenuPage(menuPage);
 
         // nothing behind the menu may take focus
         for (int i = 0; i < ui.getChildCount(); i++) {
@@ -578,11 +523,123 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         scrim.animate().alpha(1f).setDuration(200).start();
         sv.setTranslationY(-V.dpf(12));
         sv.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
+        sv.post(this::fitMenu);
+    }
+
+    private ScrollView menuScroll;
+    private int menuMaxH;
+    private String menuPage; // null = the hub; otherwise "look", "screensaver", "sound" or "weather"
+    private View menuFirst;
+
+    /** Keeps the panel as tall as its content, up to the screen, then focuses the first row. */
+    private void fitMenu() {
+        final ScrollView sv = menuScroll;
+        if (sv == null || !menuOpen) return;
+        sv.getLayoutParams().height = U.WRAP;
+        sv.requestLayout();
         sv.post(() -> {
-            if (sv.getHeight() > maxH) sv.getLayoutParams().height = maxH;
-            sv.requestLayout();
-            first.requestFocus();
+            if (menuScroll != sv) return;
+            if (sv.getHeight() > menuMaxH) { sv.getLayoutParams().height = menuMaxH; sv.requestLayout(); }
+            sv.scrollTo(0, 0);
+            if (menuFirst != null) menuFirst.requestFocus();
         });
+    }
+
+    private void openMenuPage(String page) {
+        buildMenuPage(page);
+        if (menuPanel != null) menuPanel.post(this::fitMenu);
+    }
+
+    private View hubRow(int icon, String title, String sub, Runnable r) {
+        LinearLayout row = menuButton(icon, title, sub, r);
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(new Icon(this, Icon.RIGHT), new LinearLayout.LayoutParams(V.dp(14), V.dp(14)));
+        V.tint(row, V.TEXT);
+        return row;
+    }
+
+    private void buildMenuPage(String page) {
+        if (menuPanel == null) return;
+        menuPage = page;
+        menuPanel.removeAllViews();
+        menuFirst = null;
+        String[] titles = {"look", "Appearance", "screensaver", "Screensaver", "sound", "Sound", "weather", "Weather"};
+        String title = "beacon";
+        for (int i = 0; i < titles.length; i += 2) if (titles[i].equals(page)) title = titles[i + 1];
+        menuPanel.addView(V.text(this, title, 24, 800, V.TEXT));
+        menuPanel.addView(V.dim(V.caps(this, page == null ? "Home & screensaver" : "beacon", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
+
+        if (page == null) {
+            int mins = prefs.getInt(U.P_AMBIENT_MIN, 3);
+            String city = prefs.getString("wx_city", "");
+            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, cards, artwork", () -> openMenuPage("look"));
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.MOON, "Screensaver", mins == 0 ? "Off" : "Starts after " + mins + " min", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.SUN, "Weather", TextUtils.isEmpty(city) ? "Automatic location" : city, () -> openMenuPage("weather")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.CHECK, "Updates", Updater.pending(this) ? "Update available" : "Check for a new version", () -> {
+                closeMenu();
+                startActivity(new Intent(this, SettingsActivity.class).putExtra(SettingsActivity.EXTRA_UPDATES, true));
+            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.GEAR, "More settings", "Display, general, Live TV", () -> {
+                closeMenu();
+                startActivity(new Intent(this, SettingsActivity.class));
+            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
+            return;
+        }
+
+        if ("look".equals(page)) {
+            menuPanel.addView(menuLabel("Theme"));
+            menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
+            menuFirst = toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true);
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(cwStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(toggleButton(Icon.EYE, "Title artwork", "title_logo", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        } else if ("screensaver".equals(page)) {
+            menuFirst = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
+                closeMenu();
+                U.MAIN.postDelayed(this::enterAmbient, 350);
+            });
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+
+            menuPanel.addView(menuLabel("Screensaver starts after"));
+            final int[] mins = {0, 1, 3, 5, 10, 20};
+            String[] names = {"Off", "1m", "3m", "5m", "10m", "20m"};
+            int cur = prefs.getInt(U.P_AMBIENT_MIN, 3), sel = 2;
+            for (int i = 0; i < mins.length; i++) if (mins[i] == cur) sel = i;
+            menuPanel.addView(chipRow(names, sel, i -> {
+                prefs.edit().putInt(U.P_AMBIENT_MIN, mins[i]).apply();
+                lastInput = System.currentTimeMillis();
+            }), lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
+
+            menuPanel.addView(menuLabel("Artwork changes every"));
+            final int[] secs = {8, 12, 20, 30, 60};
+            String[] sNames = {"8s", "12s", "20s", "30s", "1m"};
+            int curS = prefs.getInt(U.P_HERO_SECS, 12), selS = 1;
+            for (int i = 0; i < secs.length; i++) if (secs[i] == curS) selS = i;
+            menuPanel.addView(chipRow(sNames, selS, i -> prefs.edit().putInt(U.P_HERO_SECS, secs[i]).apply()),
+                    lp(U.MATCH, V.dp(30), 0, 0, 0, 14));
+
+            menuPanel.addView(menuButton(Icon.MOON, "Use as Android TV screensaver", "Opens the system screensaver picker", this::openDreamSettings), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        } else if ("sound".equals(page)) {
+            menuFirst = soundToggle();
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            volumeRow = buildVolumeRow();
+            volumeRow.setAlpha(Sfx.isEnabled() ? 1f : 0.45f);
+            menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        } else if ("weather".equals(page)) {
+            menuFirst = toggleButton(Icon.SUN, "Show weather by the clock", "weather", true);
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            String city = prefs.getString("wx_city", "");
+            menuPanel.addView(menuButton(Icon.SEARCH, "Weather location", TextUtils.isEmpty(city) ? "Automatic \u00b7 search for a city" : city + " \u00b7 search for another", () -> {
+                closeMenu();
+                U.MAIN.postDelayed(this::editWeatherCity, 250);
+            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        }
+        menuPanel.addView(menuButton(Icon.LEFT, "Back", null, () -> openMenuPage(null)), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
     }
 
     private View menuHost;
@@ -590,6 +647,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void closeMenu() {
         if (!menuOpen) return;
         menuOpen = false;
+        menuPage = null;
+        menuScroll = null;
+        menuFirst = null;
         final View host = menuHost;
         menuHost = null;
         menuPanel = null;
