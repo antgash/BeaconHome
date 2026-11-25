@@ -1494,8 +1494,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
             if (lpl instanceof LinearLayout.LayoutParams) ((LinearLayout.LayoutParams) lpl).topMargin = cw ? 0 : V.dp(8);
             if (cw) {
-                // Fit into the box between the beacon menu and the Continue watching heading (510 x 168 dp), kept in proportion.
-                float maxW = V.dp(510);
+                // Fit into the box between the beacon menu and the Continue watching heading, kept in proportion.
+                // Never wider than about 40% of the screen, measured from the left edge.
+                float maxW = getResources().getDisplayMetrics().widthPixels * 0.40f;
                 float maxH = V.dp(168);
                 float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
                 lpl.width = Math.round(bm.getWidth() * k);
