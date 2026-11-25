@@ -1430,6 +1430,34 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             heroLogo.setImageBitmap(bm);
             heroLogo.setVisibility(View.VISIBLE);
             heroTitle.setVisibility(View.GONE);
+            centerHeroLogo(cw);
+        });
+    }
+
+    /**
+     * Continue watching artwork is centred (by measurement) between the bottom of the beacon menu button and the top of
+     * the "Continue watching" heading, whatever size the hero area ends up. Everything else stays where it was.
+     */
+    private void centerHeroLogo(final boolean cw) {
+        heroLogo.setTranslationY(0);
+        if (!cw || menuPill == null || cwBlock == null) return;
+        final android.view.ViewTreeObserver vto = heroLogo.getViewTreeObserver();
+        vto.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+            @Override public boolean onPreDraw() {
+                android.view.ViewTreeObserver o = heroLogo.getViewTreeObserver();
+                if (o.isAlive()) o.removeOnPreDrawListener(this);
+                if (!heroCw || heroLogo.getHeight() <= 0) return true;
+                int[] a = new int[2], b = new int[2], c = new int[2];
+                menuPill.getLocationInWindow(a);
+                cwBlock.getLocationInWindow(b);
+                heroLogo.getLocationInWindow(c);
+                float top = a[1] + menuPill.getHeight();
+                float bottom = b[1] - cwBlock.getTranslationY();
+                // where the logo sits now, ignoring the hero's slide-in and any shift already applied
+                float centre = c[1] - hero.getTranslationY() - heroLogo.getTranslationY() + heroLogo.getHeight() / 2f;
+                heroLogo.setTranslationY((top + bottom) / 2f - centre);
+                return true;
+            }
         });
     }
 
