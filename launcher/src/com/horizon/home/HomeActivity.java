@@ -133,6 +133,30 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
     };
 
+    /**
+     * Safety net next to the provider observer: while Home is on screen, look for new Continue watching data
+     * every 20 seconds. It is one small provider query; the row is only redrawn when something actually changed.
+     */
+    private final Runnable cwPoll = new Runnable() {
+        @Override public void run() {
+            if (!started) return;
+            if (!ambient && !menuOpen && System.currentTimeMillis() - nuvioAt > 15000) loadNuvio(true);
+            U.MAIN.postDelayed(this, 20000);
+        }
+    };
+    private boolean observing;
+
+    private void observeNuvio() {
+        if (observing) return;
+        try {
+            getContentResolver().registerContentObserver(android.media.tv.TvContract.WatchNextPrograms.CONTENT_URI, true, nuvioObserver);
+            getContentResolver().registerContentObserver(android.media.tv.TvContract.PreviewPrograms.CONTENT_URI, true, nuvioObserver);
+            observing = true;
+        } catch (Throwable ignored) {} // permission not granted yet: retried on the next resume
+    }
+
+    private String cwSig = "";
+
     private final Runnable resumeWall = () -> { if (started && !ambient && wall != null) wall.resume(); };
 
     private final BroadcastReceiver timeRx = new BroadcastReceiver() {
@@ -160,10 +184,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         askPermissions();
         build();
         loadApps();
-        try {
-            getContentResolver().registerContentObserver(android.media.tv.TvContract.WatchNextPrograms.CONTENT_URI, true, nuvioObserver);
-            getContentResolver().registerContentObserver(android.media.tv.TvContract.PreviewPrograms.CONTENT_URI, true, nuvioObserver);
-        } catch (Throwable ignored) {} // no permission yet: Continue Watching still refreshes when Home reopens
+        observeNuvio();
         Img.trim(this);
     }
 
@@ -178,11 +199,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         startBackground();
         U.MAIN.removeCallbacks(idleTick);
         U.MAIN.postDelayed(idleTick, 10000);
+        U.MAIN.removeCallbacks(cwPoll);
+        U.MAIN.postDelayed(cwPoll, 20000);
     }
 
     @Override protected void onResume() {
         super.onResume();
         lastInput = System.currentTimeMillis();
+        observeNuvio();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
         refreshUpdatePill();
         if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> refreshUpdatePill()), 6000);
@@ -203,6 +227,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (wall != null) wall.pause();
         stopGif();
         U.MAIN.removeCallbacks(idleTick);
+        U.MAIN.removeCallbacks(cwPoll);
         U.MAIN.removeCallbacks(memTick);
         U.MAIN.removeCallbacks(resumeWall);
         unregisterReceivers();
@@ -1815,23 +1840,35 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }, 2600);
     }
 
-    private void loadNuvio() {
+    private void loadNuvio() { loadNuvio(false); }
+
+    /** quiet = a background check: nothing is redrawn (and focus is left alone) unless the data changed. */
+    private void loadNuvio(final boolean quiet) {
         nuvioAt = System.currentTimeMillis();
         final boolean fill = prefs.getBoolean(U.P_HERO_FILL, true);
         U.IO.execute(() -> {
             final Nuvio.Result r = Nuvio.load(getApplicationContext(), fill);
             Nuvio.applyWallpapers(getApplicationContext(), r, false);
+            final StringBuilder sg = new StringBuilder();
+            for (Nuvio.Item it : r.continueWatching) sg.append(it.key()).append('@').append(Math.round(it.progress() * 100)).append(';');
+            sg.append('|');
+            for (Nuvio.Item it : r.picks) sg.append(it.key()).append(';');
+            final String sig = sg.toString();
             final Runnable show = () -> {
+                if (quiet && sig.equals(cwSig) && nuvio != null) return; // nothing new
+                cwSig = sig;
                 nuvio = r;
                 View f = getCurrentFocus();
                 boolean onCw = f != null && f.getParent() == cwRow;
+                final int focusedAt = onCw ? cwRow.indexOfChild(f) : -1;
                 boolean switched = detectCwSwitch(r);
                 fillContinue();
                 stopAtEdges(cwRow);
                 defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                         : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId() : defaultFocusId;
                 if (switched) { rowMemory[0] = 0; cwFresh = true; scrollCwToStart(); flashCw(); cwRow.post(this::selectFirstCw); } // row 0 is Continue watching: forget the old place
-                if (onCw || getCurrentFocus() == null) focusDefault();
+                if (onCw && !switched && focusedAt >= 0 && cwRow.getChildCount() > 0) cwRow.getChildAt(Math.min(focusedAt, cwRow.getChildCount() - 1)).requestFocus(); // stay where you were
+                else if (onCw || getCurrentFocus() == null) focusDefault();
             };
             U.MAIN.post(show);
             // episodes not seen before: fetch their series wallpaper, then refresh once
