@@ -90,8 +90,8 @@ final class Apps {
     private static void add(Context c, PackageManager pm, SharedPreferences prefs, Map<String, App> map, ResolveInfo ri) {
         if (ri.activityInfo == null) return;
         String pkg = ri.activityInfo.packageName;
-        // beacon lists itself once, as its settings screen (opening the home screen from the home screen does nothing)
-        if (pkg.equals(c.getPackageName()) && !ri.activityInfo.name.endsWith("SettingsActivity")) return;
+        // beacon doesn't list itself (opening the home screen from the home screen does nothing)
+        if (pkg.equals(c.getPackageName())) return;
         if (map.containsKey(pkg) || HIDDEN.contains(pkg) || prefs.getBoolean("hide_" + pkg, false)) return;
         App a = new App();
         a.pkg = pkg;

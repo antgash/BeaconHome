@@ -305,7 +305,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         } else if (U.P_SCENE_SECS.equals(key) || U.P_SCENES_OFF.equals(key) || U.P_LIFT.equals(key) || U.P_SOUND.equals(key)) {
             if (player != null) { player.stop(); configurePlayer(); if (started) player.start(false); }
         } else if (U.P_NAME.equals(key) || U.P_GREET.equals(key)) {
-            if (heroKey == null) showGreeting();
+            if (heroKey == null || "greet".equals(heroKey)) showGreeting();
         } else if (U.P_HERO_FILL.equals(key) || "tmdb_key".equals(key)) {
             loadNuvio();
             fillRows();
@@ -445,7 +445,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         V.tint(up, V.TEXT);
         up.setContentDescription("Update available");
         up.setVisibility(View.GONE);
-        up.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class).putExtra(SettingsActivity.EXTRA_UPDATES, true)));
+        up.setOnClickListener(v -> openMenuTo("updates"));
         updatePill = up;
         left.addView(up, lp(U.WRAP, V.dp(34), 10, 0, 0, 0));
         bar.addView(left, U.flp(U.WRAP, U.WRAP, Gravity.START | Gravity.CENTER_VERTICAL));
@@ -545,6 +545,163 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    private final List<Runnable> menuRefreshers = new ArrayList<>();
+    private TextView updateSub;
+    private String updateState = "Tap to check for a new build";
+    private Updater.Info pendingUpdate;
+    private static final String TVLAUNCHER = "com.google.android.tvlauncher", TVREC = "com.google.android.tvrecommendations";
+
+    /** Opens the beacon menu straight onto one page (the Update available pill uses this). */
+    private void openMenuTo(String page) {
+        if (menuOpen) { openMenuPage(page); }
+        else { menuPage = page; showMenu(); }
+        if ("updates".equals(page)) checkOrInstallUpdate();
+    }
+
+    private void refreshMenuValues() { for (Runnable r : menuRefreshers) r.run(); }
+
+    /** A menu row that shows its current value on the right; Select runs the action and refreshes the value. */
+    private LinearLayout valueRow(int icon, String title, final java.util.function.Supplier<String> value, final Runnable onClick) {
+        final LinearLayout row = menuButton(icon, title, null, () -> {});
+        final TextView state = V.text(this, value.get(), 10, 800, V.TEXT);
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(state);
+        V.tint(row, V.TEXT);
+        menuRefreshers.add(() -> state.setText(value.get()));
+        row.setOnClickListener(v -> { onClick.run(); state.setText(value.get()); });
+        return row;
+    }
+
+    private String versionName() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Throwable t) { return "1.0"; }
+    }
+
+    private boolean fastAnim() {
+        return Settings.Global.getFloat(getContentResolver(), "window_animation_scale", 1f) < 0.9f;
+    }
+
+    private boolean pkgEnabled(String pkg) {
+        try {
+            int st = getPackageManager().getApplicationEnabledSetting(pkg);
+            return st == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT || st == PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+        } catch (Throwable notInstalled) {
+            return false;
+        }
+    }
+
+    private boolean beaconIsHome() {
+        Intent i = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+        android.content.pm.ResolveInfo r = getPackageManager().resolveActivity(i, PackageManager.MATCH_DEFAULT_ONLY);
+        return r != null && r.activityInfo != null && getPackageName().equals(r.activityInfo.packageName);
+    }
+
+    private int hiddenCount() {
+        int n = 0;
+        for (java.util.Map.Entry<String, ?> e : prefs.getAll().entrySet()) if (e.getKey().startsWith("hide_")) n++;
+        return n;
+    }
+
+    /** Asks first, then runs the shell command on the device itself (through its network-debugging port). */
+    private void confirmRun(String title, String message, final String cmd) {
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Yes", (d, w) -> {
+                    Toast.makeText(this, "Working…", Toast.LENGTH_SHORT).show();
+                    U.IO.execute(() -> {
+                        final String out = AdbLocal.exec(getApplicationContext(), cmd);
+                        U.MAIN.post(() -> {
+                            if (out == null) {
+                                Toast.makeText(this, "waiting".equals(AdbLocal.state)
+                                        ? "Allow the network debugging prompt on screen, then try again"
+                                        : "Couldn't reach the device's debugging port. Turn on network debugging in Developer options.",
+                                        Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(this, "Done", Toast.LENGTH_SHORT).show();
+                            }
+                            refreshMenuValues();
+                        });
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void switchHomeScreen() {
+        if (beaconIsHome()) {
+            confirmRun("Go back to the Google TV home screen?",
+                    "Turns Google's home and its recommendations back on and makes it the home screen. "
+                            + "beacon stays installed: open it from your apps any time to switch back.",
+                    "pm enable " + TVLAUNCHER + "; pm enable " + TVREC
+                            + "; cmd package set-home-activity " + TVLAUNCHER + "/.MainActivity"
+                            + "; settings delete secure enabled_accessibility_services; settings put secure accessibility_enabled 0"
+                            + "; am start -a android.intent.action.MAIN -c android.intent.category.HOME");
+        } else {
+            confirmRun("Make beacon your home screen?",
+                    "Switches Google's home off (it stays installed) and makes the Home button open beacon.",
+                    "cmd package set-home-activity " + getPackageName() + "/" + HomeActivity.class.getName()
+                            + "; settings put secure enabled_accessibility_services " + getPackageName() + "/" + HomeButtonService.class.getName()
+                            + "; settings put secure accessibility_enabled 1"
+                            + "; pm disable-user --user 0 " + TVREC + "; pm disable-user --user 0 " + TVLAUNCHER
+                            + "; am start -n " + getPackageName() + "/" + HomeActivity.class.getName());
+        }
+    }
+
+    private View nuvioStatusRow() {
+        final LinearLayout row = menuButton(Icon.NUVIO, "Nuvio connection", "Checking…", () -> {
+            if (checkSelfPermission("com.android.providers.tv.permission.READ_EPG_DATA") != PackageManager.PERMISSION_GRANTED
+                    || checkSelfPermission("android.permission.READ_TV_LISTINGS") != PackageManager.PERMISSION_GRANTED) {
+                try {
+                    requestPermissions(new String[] {"com.android.providers.tv.permission.READ_EPG_DATA",
+                            "android.permission.READ_TV_LISTINGS", android.Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
+                } catch (Throwable ignored) {}
+            } else {
+                closeMenu();
+                Apps.launchPackage(this, U.NUVIO);
+            }
+        });
+        final TextView st = (TextView) ((LinearLayout) row.getChildAt(1)).getChildAt(1);
+        st.setSingleLine(true);
+        st.setEllipsize(TextUtils.TruncateAt.END);
+        U.IO.execute(() -> {
+            final Nuvio.Result r = Nuvio.load(getApplicationContext(), false);
+            U.MAIN.post(() -> {
+                String msg;
+                if ("permission".equals(r.error)) msg = "Needs permission · select to allow";
+                else if (r.nuvioPicks + r.nuvioContinue == 0) msg = "No titles yet · turn on Android TV rows in Nuvio";
+                else msg = r.nuvioPicks + " titles · " + r.nuvioContinue + " in Continue watching";
+                st.setText(msg);
+            });
+        });
+        return row;
+    }
+
+    private void setUpdateState(String t) {
+        updateState = t;
+        if (updateSub != null) updateSub.setText(t);
+    }
+
+    private void checkOrInstallUpdate() {
+        if (pendingUpdate != null) { downloadAndInstall(pendingUpdate); return; }
+        setUpdateState("Checking…");
+        Updater.check(this, (info, ok) -> {
+            if (!ok) { setUpdateState("Couldn't reach GitHub · select to retry"); return; }
+            if (info == null) { setUpdateState("Up to date (build " + Updater.installedCode(this) + ") · select to check again"); return; }
+            pendingUpdate = info;
+            setUpdateState("New build available (" + Updater.why(this, info) + ") · select to install");
+        });
+    }
+
+    private void downloadAndInstall(final Updater.Info info) {
+        setUpdateState("Downloading… 0%");
+        Updater.download(this, info, pct -> setUpdateState("Downloading… " + pct + "%"), apk -> {
+            if (apk == null) { setUpdateState("Download failed · select to retry"); return; }
+            if (Updater.install(this, apk)) setUpdateState("Confirm the install on screen");
+            else setUpdateState("Couldn't start the installer · select to retry");
+        });
+    }
+
     private void openMenuPage(String page) {
         buildMenuPage(page);
         if (menuPanel != null) menuPanel.post(this::fitMenu);
@@ -564,7 +721,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPage = page;
         menuPanel.removeAllViews();
         menuFirst = null;
-        String[] titles = {"look", "Appearance", "screensaver", "Screensaver", "sound", "Sound", "weather", "Weather"};
+        menuRefreshers.clear();
+        String[] titles = {"look", "Appearance", "system", "System", "screensaver", "Screensaver", "sound", "Sound", "weather", "Weather", "updates", "Updates"};
         String title = "beacon";
         for (int i = 0; i < titles.length; i += 2) if (titles[i].equals(page)) title = titles[i + 1];
         menuPanel.addView(V.text(this, title, 24, 800, V.TEXT));
@@ -575,17 +733,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             String city = prefs.getString("wx_city", "");
             menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, cards, artwork", () -> openMenuPage("look"));
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.GEAR, "System", "Margins, animation, home screen, apps", () -> openMenuPage("system")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.MOON, "Screensaver", mins == 0 ? "Off" : "Starts after " + mins + " min", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SUN, "Weather", TextUtils.isEmpty(city) ? "Automatic location" : city, () -> openMenuPage("weather")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.CHECK, "Updates", Updater.pending(this) ? "Update available" : "Check for a new version", () -> {
-                closeMenu();
-                startActivity(new Intent(this, SettingsActivity.class).putExtra(SettingsActivity.EXTRA_UPDATES, true));
-            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.GEAR, "More settings", "Display, general, Live TV", () -> {
-                closeMenu();
-                startActivity(new Intent(this, SettingsActivity.class));
-            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(hubRow(Icon.CHECK, "Updates", Updater.pending(this) ? "Update available" : "Check for a new version", () -> openMenuPage("updates")), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(V.dim(V.text(this, "beacon " + versionName() + "  \u00b7  ad-free home screen", 9, 500, V.TEXT), 0.5f), lp(U.WRAP, U.WRAP, 4, 0, 0, 12));
             menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
             return;
         }
@@ -630,6 +783,49 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             volumeRow = buildVolumeRow();
             volumeRow.setAlpha(Sfx.isEnabled() ? 1f : 0.45f);
             menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        } else if ("system".equals(page)) {
+            final int[] edges = {48, 64, 80, 96};
+            final String[] edgeNames = {"Small", "Medium", "Large", "Extra large"};
+            menuFirst = valueRow(Icon.SLIDERS, "Screen edge margin", () -> {
+                int v = prefs.getInt("edge", 64);
+                for (int i = 0; i < edges.length; i++) if (edges[i] == v) return edgeNames[i];
+                return edgeNames[1];
+            }, () -> {
+                int v = prefs.getInt("edge", 64), idx = 0;
+                for (int i = 0; i < edges.length; i++) if (edges[i] == v) idx = i;
+                reopenMenu = true;
+                prefs.edit().putInt("edge", edges[(idx + 1) % edges.length]).apply();
+            });
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(valueRow(Icon.PLAY, "Animation speed", () -> fastAnim() ? "Fast (0.5×)" : "Normal", () -> {
+                final boolean fast = fastAnim();
+                confirmRun(fast ? "Back to normal animation speed?" : "Use fast animations?",
+                        "Changes how quickly menus and screens animate in every app.",
+                        fast ? "settings put global window_animation_scale 1.0; settings put global transition_animation_scale 1.0; settings put global animator_duration_scale 1.0"
+                             : "settings put global window_animation_scale 0.5; settings put global transition_animation_scale 0.5; settings put global animator_duration_scale 0.5");
+            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(valueRow(Icon.SHIELD, "Google TV recommendations", () -> pkgEnabled(TVREC) ? "On" : "Off", () -> {
+                final boolean on = pkgEnabled(TVREC);
+                confirmRun(on ? "Turn off Google TV recommendations?" : "Turn Google TV recommendations back on?",
+                        "A background service only Google's home screen uses. Off saves memory.",
+                        (on ? "pm disable-user --user 0 " : "pm enable ") + TVREC);
+            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(valueRow(Icon.BEACON, "Home screen", () -> beaconIsHome() ? "beacon" : "Google TV", this::switchHomeScreen), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(toggleButton(Icon.EYE, "Show greeting", U.P_GREET, true), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(nuvioStatusRow(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(valueRow(Icon.APPS, "Show hidden apps again", () -> hiddenCount() + " hidden", () -> {
+                android.content.SharedPreferences.Editor e = prefs.edit();
+                for (String k : new ArrayList<>(prefs.getAll().keySet())) if (k.startsWith("hide_")) e.remove(k);
+                e.apply();
+                Toast.makeText(this, "All apps are back on Home", Toast.LENGTH_SHORT).show();
+            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+        } else if ("updates".equals(page)) {
+            menuFirst = toggleButton(Icon.CHECK, "Check for updates", Updater.P_AUTO, true);
+            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            LinearLayout ur = menuButton(Icon.CHECK, "Update beacon", updateState, this::checkOrInstallUpdate);
+            updateSub = (TextView) ((LinearLayout) ur.getChildAt(1)).getChildAt(1);
+            menuPanel.addView(ur, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(menuButton(Icon.INFO, "About", "Version " + versionName() + "  ·  ad-free home screen", () -> {}), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("weather".equals(page)) {
             menuFirst = toggleButton(Icon.SUN, "Show weather by the clock", "weather", true);
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -1288,6 +1484,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void showGreeting() {
         Calendar cal = Calendar.getInstance();
+        if (!prefs.getBoolean(U.P_GREET, true)) {
+            heroKey = null;
+            setHero("greet", "", "", null, "", 0, null, null);
+            return;
+        }
         String name = prefs.getString(U.P_NAME, "");
         String hi = U.greeting(cal.get(Calendar.HOUR_OF_DAY)) + (TextUtils.isEmpty(name) ? "" : ", " + name);
         String label;
