@@ -26,7 +26,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
    - **From a PC:** `adb install -r BeaconHome.apk`, or put the APK in the `windows` folder and run `install-beacon.bat`.
 3. Open **beacon** from your app list. To make it the home screen, open the beacon menu → *System → Home screen* (or run `windows/use-beacon-home.bat`).
 
-Needs Android TV / Google TV 8 or newer. Install the Android TV build of Nuvio too if you want *Continue watching*.
+Needs Android TV / Google TV 8 or newer. Install the Android TV build of Nuvio too if you want *Continue watching* (or a Nuvio fork, then pick it in *System → Nuvio app*).
 
 ## Updating
 
@@ -51,7 +51,7 @@ beacon updates itself from this repo's Releases:
   - **Screensaver**: **Start screensaver** at the top (preview it right now; any key leaves), **Screensaver starts after** (Off, 1, 3, 5, 10 or 20 minutes), **Artwork changes every**, and **Use as Android TV screensaver** (jumps to the system screensaver picker).
   - **Sound**: navigation sounds on/off and an 8-step volume.
   - **Weather**: show it by the clock, and **Weather location** (search for a city by name, or go back to automatic).
-  - **System**: **Screen edge margin**, **Animation speed**, **Google TV recommendations**, **Home screen** (beacon or Google TV), **Nuvio connection** and **Show hidden apps again**.
+  - **System**: **Screen edge margin**, **Animation speed**, **Google TV recommendations**, **Home screen** (beacon or Google TV), **Nuvio app**, **Nuvio connection** and **Show hidden apps again**.
   - **Updates**: automatic check on/off, **Update beacon** and **About** (version).
 - There is no separate settings screen any more: everything lives in the menu. The hero area on Home is blank until you select something, with no greeting.
 - The **clock is centered with the weather beside it**, in **Fahrenheit**.
@@ -79,6 +79,7 @@ beacon updates itself from this repo's Releases:
   - **Pills**: the original wide thumbnail pills.
   - **Rings**: a round thumbnail with a thin ring in your theme colour that fills as you get through the show or film (the default).
   - **Poster cards**: picture tiles with the title and time left on the art and a progress bar along the bottom.
+- **Choose your Nuvio app.** *System → Nuvio app* picks which Nuvio beacon works with: the official app (the default), any installed fork with "Nuvio" in its name, or **Another app…** to pick anything installed. Whichever you choose is the one Continue watching reads from, and the one that opens and plays Continue watching titles, streaming service titles and screensaver picks. The choice is remembered. A fork needs to publish Android TV "Watch Next" entries like the official app for Continue watching to fill, and may not open every title if it uses different links.
 - **Faster Continue watching.** The row re-checks about every 20 seconds and redraws quietly only when something changed, keeping your place.
 - **Focus glow.** The item you've selected gets a ring and a soft outward glow in your theme colour instead of filling solid white. *Appearance → Focus style* switches between **Glow** and the original **Fill**.
 - **Navigation sounds**, ported from Veil: soft synthesised tones (no audio files) for moving, selecting, going back and toggles. The beacon menu's **Sound** page has an on/off toggle and an 8-step volume (Left/Right to change it).
