@@ -1354,8 +1354,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLabel);
         heroLogo = V.image(this, ImageView.ScaleType.FIT_START);
         heroLogo.setAdjustViewBounds(true);
-        heroLogo.setMaxHeight(V.dp(168));
-        heroLogo.setMaxWidth(Integer.MAX_VALUE);
+        heroLogo.setMaxHeight(V.dp(78));
+        heroLogo.setMaxWidth(V.dp(420));
         heroLogo.setVisibility(View.GONE);
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
         heroTitle = V.text(this, "", 44, 800, V.TEXT);
@@ -1380,7 +1380,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         heroRemaining = V.text(this, "", 11, 400, U.alpha(V.TEXT, 0.8f));
         heroProgRow.addView(heroRemaining, lp(U.WRAP, U.WRAP, 9, 0, 0, 0));
         hero.addView(heroProgRow, lp(U.WRAP, U.WRAP, 0, 10, 0, 0));
-        col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(176)));
+        col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(150)));
         hero.setGravity(Gravity.BOTTOM);
         hero.setClipChildren(false);
         hero.setClipToPadding(false);
@@ -1401,16 +1401,30 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private String wantLogo;
     private boolean heroSwapping;
 
+    private Object cwHeroKey;   // key of the Continue watching item the hero is (about to be) showing
+    private boolean heroCw;     // true while the hero shows a Continue watching item: bigger artwork, no extra lines
+
     private void loadHeroLogo(final int token, String url) {
-        Img.load(this, url, V.dp(700), bm -> {
+        final boolean cw = heroCw;
+        Img.load(this, url, V.dp(cw ? 700 : 420), bm -> {
             if (token != heroToken || bm == null) return;
-            // Fit the artwork into the box between the beacon menu and the Continue watching heading (510 x 168 dp), kept in proportion.
-            float maxW = V.dp(510);
-            float maxH = V.dp(168);
-            float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
             ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
-            lpl.width = Math.round(bm.getWidth() * k);
-            lpl.height = Math.round(bm.getHeight() * k);
+            if (cw) {
+                // Fit into the box between the beacon menu and the Continue watching heading (510 x 168 dp), kept in proportion.
+                float maxW = V.dp(510);
+                float maxH = V.dp(168);
+                float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
+                lpl.width = Math.round(bm.getWidth() * k);
+                lpl.height = Math.round(bm.getHeight() * k);
+                heroLogo.setMaxHeight(V.dp(168));
+                heroLogo.setMaxWidth(Integer.MAX_VALUE);
+            } else {
+                // streaming services and everything else: the original size
+                lpl.width = U.WRAP;
+                lpl.height = U.WRAP;
+                heroLogo.setMaxHeight(V.dp(78));
+                heroLogo.setMaxWidth(V.dp(420));
+            }
             heroLogo.setLayoutParams(lpl);
             heroLogo.setImageBitmap(bm);
             heroLogo.setVisibility(View.VISIBLE);
@@ -1434,6 +1448,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.animate().cancel();
         hero.animate().alpha(0f).setDuration(140).withLayer().withEndAction(() -> {
             if (token != heroToken) return;
+            heroCw = key != null && key.equals(cwHeroKey);
+            ViewGroup.LayoutParams hlp = hero.getLayoutParams();
+            int wantH = V.dp(heroCw ? 176 : 150);
+            if (hlp.height != wantH) { hlp.height = wantH; hero.setLayoutParams(hlp); }
             heroLabel.setText(label);
             heroLabel.setVisibility(TextUtils.isEmpty(label) ? View.GONE : View.VISIBLE);
             heroLabel.setTextColor(V.accent());
@@ -1443,12 +1461,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             heroLogo.setImageDrawable(null);
             heroLine.setText(line == null ? "" : line);
             U.gone(heroLine, TextUtils.isEmpty(line));
-            heroProgRow.setVisibility(View.GONE);
+            heroProgRow.setVisibility(!heroCw && (progress > 0 || !TextUtils.isEmpty(remaining)) ? View.VISIBLE : View.GONE);
             heroProgFill.setScaleX(Math.max(0.01f, progress));
             heroProgFill.setVisibility(progress > 0 ? View.VISIBLE : View.INVISIBLE);
             ((View) heroProgFill.getParent()).setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
-            heroRemaining.setText("");
-            heroRemaining.setVisibility(View.GONE);
+            heroRemaining.setText(remaining == null ? "" : remaining);
+            heroRemaining.setVisibility(View.VISIBLE);
             hero.setTranslationY(V.dpf(12));
             hero.animate().alpha(ambient ? 0f : 1f).translationY(0).setStartDelay(60).setDuration(420)
                     .setInterpolator(new DecelerateInterpolator(1.6f)).withLayer().start();
@@ -1795,6 +1813,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         final boolean art = prefs.getBoolean("title_logo", true);
         String logo = art ? it.logo : null;
+        cwHeroKey = it.key();
         setHero(it.key(), label, it.title, logo, "", 0, null, Img.sized(it.art(), "w1280"));
         if (art && TextUtils.isEmpty(logo)) {
             final Object k = it.key();
