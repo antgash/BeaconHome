@@ -1430,7 +1430,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 continue;
             }
             final boolean rings = style == 1;
-            LinearLayout p = rings ? V.pill(this, 58, 7, 20) : V.pill(this, 54, 6, 17);
+            LinearLayout p = rings ? V.pill(this, 62, 5, 20) : V.pill(this, 54, 6, 17);
             if (rings) {
                 FrameLayout box = new FrameLayout(this);
                 final ProgressRing ring = new ProgressRing(this, it.progress());
@@ -1441,8 +1441,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
                 thumb.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
                 Img.load(this, Img.sized(it.cardArt(), "w500"), V.dp(80), b2 -> { if (b2 != null) iv.setImageBitmap(b2); });
-                box.addView(thumb, U.flp(V.dp(39), V.dp(39), Gravity.CENTER));
-                p.addView(box, new LinearLayout.LayoutParams(V.dp(46), V.dp(46)));
+                box.addView(thumb, U.flp(V.dp(44), V.dp(44), Gravity.CENTER));
+                p.addView(box, new LinearLayout.LayoutParams(V.dp(53), V.dp(53)));
             } else {
             FrameLayout thumb = new FrameLayout(this);
             thumb.setBackground(V.shape(0x1AFFFFFF, 21, 0));
@@ -1480,7 +1480,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             tx.addView(t, new LinearLayout.LayoutParams(tw, U.WRAP));
             tx.addView(s, lp(tw, U.WRAP, 0, 3, 0, 0));
             p.addView(tx, lp(U.WRAP, U.WRAP, 10, 0, 0, 0));
-            final float r = rings ? 29 : 27;
+            final float r = rings ? 31 : 27;
             p.setOnFocusChangeListener((v, has) -> {
                 V.stylePill(p, has, r, null);
                 if (has) {
