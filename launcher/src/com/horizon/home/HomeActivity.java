@@ -733,10 +733,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             String city = prefs.getString("wx_city", "");
             menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, cards, artwork", () -> openMenuPage("look"));
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.GEAR, "System", "Margins, animation, home screen, apps", () -> openMenuPage("system")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.MOON, "Screensaver", mins == 0 ? "Off" : "Starts after " + mins + " min", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SUN, "Weather", TextUtils.isEmpty(city) ? "Automatic location" : city, () -> openMenuPage("weather")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.GEAR, "System", "Margins, animation, home screen, apps", () -> openMenuPage("system")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.CHECK, "Updates", Updater.pending(this) ? "Update available" : "Check for a new version", () -> openMenuPage("updates")), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
             menuPanel.addView(V.dim(V.text(this, "beacon " + versionName() + "  \u00b7  ad-free home screen", 9, 500, V.TEXT), 0.5f), lp(U.WRAP, U.WRAP, 4, 0, 0, 12));
             menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
@@ -811,7 +811,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                         (on ? "pm disable-user --user 0 " : "pm enable ") + TVREC);
             }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.BEACON, "Home screen", () -> beaconIsHome() ? "beacon" : "Google TV", this::switchHomeScreen), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(toggleButton(Icon.EYE, "Show greeting", U.P_GREET, true), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(nuvioStatusRow(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.APPS, "Show hidden apps again", () -> hiddenCount() + " hidden", () -> {
                 android.content.SharedPreferences.Editor e = prefs.edit();
@@ -1482,19 +1481,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         Ui.accent = V.accent();
     }
 
+    /** Nothing to say until something is selected: the hero area starts out blank. */
     private void showGreeting() {
-        Calendar cal = Calendar.getInstance();
-        if (!prefs.getBoolean(U.P_GREET, true)) {
-            heroKey = null;
-            setHero("greet", "", "", null, "", 0, null, null);
-            return;
-        }
-        String name = prefs.getString(U.P_NAME, "");
-        String hi = U.greeting(cal.get(Calendar.HOUR_OF_DAY)) + (TextUtils.isEmpty(name) ? "" : ", " + name);
-        String label;
-        label = "beacon";
         heroKey = null;
-        setHero("greet", label, hi, null, DateFormat.format("EEEE, d MMMM", new Date()).toString(), 0, null, null);
+        setHero("greet", "", "", null, "", 0, null, null);
     }
 
     // ------------------------------------------------------------------ rows
