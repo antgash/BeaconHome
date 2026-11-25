@@ -201,6 +201,11 @@ final class V {
         }
 
         @Override public void draw(android.graphics.Canvas c) {
+            // Read the accent every time: with "colours from artwork" it changes a moment after focus lands.
+            int a = accent();
+            halo.setColor(U.alpha(a, 0.5f));
+            fill.setColor(U.alpha(a, fillAlpha));
+            ring.setColor(glowFocus ? a : TEXT);
             android.graphics.Rect b = getBounds();
             float s = ring.getStrokeWidth() / 2f;
             rect.set(b.left + s, b.top + s, b.right - s, b.bottom - s);

@@ -1611,6 +1611,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         heroLabel.setTextColor(V.accent());
         heroProgFill.setBackground(V.shape(V.accent(), 2, 0));
         Ui.accent = V.accent();
+        redrawAll(root);   // focus rings and halos pick up the new colour straight away
+    }
+
+    private static void redrawAll(View v) {
+        if (v == null) return;
+        v.invalidate();
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) redrawAll(g.getChildAt(i));
+        }
     }
 
     /** Nothing to say until something is selected: the hero area starts out blank. */
@@ -2149,13 +2159,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         np.topMargin = V.dp(2);
         col.addView(name, np);
         t.addView(col, new FrameLayout.LayoutParams(tw, th, Gravity.CENTER));
-        final View ring = new View(this);
+        final ImageView gif = V.image(this, ImageView.ScaleType.CENTER_CROP);
+        gif.setTag("gif");
+        gif.setAlpha(0f);
+        t.addView(gif, new FrameLayout.LayoutParams(-1, -1));
+        final View ring = new View(this);   // on top, so the outline is never hidden by the animation
         ring.setBackground(new V.Glow(11, 0f, 1));
         ring.setAlpha(0f);
         t.addView(ring, new FrameLayout.LayoutParams(-1, -1));
-        final ImageView gif = V.image(this, ImageView.ScaleType.CENTER_CROP);   // child 2, as playGif / stopGif expect
-        gif.setAlpha(0f);
-        t.addView(gif, new FrameLayout.LayoutParams(-1, -1));
         t.setContentDescription("Live TV guide");
         t.setOnFocusChangeListener((v, has) -> {
             t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
@@ -2189,7 +2200,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void stopGif() {
         if (gifPlaying != null) { try { gifPlaying.stop(); } catch (Throwable ignored) {} gifPlaying = null; }
         if (gifHost != null) {
-            View g = ((ViewGroup) gifHost).getChildAt(2);
+            ViewGroup gh = (ViewGroup) gifHost;
+            View g = gh.getChildAt(2);
+            for (int i = 0; i < gh.getChildCount(); i++) if ("gif".equals(gh.getChildAt(i).getTag())) g = gh.getChildAt(i);
             if (g instanceof ImageView) { g.animate().alpha(0f).setDuration(150).start(); final ImageView gi = (ImageView) g; g.postDelayed(() -> { if (gifHost == null || gifHost != gi.getParent()) gi.setImageDrawable(null); }, 200); }
         }
         gifHost = null;
