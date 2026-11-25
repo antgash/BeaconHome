@@ -39,12 +39,17 @@ final class Anim {
 
     private static Drawable decode(Context c, String url, int w, int h) {
         try {
-            File f = Img.file(c, "anim:" + url);
-            if (!f.exists() || f.length() == 0) {
-                Img.fetchTo(c, url, f);
+            ImageDecoder.Source src;
+            if (url.startsWith("asset:")) {
+                src = ImageDecoder.createSource(c.getAssets(), url.substring(6));
+            } else {
+                File f = Img.file(c, "anim:" + url);
+                if (!f.exists() || f.length() == 0) {
+                    Img.fetchTo(c, url, f);
+                }
+                if (!f.exists() || f.length() < 100) { Log.w("BeaconAnim", "no file for " + url); return null; }
+                src = ImageDecoder.createSource(f);
             }
-            if (!f.exists() || f.length() < 100) { Log.w("BeaconAnim", "no file for " + url); return null; }
-            ImageDecoder.Source src = ImageDecoder.createSource(f);
             Drawable d = ImageDecoder.decodeDrawable(src, (decoder, info, s) -> {
                 int iw = info.getSize().getWidth(), ih = info.getSize().getHeight();
                 float k = Math.min(1f, Math.max(w / (float) iw, h / (float) ih) * 1.1f);
@@ -52,7 +57,7 @@ final class Anim {
                 decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
             });
             if (d instanceof AnimatedImageDrawable) ((AnimatedImageDrawable) d).setRepeatCount(AnimatedImageDrawable.REPEAT_INFINITE);
-            Log.i("BeaconAnim", "ok " + url + " " + f.length() + " bytes " + d.getClass().getSimpleName());
+            Log.i("BeaconAnim", "ok " + url + " " + d.getClass().getSimpleName());
             return d;
         } catch (Throwable t) {
             Log.w("BeaconAnim", "decode " + url + ": " + t);

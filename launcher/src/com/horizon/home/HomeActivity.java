@@ -2153,6 +2153,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         ring.setBackground(new V.Glow(11, 0f, 1));
         ring.setAlpha(0f);
         t.addView(ring, new FrameLayout.LayoutParams(-1, -1));
+        final ImageView gif = V.image(this, ImageView.ScaleType.CENTER_CROP);   // child 2, as playGif / stopGif expect
+        gif.setAlpha(0f);
+        t.addView(gif, new FrameLayout.LayoutParams(-1, -1));
         t.setContentDescription("Live TV guide");
         t.setOnFocusChangeListener((v, has) -> {
             t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
@@ -2160,9 +2163,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
                 V.tileGlow(t, has, 12, 1.08f);
             if (has) {
-                stopGif();
+                playGif(t, gif, "asset:tvguide-hover.gif", tw, th);
                 setHero("svc:live", "Live TV", "TV Guide", null,
                         "Channels with a full TV guide · watch here or in Nuvio", 0, null, "asset:live-backdrop-v4.jpg");
+            } else if (gifHost == t) {
+                stopGif();
             }
         });
         t.setOnClickListener(v -> startActivity(new Intent(this, GuideActivity.class)));
