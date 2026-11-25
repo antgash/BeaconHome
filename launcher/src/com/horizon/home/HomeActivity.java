@@ -1594,24 +1594,48 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                         wall.show(bm);
                         if (root.getBackground() != null) root.setBackground(null); // the picture covers the screen now
                     }
-                    if (artMode() && prefs.getBoolean("art_colours", true)) {
-                        U.IO.execute(() -> {
-                            final Integer c = ArtColor.extract(bm);
-                            U.MAIN.postDelayed(() -> { if (token == heroToken) setAccent(c); }, 750);
-                        });
-                    }
                 });
             }, first ? 0 : 420);
+            // The colour does not wait for the backdrop: it is read from a small copy of the picture almost at once.
+            if (artMode() && prefs.getBoolean("art_colours", true)) {
+                U.MAIN.postDelayed(() -> {
+                    if (token != heroToken) return;
+                    Img.load(this, art, 160, small -> {
+                        if (token != heroToken || small == null) return;
+                        U.IO.execute(() -> {
+                            final Integer c = ArtColor.extract(small);
+                            U.MAIN.post(() -> { if (token == heroToken) setAccent(c); });
+                        });
+                    });
+                }, 80);
+            }
         }
     }
 
+    private android.animation.ValueAnimator accentFade;
+
+    /** Fades the accent colour (focus outlines, labels, glow) to the new one instead of snapping. */
     private void setAccent(Integer raw) {
-        V.artAccent = raw == null ? null : ArtColor.asAccent(raw);
+        if (accentFade != null) accentFade.cancel();
+        final int from = V.accent();
+        final int to = raw == null ? V.themeAccent : ArtColor.asAccent(raw);
+        final Integer target = raw == null ? null : to;
         shade.set(V.BG, raw == null ? null : ArtColor.asGlow(raw));
-        heroLabel.setTextColor(V.accent());
-        heroProgFill.setBackground(V.shape(V.accent(), 2, 0));
-        Ui.accent = V.accent();
-        redrawAll(root);   // focus rings and halos pick up the new colour straight away
+        if (from == to) { V.artAccent = target; return; }
+        final android.animation.ArgbEvaluator ev = new android.animation.ArgbEvaluator();
+        accentFade = android.animation.ValueAnimator.ofFloat(0f, 1f);
+        accentFade.setDuration(260);
+        accentFade.addUpdateListener(a -> {
+            V.artAccent = (Integer) ev.evaluate(a.getAnimatedFraction(), from, to);
+            heroLabel.setTextColor(V.artAccent);
+            heroProgFill.setBackground(V.shape(V.artAccent, 2, 0));
+            Ui.accent = V.artAccent;
+            redrawAll(root);
+        });
+        accentFade.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(android.animation.Animator an) { V.artAccent = target; Ui.accent = V.accent(); }
+        });
+        accentFade.start();
     }
 
     private static void redrawAll(View v) {
