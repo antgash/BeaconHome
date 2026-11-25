@@ -769,11 +769,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return row;
     }
 
-    private static final String[] CW_STYLES = {"PILLS", "RINGS", "POSTER CARDS", "FEATURED"};
+    private static final String[] CW_STYLES = {"PILLS", "RINGS", "POSTER CARDS"};
 
     private int cwStyle() {
         int d = prefs.getBoolean("cw_rings", true) ? 1 : 0;
-        return Math.max(0, Math.min(3, prefs.getInt("cw_style", d)));
+        return Math.max(0, Math.min(2, prefs.getInt("cw_style", d)));
     }
 
     /** Continue watching look: cycles pills, progress rings, poster cards, featured + compact. */
@@ -796,7 +796,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     /** Picture-first Continue watching tile: title and time left on the art, progress along the bottom. */
     private View cwCard(final Nuvio.Item it, final int idx, final boolean big) {
-        final int w = V.dp(big ? 340 : 150), h = V.dp(big ? 92 : 84);
+        final int w = V.dp(big ? 340 : 124), h = V.dp(big ? 92 : 66);
         final FrameLayout t = new FrameLayout(this);
         t.setFocusable(true);
         t.setFocusableInTouchMode(true);
@@ -805,7 +805,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         t.setLayoutParams(new LinearLayout.LayoutParams(w, h));
         ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
         t.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-        Img.load(this, Img.sized(it.cardArt(), "w500"), V.dp(big ? 340 : 150), b -> { if (b != null) iv.setImageBitmap(b); });
+        Img.load(this, Img.sized(it.cardArt(), "w500"), V.dp(big ? 340 : 124), b -> { if (b != null) iv.setImageBitmap(b); });
         View shade = big
                 ? Ui.gradient(this, GradientDrawable.Orientation.LEFT_RIGHT, 0xEB0A0808, 0x330A0808)
                 : Ui.gradient(this, GradientDrawable.Orientation.TOP_BOTTOM, 0x00000000, 0xD0000000);
@@ -819,14 +819,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             TextView lab = V.text(this, "RESUME", 8, 800, V.accent());
             tx.addView(lab, lp(U.WRAP, U.WRAP, 0, 0, 0, 3));
         }
-        TextView title = V.text(this, it.title, big ? 15 : 10.5f, 700, 0xFFFFFFFF);
+        TextView title = V.text(this, it.title, big ? 15 : 9.5f, 700, 0xFFFFFFFF);
         V.ellipsize(title);
         tx.addView(title, new LinearLayout.LayoutParams(big ? V.dp(230) : U.MATCH, U.WRAP));
-        TextView st = V.text(this, sub == null ? "Movie" : sub, big ? 10 : 8.5f, 500, 0xDDFFFFFF);
+        TextView st = V.text(this, sub == null ? "Movie" : sub, big ? 10 : 8, 500, 0xDDFFFFFF);
         V.ellipsize(st);
         tx.addView(st, lp(big ? V.dp(230) : U.MATCH, U.WRAP, 0, 2, 0, 0));
         FrameLayout.LayoutParams tlp = new FrameLayout.LayoutParams(U.MATCH, U.MATCH);
-        tlp.setMargins(V.dp(big ? 14 : 9), V.dp(big ? 8 : 6), V.dp(9), V.dp(big ? 16 : 13));
+        tlp.setMargins(V.dp(big ? 14 : 8), V.dp(big ? 8 : 4), V.dp(8), V.dp(big ? 16 : 11));
         t.addView(tx, tlp);
         if (it.progress() > 0) {
             FrameLayout bar = new FrameLayout(this);
@@ -837,7 +837,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             fill.setScaleX(it.progress());
             bar.addView(fill, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
             FrameLayout.LayoutParams blp = U.flp(U.MATCH, V.dp(3), Gravity.BOTTOM);
-            blp.setMargins(V.dp(big ? 14 : 9), 0, V.dp(big ? 14 : 9), V.dp(6));
+            blp.setMargins(V.dp(big ? 14 : 8), 0, V.dp(big ? 14 : 8), V.dp(5));
             t.addView(bar, blp);
         }
         final View ring = new View(this);
@@ -1099,7 +1099,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLabel);
         heroLogo = V.image(this, ImageView.ScaleType.FIT_START);
         heroLogo.setAdjustViewBounds(true);
-        heroLogo.setMaxHeight(V.dp(96));
+        heroLogo.setMaxHeight(V.dp(78));
         heroLogo.setMaxWidth(V.dp(420));
         heroLogo.setVisibility(View.GONE);
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
@@ -1127,6 +1127,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroProgRow, lp(U.WRAP, U.WRAP, 0, 10, 0, 0));
         col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(150)));
         hero.setGravity(Gravity.BOTTOM);
+        hero.setClipChildren(false);
+        hero.setClipToPadding(false);
     }
 
     /** Hero text glides in: old fades out quickly, new fades in and rises 12 dp. */
@@ -1423,12 +1425,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             queued += left / 60000;
             final int style = cwStyle();
             if (style >= 2) {
-                View card = cwCard(it, idx, style == 3 && idx == 0);
+                View card = cwCard(it, idx, false);
                 addToRow(cwRow, card);
                 continue;
             }
             final boolean rings = style == 1;
-            LinearLayout p = rings ? V.pill(this, 66, 8, 22) : V.pill(this, 54, 6, 17);
+            LinearLayout p = rings ? V.pill(this, 58, 7, 20) : V.pill(this, 54, 6, 17);
             if (rings) {
                 FrameLayout box = new FrameLayout(this);
                 final ProgressRing ring = new ProgressRing(this, it.progress());
@@ -1439,8 +1441,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
                 thumb.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
                 Img.load(this, Img.sized(it.cardArt(), "w500"), V.dp(80), b2 -> { if (b2 != null) iv.setImageBitmap(b2); });
-                box.addView(thumb, U.flp(V.dp(46), V.dp(46), Gravity.CENTER));
-                p.addView(box, new LinearLayout.LayoutParams(V.dp(54), V.dp(54)));
+                box.addView(thumb, U.flp(V.dp(39), V.dp(39), Gravity.CENTER));
+                p.addView(box, new LinearLayout.LayoutParams(V.dp(46), V.dp(46)));
             } else {
             FrameLayout thumb = new FrameLayout(this);
             thumb.setBackground(V.shape(0x1AFFFFFF, 21, 0));
@@ -1478,7 +1480,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             tx.addView(t, new LinearLayout.LayoutParams(tw, U.WRAP));
             tx.addView(s, lp(tw, U.WRAP, 0, 3, 0, 0));
             p.addView(tx, lp(U.WRAP, U.WRAP, 10, 0, 0, 0));
-            final float r = rings ? 33 : 27;
+            final float r = rings ? 29 : 27;
             p.setOnFocusChangeListener((v, has) -> {
                 V.stylePill(p, has, r, null);
                 if (has) {
