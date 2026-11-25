@@ -1409,6 +1409,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         Img.load(this, url, V.dp(cw ? 700 : 420), bm -> {
             if (token != heroToken || bm == null) return;
             ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
+            if (lpl instanceof LinearLayout.LayoutParams) ((LinearLayout.LayoutParams) lpl).topMargin = cw ? 0 : V.dp(8);
             if (cw) {
                 // Fit into the box between the beacon menu and the Continue watching heading (510 x 168 dp), kept in proportion.
                 float maxW = V.dp(510);
@@ -1452,6 +1453,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             ViewGroup.LayoutParams hlp = hero.getLayoutParams();
             int wantH = V.dp(heroCw ? 176 : 150);
             if (hlp.height != wantH) { hlp.height = wantH; hero.setLayoutParams(hlp); }
+            hero.setGravity(heroCw ? Gravity.CENTER_VERTICAL : Gravity.BOTTOM); // Continue watching art sits centred between the menu and the heading
             heroLabel.setText(label);
             heroLabel.setVisibility(TextUtils.isEmpty(label) ? View.GONE : View.VISIBLE);
             heroLabel.setTextColor(V.accent());
