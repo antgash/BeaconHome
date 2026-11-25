@@ -120,20 +120,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name="com.horizon.home.SettingsActivity"
-            android:exported="true"
-            android:label="beacon settings"
-            android:theme="@style/Settings"
-            android:excludeFromRecents="true"
-            android:screenOrientation="landscape"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <receiver android:name="com.horizon.home.Updater$Result" android:exported="false" />
         <receiver android:name="com.horizon.home.Updater$Reopen" android:exported="true">
             <intent-filter>
