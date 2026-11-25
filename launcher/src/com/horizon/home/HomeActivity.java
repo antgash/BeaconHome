@@ -541,7 +541,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (menuScroll != sv) return;
             if (sv.getHeight() > menuMaxH) { sv.getLayoutParams().height = menuMaxH; sv.requestLayout(); }
             sv.scrollTo(0, 0);
-            if (menuFirst != null) menuFirst.requestFocus();
+            View target = menuFirst;
+            if (menuRestoreIdx >= 0 && menuPanel != null && menuRestoreIdx < menuPanel.getChildCount()) target = menuPanel.getChildAt(menuRestoreIdx);
+            menuRestoreIdx = -1;
+            if (target != null) target.requestFocus();
         });
     }
 
@@ -842,17 +845,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("system".equals(page)) {
             final int[] edges = {48, 64, 80, 96};
-            final String[] edgeNames = {"Small", "Medium", "Large", "Extra large"};
-            menuFirst = valueRow(Icon.SLIDERS, "Screen edge margin", () -> {
+            menuFirst = cycleRow(Icon.SLIDERS, "Screen edge margin", new String[] {"Small", "Medium", "Large", "Extra large"}, () -> {
                 int v = prefs.getInt("edge", 64);
-                for (int i = 0; i < edges.length; i++) if (edges[i] == v) return edgeNames[i];
-                return edgeNames[1];
-            }, () -> {
-                int v = prefs.getInt("edge", 64), idx = 0;
-                for (int i = 0; i < edges.length; i++) if (edges[i] == v) idx = i;
-                reopenMenu = true;
-                prefs.edit().putInt("edge", edges[(idx + 1) % edges.length]).apply();
-            });
+                for (int i = 0; i < edges.length; i++) if (edges[i] == v) return i;
+                return 1;
+            }, i -> prefs.edit().putInt("edge", edges[i]).apply(), true);
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.PLAY, "Animation speed", () -> fastAnim() ? "Fast (0.5×)" : "Normal", () -> {
                 final boolean fast = fastAnim();
@@ -1089,21 +1086,48 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return Math.max(0, Math.min(2, prefs.getInt("cw_style", d)));
     }
 
-    /** Continue watching look: cycles pills, progress rings, poster cards, featured + compact. */
+    /** Continue watching look: pills, progress rings or poster cards. Left/Right change it. */
     private View cwStyleToggle() {
-        final LinearLayout row = menuButton(Icon.BEACON, "Card style", null, () -> {});
-        final TextView state = V.text(this, CW_STYLES[cwStyle()], 10, 800, V.TEXT);
-        View sp = new View(this);
-        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
-        row.addView(state);
-        V.tint(row, V.TEXT);
-        row.setOnClickListener(v -> {
-            int n = (cwStyle() + 1) % CW_STYLES.length;
-            prefs.edit().putInt("cw_style", n).apply();
-            state.setText(CW_STYLES[n]);
+        return cycleRow(Icon.BEACON, "Card style", CW_STYLES, this::cwStyle, i -> {
+            prefs.edit().putInt("cw_style", i).apply();
             cwSig = "";
             fillContinue();
+        }, false);
+    }
+
+    private int menuRestoreIdx = -1;
+
+    /**
+     * A menu row with a few choices: Left/Right step through them (Select steps forward too), with small arrows
+     * on either side of the value. If changing it rebuilds Home, the menu reopens with this row still selected.
+     */
+    private LinearLayout cycleRow(int icon, String title, final String[] labels, final java.util.function.IntSupplier cur,
+                                  final java.util.function.IntConsumer set, final boolean rebuilds) {
+        final LinearLayout row = menuButton(icon, title, null, () -> {});
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(new Icon(this, Icon.LEFT), new LinearLayout.LayoutParams(V.dp(10), V.dp(10)));
+        final TextView state = V.text(this, labels[cur.getAsInt()], 10, 800, V.TEXT);
+        state.setGravity(Gravity.CENTER);
+        row.addView(state, lp(U.WRAP, U.WRAP, 6, 0, 6, 0));
+        row.addView(new Icon(this, Icon.RIGHT), new LinearLayout.LayoutParams(V.dp(10), V.dp(10)));
+        V.tint(row, V.TEXT);
+        final java.util.function.IntConsumer move = dir -> {
+            int n = (cur.getAsInt() + dir + labels.length) % labels.length;
+            if (rebuilds && menuPanel != null) menuRestoreIdx = menuPanel.indexOfChild(row);
+            if (rebuilds) reopenMenu = true;
+            set.accept(n);
+            state.setText(labels[n]);
+            Sfx.select();
+        };
+        row.setOnClickListener(v -> move.accept(1));
+        row.setOnKeyListener((v, code, e) -> {
+            if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (code == KeyEvent.KEYCODE_DPAD_LEFT) { move.accept(-1); return true; }
+            if (code == KeyEvent.KEYCODE_DPAD_RIGHT) { move.accept(1); return true; }
+            return false;
         });
+        menuRefreshers.add(() -> state.setText(labels[cur.getAsInt()]));
         return row;
     }
 
@@ -1172,19 +1196,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return t;
     }
 
-    /** Focus look on the home screen: accent glow (new) or the original solid fill. */
+    /** Focus look on the home screen: accent glow (new) or the original solid fill. Left/Right change it. */
     private View focusStyleToggle() {
-        final LinearLayout row = menuButton(Icon.BEACON, "Focus style", null, () -> {});
-        final TextView state = V.text(this, prefs.getBoolean("focus_glow", true) ? "GLOW" : "FILL", 10, 800, V.TEXT);
-        View sp = new View(this);
-        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
-        row.addView(state);
-        V.tint(row, V.TEXT);
-        row.setOnClickListener(v -> {
-            reopenMenu = true;
-            prefs.edit().putBoolean("focus_glow", !prefs.getBoolean("focus_glow", true)).apply();
-        });
-        return row;
+        return cycleRow(Icon.BEACON, "Focus style", new String[] {"GLOW", "FILL"},
+                () -> prefs.getBoolean("focus_glow", true) ? 0 : 1,
+                i -> prefs.edit().putBoolean("focus_glow", i == 0).apply(), true);
     }
 
     private LinearLayout chipRow(String[] labels, int selected, java.util.function.IntConsumer onPick) {
