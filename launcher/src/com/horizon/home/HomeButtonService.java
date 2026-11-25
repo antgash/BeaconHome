@@ -12,6 +12,12 @@ import android.view.accessibility.AccessibilityEvent;
 public class HomeButtonService extends AccessibilityService {
     @Override protected void onServiceConnected() {
         android.util.Log.i("BeaconHomeKey", "connected");
+        // just updated: this service restarts with the new version, so bring beacon back to the front
+        if (Updater.reopenWanted(this)) {
+            Updater.reopenDone(this);
+            goHome();
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::goHome, 2500);
+        }
     }
 
     @Override public boolean onKeyEvent(KeyEvent e) {

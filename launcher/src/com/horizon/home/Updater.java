@@ -198,6 +198,8 @@ final class Updater {
                 Intent it = new Intent(c, Result.class).setAction(ACTION);
                 PendingIntent pend = PendingIntent.getBroadcast(c, id, it,
                         PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? FLAG_MUTABLE : 0));
+                // remember to reopen beacon once the new version is in place (see Reopen and HomeButtonService)
+                c.getSharedPreferences("beacon_restart", 0).edit().putLong("t", System.currentTimeMillis()).apply();
                 s.commit(pend.getIntentSender());
             }
             return true;
@@ -220,6 +222,30 @@ final class Updater {
                 String msg = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
                 Toast.makeText(c, "Update not installed" + (TextUtils.isEmpty(msg) ? "" : ": " + msg), Toast.LENGTH_LONG).show();
             }
+        }
+    }
+
+    /** True for 15 minutes after an update was started: beacon should come back to the front. */
+    static boolean reopenWanted(Context c) {
+        long t = c.getSharedPreferences("beacon_restart", 0).getLong("t", 0);
+        return t > 0 && System.currentTimeMillis() - t < 15 * 60 * 1000L;
+    }
+
+    static void reopenDone(Context c) {
+        c.getSharedPreferences("beacon_restart", 0).edit().remove("t").apply();
+    }
+
+    static void reopen(Context c) {
+        try {
+            c.startActivity(new Intent(c, HomeActivity.class).addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        } catch (Throwable ignored) {}
+    }
+
+    /** Runs when this app has just been replaced by an update: bring beacon back instead of the old home screen. */
+    public static final class Reopen extends BroadcastReceiver {
+        @Override public void onReceive(Context c, Intent i) {
+            if (reopenWanted(c)) reopen(c);
         }
     }
 
