@@ -58,27 +58,19 @@ final class Streaming {
 
     static final Service[] ALL = {
             new Service("netflix", "Netflix", "nfx", 0xFFE50914, K + "49571953.webp", P + "networks/213-netflix/logos/color/213_color_1.png", P + "networks/213-netflix" + BD, "8|1796", "US", 8679739),
+            new Service("max", "HBO Max", "hbm", 0xFF2B3DF5, K + "b59babf1.webp", K + "6e4c10d3.webp", P + "providers/1899-hbo-max" + BD, "1899|1825", "US", 8679740),
             new Service("appletv", "Apple TV+", "atp", 0xFF9A9AA2, K + "4d8f0a8f.webp", P + "networks/2552-apple-tv/logos/color/2552_color_1.png", P + "networks/2552-apple-tv" + BD, "350", "US", 8679741),
+            new Service("shudder", "Shudder", "shd", 0xFFE01C1C, K + "99e24ce1.webp", P + "companies/142877-shudder/logos/color/142877_color_1.png", P + "providers/99-shudder" + BD, "99", "US", 8679751),
+            new Service("paramount", "Paramount+", "pmp", 0xFF0064FF, A + "paramount-plus/paramount-plus-cover.png", P + "networks/4330-paramount/logos/color/4330_color_2.png", P + "providers/2303-paramount-plus-premium" + BD, "2303", "US", 8679749),
             new Service("hulu", "Hulu", "hlu", 0xFF1CE783, K + "3a4d1b46.webp", P + "networks/453-hulu/logos/color/453_color_1.png", P + "providers/15-hulu" + BD, "15", "US", 8679743),
             new Service("prime", "Prime Video", "amp", 0xFF1A98FF, K + "5c86c888.webp", K + "f9b1d40a.webp", P + "providers/9-amazon-prime-video" + BD, "9|119|2100", "US", 8679742),
-            new Service("amc", "AMC+", null, 0xFF16B3A6, A + "amcplus/amcplus-cover.png", Q + "providers/526-amc/logos/color/4661_amc_1.png", Q + "providers/526-amc" + BD, "526", "US", 8679755),
-            new Service("crave", "Crave", null, 0xFF1E8CFF, A + "crave/crave-cover.png", null, A + "crave/crave-backdrop.jpg", "230", "CA", 0),
-            new Service("criterion", "Criterion Channel", "crc", 0xFF8A8A8A, A + "criterion-channel/criterion-channel-cover.png", P + "providers/258-criterion-channel/logos/white/258_white_1.png", P + "providers/258-criterion-channel" + BD, "258", "US", 0),
-            new Service("crunchyroll", "Crunchyroll", "cru", 0xFFF47521, K + "129a4038.webp", "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Crunchyroll_logo_2024.png/960px-Crunchyroll_logo_2024.png", P + "providers/283-crunchyroll" + BD, "283", "US", 8679744),
-            new Service("curiosity", "Curiosity Stream", "cts", 0xFFF2B33D, A + "curiosity-stream/curiosity-stream-cover.png", "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/CuriosityStream.svg/960px-CuriosityStream.svg.png", K + "dce3256c.webp", "190", "US", 0),
-            new Service("discovery", "Discovery+", "dpe", 0xFF2175D9, K + "dbed63f2.webp", K + "4676e4ff.webp", K + "8815e841.webp", "520", "US", 8679745),
-            new Service("disney", "Disney+", "dnp", 0xFF1A3DBE, K + "b8c0d25b.webp", P + "networks/2739-disney/logos/color/2739_color_4.png", P + "providers/337-disney-plus" + BD, "337", "US", 8679746),
-            new Service("hayu", "Hayu", "hay", 0xFFFF2D6F, A + "hayu/hayu-cover.png", null, A + "hayu/hayu-backdrop.jpg", "223", "CA", 0),
-            new Service("max", "HBO Max", "hbm", 0xFF2B3DF5, K + "b59babf1.webp", K + "6e4c10d3.webp", P + "providers/1899-hbo-max" + BD, "1899|1825", "US", 8679740),
-            new Service("magellan", "MagellanTV", "mgl", 0xFF35C2E8, A + "magellan/magellan-cover.png", null, A + "magellan/magellan-backdrop.jpg", "551", "US", 0),
-            new Service("mgm", "MGM+", null, 0xFFC8A55A, K + "d490e713.webp", P + "networks/6219-mgm/logos/color/6219_color_1.png", P + "providers/34-mgm-plus" + BD, "34", "US", 8679747),
-            new Service("mubi", "MUBI", "mbi", 0xFF1032D8, K + "7c4bd708.webp", P + "companies/204957-mubi/logos/white/204957_white_2.png", P + "companies/204957-mubi" + BD, "11", "US", 8679748),
-            new Service("paramount", "Paramount+", "pmp", 0xFF0064FF, A + "paramount-plus/paramount-plus-cover.png", P + "networks/4330-paramount/logos/color/4330_color_2.png", P + "providers/2303-paramount-plus-premium" + BD, "2303", "US", 8679749),
             new Service("peacock", "Peacock", "pcp", 0xFFE8E8E8, K + "970b675f.webp", P + "networks/3353-peacock/logos/color/3353_color_1.png", P + "providers/386-peacock-premium" + BD, "387", "US", 8679750),
-            new Service("pluto", "Pluto TV", null, 0xFFFF3EA5, A + "pluto-tv/pluto-tv-cover.png", "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Pluto_TV_logo_2024.svg/500px-Pluto_TV_logo_2024.svg.png", Q + "providers/300-pluto-tv" + BD, "300", "US", 8679754),
-            new Service("shudder", "Shudder", "shd", 0xFFE01C1C, K + "99e24ce1.webp", P + "companies/142877-shudder/logos/color/142877_color_1.png", P + "providers/99-shudder" + BD, "99", "US", 8679751),
-            new Service("starz", "Starz", "stz", 0xFF8BE04F, K + "9e92f9b6.webp", K + "262762fd.webp", P + "providers/43-starz" + BD, "43|318", "US", 8679752),
-            new Service("tubi", "Tubi", null, 0xFF7A00F5, A + "tubi/tubi-cover.png", Q + "companies/153734-tubi/logos/color/153734_color_1.png", Q + "companies/153734-tubi" + BD, "73", "US", 8679753),
+            new Service("crunchyroll", "Crunchyroll", "cru", 0xFFF47521, K + "129a4038.webp", "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Crunchyroll_logo_2024.png/960px-Crunchyroll_logo_2024.png", P + "providers/283-crunchyroll" + BD, "283", "US", 8679744),
+            new Service("mgm", "MGM+", null, 0xFFC8A55A, K + "d490e713.webp", P + "networks/6219-mgm/logos/color/6219_color_1.png", P + "providers/34-mgm-plus" + BD, "34", "US", 8679747),
+            new Service("disney", "Disney+", "dnp", 0xFF1A3DBE, K + "b8c0d25b.webp", P + "networks/2739-disney/logos/color/2739_color_4.png", P + "providers/337-disney-plus" + BD, "337", "US", 8679746),
+            new Service("discovery", "Discovery+", "dpe", 0xFF2175D9, K + "dbed63f2.webp", K + "4676e4ff.webp", K + "8815e841.webp", "520", "US", 8679745),
+            new Service("criterion", "Criterion Channel", "crc", 0xFF8A8A8A, A + "criterion-channel/criterion-channel-cover.png", P + "providers/258-criterion-channel/logos/white/258_white_1.png", P + "providers/258-criterion-channel" + BD, "258", "US", 0),
+            new Service("tubi", "Tubi", null, 0xFF7A00F5, A + "tubi/tubi-cover.png", Q + "companies/153734-tubi/logos/color/153734_color_1.png", Q + "companies/153734-tubi" + BD, "73", "US", 8679753)
     };
 
     /** Focus animations from the Nuvio Personalized folders. */
@@ -228,7 +220,10 @@ final class Streaming {
         return "";
     }
 
-    static String tmdbKey(Context c) { return U.prefs(c).getString("tmdb_key", ""); }
+    static String tmdbKey(Context c) {
+        String k = U.prefs(c).getString("tmdb_key", "");
+        return TextUtils.isEmpty(k) ? Keys.TMDB : k;
+    }
 
     /** Services we can show titles for right now. */
     static boolean canBrowse(Context c, Service s) {
@@ -266,13 +261,63 @@ final class Streaming {
         Service s = find(key);
         String tk = tmdbKey(c);
         List<Row> rows = new ArrayList<>();
-        if (!TextUtils.isEmpty(tk)) rows = tmdbRows(c, s, tk);
-        if (rows.isEmpty() && s.hasCatalog()) rows = catalogRows(c, s);
+        if (s.hasCatalog()) rows.addAll(catalogRows(c, s));
+        if (!TextUtils.isEmpty(tk)) {
+            rows.addAll(tmdbRows(c, s, tk));
+            rows.addAll(genreRows(c, s, tk));
+        } else if (s.hasCatalog()) {
+            rows.addAll(catalogGenreRows(c, s));
+        }
         if (!rows.isEmpty()) {
             mem.put(key, rows);
             memAt.put(key, System.currentTimeMillis());
         }
         return rows;
+    }
+
+    // ---------------------------------------------------------------- genre rows
+
+    private static final String[][] TMDB_MOVIE_GENRES = {{"Action", "28"}, {"Comedy", "35"}, {"Drama", "18"}, {"Horror", "27"},
+            {"Sci-Fi", "878"}, {"Thriller", "53"}, {"Animation", "16"}, {"Documentary", "99"}};
+    private static final String[][] TMDB_TV_GENRES = {{"Action & Adventure", "10759"}, {"Comedy", "35"}, {"Drama", "18"}, {"Crime", "80"},
+            {"Sci-Fi & Fantasy", "10765"}, {"Mystery", "9648"}, {"Animation", "16"}, {"Documentary", "99"}};
+    private static final String[] CAT_GENRES = {"Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Thriller", "Animation", "Documentary"};
+
+    /** Runs the row builders side by side so a service with many rows still opens quickly. */
+    private static List<Row> parallel(List<java.util.concurrent.Callable<Row>> jobs) {
+        List<Row> out = new ArrayList<>();
+        java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(6);
+        try {
+            List<java.util.concurrent.Future<Row>> fs = new ArrayList<>();
+            for (java.util.concurrent.Callable<Row> j : jobs) fs.add(ex.submit(j));
+            for (java.util.concurrent.Future<Row> f : fs) {
+                try { Row r = f.get(); if (r != null && !r.items.isEmpty()) out.add(r); } catch (Throwable ignored) {}
+            }
+        } finally {
+            ex.shutdown();
+        }
+        return out;
+    }
+
+    private static List<Row> genreRows(final Context c, final Service s, final String k) {
+        if (TextUtils.isEmpty(s.providers)) return new ArrayList<>();
+        final String base = "https://api.themoviedb.org/3";
+        final String prov = "&with_watch_providers=" + Uri.encode(s.providers) + "&watch_region=" + s.region;
+        List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
+        for (final String[] g : TMDB_MOVIE_GENRES) jobs.add(() -> new Row(g[0] + " Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov
+                + "&with_genres=" + g[1] + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s)));
+        for (final String[] g : TMDB_TV_GENRES) jobs.add(() -> new Row(g[0] + " Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov
+                + "&with_genres=" + g[1] + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s)));
+        return parallel(jobs);
+    }
+
+    private static List<Row> catalogGenreRows(final Context c, final Service s) {
+        List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
+        for (final String g : CAT_GENRES) {
+            jobs.add(() -> new Row(g + " Movies", parseCatalog(cachedGet(c, CATALOG + "/catalog/movie/" + s.catalog + "/genre=" + Uri.encode(g) + ".json", "metas"), "movie", s)));
+            jobs.add(() -> new Row(g + " Series", parseCatalog(cachedGet(c, CATALOG + "/catalog/series/" + s.catalog + "/genre=" + Uri.encode(g) + ".json", "metas"), "series", s)));
+        }
+        return parallel(jobs);
     }
 
     // ---------------------------------------------------------------- TMDB (same sources as Nuvio)
