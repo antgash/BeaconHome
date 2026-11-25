@@ -192,13 +192,23 @@ final class AmbientView extends FrameLayout {
             final int tk = ++token;
             Img.load(getContext(), Img.sized(it.art(), "w1280"), 1280, bm -> {
                 if (!running || tk != token) return;
-                if (bm != null) { wall.show(bm); setText(it, tk); U.MAIN.postDelayed(next, 14000); }
-                else U.MAIN.postDelayed(next, 1500);
+                if (bm == null) { U.MAIN.postDelayed(next, 1500); return; }
+                // the colour of the text above the title follows the picture, as on the home screen
+                final boolean tint = U.prefs(getContext()).getBoolean("art_colours", true);
+                U.IO.execute(() -> {
+                    final Integer c = tint ? ArtColor.extract(bm) : null;
+                    U.MAIN.post(() -> {
+                        if (!running || tk != token) return;
+                        wall.show(bm);
+                        setText(it, tk, c == null ? V.accent() : ArtColor.asAccent(c));
+                        U.MAIN.postDelayed(next, 14000);
+                    });
+                });
             });
         }
     };
 
-    private void setText(final Nuvio.Item it, final int tk) {
+    private void setText(final Nuvio.Item it, final int tk, final int accent) {
         text.animate().cancel();
         text.animate().alpha(0f).setDuration(tk == 1 ? 0 : 600).withEndAction(() -> {
             if (tk != token) return;
@@ -208,7 +218,7 @@ final class AmbientView extends FrameLayout {
                 final String[] r = Streaming.resolveByTitle(getContext().getApplicationContext(), it);
                 U.MAIN.post(() -> { if (current == it) currentRes = r; });
             });
-            label.setTextColor(V.accent());
+            label.setTextColor(accent);
             label.setText(it.watchNext ? "Continue watching" : !TextUtils.isEmpty(it.channel) ? it.channel : "From Nuvio");
             title.setText(it.title);
             title.setVisibility(View.VISIBLE);
@@ -217,14 +227,28 @@ final class AmbientView extends FrameLayout {
             String l = !TextUtils.isEmpty(it.episode) ? it.episode : it.meta();
             line.setText(l == null ? "" : l);
             line.setVisibility(TextUtils.isEmpty(l) ? View.GONE : View.VISIBLE);
-            if (!TextUtils.isEmpty(it.logo)) Img.load(getContext(), it.logo, V.dp(420), bm -> {
-                if (tk != token || bm == null) return;
-                logo.setImageBitmap(bm);
-                logo.setVisibility(View.VISIBLE);
-                title.setVisibility(View.GONE);
-            });
+            if (U.prefs(getContext()).getBoolean("title_logo", true)) {
+                if (!TextUtils.isEmpty(it.logo)) showLogo(it.logo, tk);
+                else U.IO.execute(() -> {
+                    // no artwork on the item yet: look it up by title, the same way the home screen does
+                    Context ac = getContext().getApplicationContext();
+                    String l = it.tmdbId > 0 ? Streaming.tmdbLogo(ac, it) : null;
+                    if (l == null) l = Streaming.logoByTitle(ac, it);
+                    final String found = l;
+                    if (found != null) U.MAIN.post(() -> { it.logo = found; if (tk == token && current == it) showLogo(found, tk); });
+                });
+            }
             text.animate().alpha(1f).setDuration(1200).start();
         }).start();
+    }
+
+    private void showLogo(String url, final int tk) {
+        Img.load(getContext(), url, V.dp(420), bm -> {
+            if (tk != token || bm == null) return;
+            logo.setImageBitmap(bm);
+            logo.setVisibility(View.VISIBLE);
+            title.setVisibility(View.GONE);
+        });
     }
 
     private void loadWeather() {
