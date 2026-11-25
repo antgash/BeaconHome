@@ -786,7 +786,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         String title = "beacon";
         for (int i = 0; i < titles.length; i += 2) if (titles[i].equals(page)) title = titles[i + 1];
         menuPanel.addView(V.text(this, title, 24, 800, V.TEXT));
-        menuPanel.addView(V.dim(V.caps(this, page == null ? "Home & screensaver" : "beacon", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
+        menuPanel.addView(V.dim(V.caps(this, page == null ? "Homescreen settings" : "beacon", 9, V.TEXT), 0.55f), lp(U.WRAP, U.WRAP, 0, 2, 0, 14));
 
         if (page == null) {
             int mins = prefs.getInt(U.P_AMBIENT_MIN, 3);
@@ -997,11 +997,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (sub != null) tx.addView(V.dim(V.text(this, sub, 9, 500, V.TEXT), 0.6f));
         row.addView(tx, lp(U.WRAP, U.WRAP, 10, 0, 0, 0));
         V.tint(row, V.TEXT);
-        row.setOnFocusChangeListener((v, has) -> {
-            row.setBackground(has ? V.shape(V.TEXT, 14, 0) : V.shape(V.GLASS, 14, V.LINE));
-            tile.setBackground(V.shape(has ? 0x22000000 : 0x22FFFFFF, 9, 0));
-            V.tint(row, has ? V.INK : V.TEXT);
-        });
+        // same focus look as Home: accent glow, or the solid fill when "Focus style" is set to Fill
+        row.setOnFocusChangeListener((v, has) -> V.stylePill(row, has, 14,
+                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0))));
         row.setOnClickListener(v -> r.run());
         return row;
     }
@@ -1045,7 +1043,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         row.addView(bars);
         final Runnable paint = () -> {
-            int base = row.hasFocus() ? V.INK : V.TEXT;
+            int base = row.hasFocus() ? (V.glowFocus ? V.accent() : V.INK) : V.TEXT;
             for (int i = 0; i < seg.length; i++) seg[i].setBackground(V.shape(i < Sfx.level() ? base : U.alpha(base, 0.25f), 2, 0));
         };
         paint.run();
@@ -1203,6 +1201,18 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 i -> prefs.edit().putBoolean("focus_glow", i == 0).apply(), true);
     }
 
+    /** Focused chip: accent glow like the rest of the menu, or the solid fill. */
+    private void focusChip(TextView c) {
+        if (V.glowFocus) {
+            c.setBackground(V.glowShape(15));
+            c.setTextColor(V.TEXT);
+            V.glow(c, true);
+        } else {
+            c.setBackground(V.shape(V.TEXT, 15, 0));
+            c.setTextColor(V.INK);
+        }
+    }
+
     private LinearLayout chipRow(String[] labels, int selected, java.util.function.IntConsumer onPick) {
         final LinearLayout row = U.row(this);
         final TextView[] chips = new TextView[labels.length];
@@ -1224,10 +1234,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             c.setFocusableInTouchMode(true);
             chips[i] = c;
             c.setOnFocusChangeListener((v, has) -> {
-                if (has) { c.setBackground(V.shape(V.TEXT, 15, 0)); c.setTextColor(V.INK); }
-                else paint.run();
+                if (has) focusChip(c); else paint.run();
             });
-            c.setOnClickListener(v -> { sel[0] = idx; onPick.accept(idx); paint.run(); c.setBackground(V.shape(V.TEXT, 15, 0)); c.setTextColor(V.INK); });
+            c.setOnClickListener(v -> { sel[0] = idx; onPick.accept(idx); paint.run(); focusChip(c); });
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, U.MATCH, 1f);
             p.rightMargin = i < labels.length - 1 ? V.dp(5) : 0;
             row.addView(c, p);
