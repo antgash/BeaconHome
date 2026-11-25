@@ -1354,8 +1354,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLabel);
         heroLogo = V.image(this, ImageView.ScaleType.FIT_START);
         heroLogo.setAdjustViewBounds(true);
-        heroLogo.setMaxHeight(V.dp(116));
-        heroLogo.setMaxWidth(V.dp(560));
+        heroLogo.setMaxHeight(V.dp(128));
+        heroLogo.setMaxWidth(Integer.MAX_VALUE);
         heroLogo.setVisibility(View.GONE);
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
         heroTitle = V.text(this, "", 44, 800, V.TEXT);
@@ -1402,8 +1402,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private boolean heroSwapping;
 
     private void loadHeroLogo(final int token, String url) {
-        Img.load(this, url, V.dp(600), bm -> {
+        Img.load(this, url, V.dp(700), bm -> {
             if (token != heroToken || bm == null) return;
+            // Fit the artwork into a box just under half the screen wide and short enough to stay clear of the menu and the rows.
+            float maxW = getResources().getDisplayMetrics().widthPixels * 0.46f;
+            float maxH = V.dp(128);
+            float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
+            ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
+            lpl.width = Math.round(bm.getWidth() * k);
+            lpl.height = Math.round(bm.getHeight() * k);
+            heroLogo.setLayoutParams(lpl);
             heroLogo.setImageBitmap(bm);
             heroLogo.setVisibility(View.VISIBLE);
             heroTitle.setVisibility(View.GONE);
