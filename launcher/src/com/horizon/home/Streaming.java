@@ -303,7 +303,7 @@ final class Streaming {
             String mt = o.optString("media_type", "");
             String type = "tv".equals(mt) ? "series" : "movie".equals(mt) ? "movie" : fallbackType;
             Nuvio.Item it = new Nuvio.Item();
-            it.pkg = U.NUVIO;
+            it.pkg = U.nuvio();
             it.type = type;
             it.tmdbId = o.optLong("id");
             it.imdbId = "tmdb:" + it.tmdbId;
@@ -436,7 +436,7 @@ final class Streaming {
             JSONObject o = metas.optJSONObject(k);
             if (o == null) continue;
             Nuvio.Item it = new Nuvio.Item();
-            it.pkg = U.NUVIO;
+            it.pkg = U.nuvio();
             it.type = type;
             it.imdbId = o.optString("imdb_id", o.optString("id"));
             it.title = o.optString("name");
@@ -478,10 +478,10 @@ final class Streaming {
             links.add("nuvio://detail/" + type + "/" + imdb);
         }
         for (String l : links) {
-            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(l)).setPackage(U.NUVIO);
-            if (Apps.start(c, i)) { Apps.noteLaunch(c, U.NUVIO); return true; }
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(l)).setPackage(U.nuvio());
+            if (Apps.start(c, i)) { Apps.noteLaunch(c, U.nuvio()); return true; }
         }
-        return Apps.launchPackage(c, U.NUVIO);
+        return Apps.launchPackage(c, U.nuvio());
     }
 
     /**
@@ -492,7 +492,7 @@ final class Streaming {
         String type = res != null ? res[1] : it.type, imdb = res != null ? res[0] : it.imdbId;
         if (TextUtils.isEmpty(type)) type = !TextUtils.isEmpty(it.episode) ? "series" : "movie";
         if (!TextUtils.isEmpty(imdb) || it.tmdbId > 0) openLink(c, type, imdb, it.tmdbId);
-        else Apps.launchPackage(c, U.NUVIO);
+        else Apps.launchPackage(c, U.nuvio());
     }
 
     static void openDetails(final Context c, final Nuvio.Item it) {
@@ -510,7 +510,7 @@ final class Streaming {
             final long fm = tmdb;
             U.MAIN.post(() -> {
                 if (!TextUtils.isEmpty(fi) || fm > 0) openLink(app, ft, fi, fm);
-                else Apps.launchPackage(app, U.NUVIO);
+                else Apps.launchPackage(app, U.nuvio());
             });
         });
     }

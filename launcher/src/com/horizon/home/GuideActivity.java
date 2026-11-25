@@ -811,7 +811,7 @@ public class GuideActivity extends Activity {
     private void openInNuvio(Ch c) {
         try {
             Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("nuvio://meta?type=tv&id=" + Uri.encode("nltv:" + c.cc + ":" + c.id, ":.")));
-            i.setPackage(U.NUVIO);
+            i.setPackage(U.nuvio());
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             stopVideo();
             startActivity(i);

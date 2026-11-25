@@ -658,7 +658,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 } catch (Throwable ignored) {}
             } else {
                 closeMenu();
-                Apps.launchPackage(this, U.NUVIO);
+                Apps.launchPackage(this, U.nuvio());
             }
         });
         final TextView st = (TextView) ((LinearLayout) row.getChildAt(1)).getChildAt(1);
@@ -675,6 +675,63 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             });
         });
         return row;
+    }
+
+    private String appLabel(String pkg) {
+        try {
+            PackageManager pm = getPackageManager();
+            return pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private String nuvioLabel() {
+        String p = U.nuvio(this);
+        String l = appLabel(p);
+        if (U.NUVIO.equals(p)) return l == null ? "Official (not installed)" : "Official";
+        return l == null ? p + " (not installed)" : l;
+    }
+
+    /** Lets you choose which Nuvio app (the official one or a fork) beacon reads Continue watching from and opens titles in. */
+    private void pickNuvio() {
+        final String cur = U.nuvio(this);
+        ActionSheet sh = new ActionSheet(this, "Which Nuvio app?");
+        sh.add((U.NUVIO.equals(cur) ? "\u2713 " : "") + "Nuvio (official)" + (appLabel(U.NUVIO) == null ? " \u00b7 not installed" : ""), Icon.NUVIO, () -> setNuvioApp(U.NUVIO));
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        seen.add(U.NUVIO);
+        seen.add(getPackageName());
+        for (Apps.App a : Apps.load(this)) {
+            String hay = (a.pkg + " " + a.label).toLowerCase(Locale.ROOT);
+            if (!hay.contains("nuvio") || !seen.add(a.pkg)) continue;
+            final String pkg = a.pkg;
+            sh.add((pkg.equals(cur) ? "\u2713 " : "") + a.label, Icon.NUVIO, () -> setNuvioApp(pkg));
+        }
+        sh.add("Another app\u2026", Icon.APPS, this::pickAnyApp);
+        sh.show();
+    }
+
+    private void pickAnyApp() {
+        final String cur = U.nuvio(this);
+        ActionSheet sh = new ActionSheet(this, "Choose the app to use as Nuvio");
+        List<Apps.App> all = new ArrayList<>(Apps.load(this));
+        java.util.Collections.sort(all, (x, y) -> String.valueOf(x.label).compareToIgnoreCase(String.valueOf(y.label)));
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (Apps.App a : all) {
+            if (a.pkg.equals(getPackageName()) || !seen.add(a.pkg)) continue;
+            final String pkg = a.pkg;
+            sh.add((pkg.equals(cur) ? "\u2713 " : "") + a.label, Icon.APPS, () -> setNuvioApp(pkg));
+        }
+        sh.show();
+    }
+
+    private void setNuvioApp(String pkg) {
+        U.setNuvio(this, pkg);
+        cwSig = "";
+        String l = appLabel(pkg);
+        Toast.makeText(this, "Using " + (l == null ? pkg : l) + " for Continue watching and playback", Toast.LENGTH_LONG).show();
+        refreshMenuValues();
+        loadNuvio(false);
     }
 
     private void setUpdateState(String t) {
@@ -811,6 +868,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                         (on ? "pm disable-user --user 0 " : "pm enable ") + TVREC);
             }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.BEACON, "Home screen", () -> beaconIsHome() ? "beacon" : "Google TV", this::switchHomeScreen), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(valueRow(Icon.NUVIO, "Nuvio app", this::nuvioLabel, this::pickNuvio), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(nuvioStatusRow(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.APPS, "Show hidden apps again", () -> hiddenCount() + " hidden", () -> {
                 android.content.SharedPreferences.Editor e = prefs.edit();
@@ -2118,7 +2176,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void openService(String key) {
         Streaming.Service s = Streaming.find(key);
-        if (!Streaming.canBrowse(this, s)) { Apps.launchPackage(this, U.NUVIO); return; }
+        if (!Streaming.canBrowse(this, s)) { Apps.launchPackage(this, U.nuvio()); return; }
         startActivity(new Intent(this, ServiceActivity.class).putExtra("service", key));
     }
 

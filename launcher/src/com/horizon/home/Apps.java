@@ -139,7 +139,7 @@ final class Apps {
         final Map<String, Integer> seed = new HashMap<>();
         for (int i = 0; i < SEED.length; i++) seed.put(SEED[i], i);
         Collections.sort(out, (a, b) -> {
-            boolean an = U.NUVIO.equals(a.pkg), bn = U.NUVIO.equals(b.pkg);
+            boolean an = U.nuvio().equals(a.pkg), bn = U.nuvio().equals(b.pkg);
             if (an != bn) return an ? -1 : 1;
             long la = p.getLong("last_" + a.pkg, 0), lb = p.getLong("last_" + b.pkg, 0);
             int ca = p.getInt("count_" + a.pkg, 0), cb = p.getInt("count_" + b.pkg, 0);

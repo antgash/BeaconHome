@@ -35,7 +35,7 @@ final class Nuvio {
         /** The series' own wallpaper, for episodes (their poster/thumbnail is the episode still). */
         String wall;
 
-        boolean isNuvio() { return U.NUVIO.equals(pkg); }
+        boolean isNuvio() { return U.nuvio().equals(pkg); }
 
         String art() { return !TextUtils.isEmpty(wall) ? wall : !TextUtils.isEmpty(poster) ? poster : thumb; }
 
@@ -71,6 +71,7 @@ final class Nuvio {
     private Nuvio() {}
 
     static Result load(Context c, boolean fillFromOthers) {
+        U.nuvio(c);
         Result r = new Result();
         Map<Long, String> channelNames = new HashMap<>();
         Cursor ch = null;
@@ -279,6 +280,6 @@ final class Nuvio {
                 if (Apps.start(c, v)) return true;
             } catch (Throwable ignored) {}
         }
-        return Apps.launchPackage(c, it != null && it.pkg != null ? it.pkg : U.NUVIO);
+        return Apps.launchPackage(c, it != null && it.pkg != null ? it.pkg : U.nuvio());
     }
 }

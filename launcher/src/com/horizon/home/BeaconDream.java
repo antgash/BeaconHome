@@ -22,6 +22,7 @@ public class BeaconDream extends DreamService {
         U.H = Math.min(dm.widthPixels, dm.heightPixels);
         U.k = U.W / 1280f;
         V.init(this);
+        U.nuvio(this);
         view = new AmbientView(this);
         setContentView(view);
     }

@@ -51,7 +51,25 @@ final class U {
     static final String MODE_SCENES = "scenes";
     static final String MODE_NUVIO = "nuvio";
 
+    /** The official Nuvio app: the default for "Nuvio app" in the beacon menu's System page. */
     static final String NUVIO = "com.nuvio.tv";
+    static final String P_NUVIO_PKG = "nuvio_pkg";
+    private static volatile String nuvioPkg = NUVIO;
+
+    /** The Nuvio app beacon is set to use (the last value read from settings). */
+    static String nuvio() { return nuvioPkg; }
+
+    /** Re-reads the chosen Nuvio app from settings. */
+    static String nuvio(Context c) {
+        String p = prefs(c).getString(P_NUVIO_PKG, NUVIO);
+        nuvioPkg = (p == null || p.isEmpty()) ? NUVIO : p;
+        return nuvioPkg;
+    }
+
+    static void setNuvio(Context c, String pkg) {
+        prefs(c).edit().putString(P_NUVIO_PKG, pkg).apply();
+        nuvioPkg = pkg;
+    }
 
     private U() {}
 
@@ -61,6 +79,7 @@ final class U {
         W = Math.max(dm.widthPixels, dm.heightPixels);
         H = Math.min(dm.widthPixels, dm.heightPixels);
         k = W / 1280f;
+        nuvio(a);
     }
 
     static int s(float v) { return Math.round(v * k); }
