@@ -1107,7 +1107,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             V.tileGlow(t, has, 12, 1.06f);
             if (has) {
                 cwCount.setText(cwItems.size() > 1 ? (idx + 1) + " of " + cwItems.size() : "");
-                showItem(it, "Continue");
+                showItem(it, "");
             }
         });
         t.setOnClickListener(v -> Nuvio.open(this, it));
@@ -1427,6 +1427,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.animate().alpha(0f).setDuration(140).withLayer().withEndAction(() -> {
             if (token != heroToken) return;
             heroLabel.setText(label);
+            heroLabel.setVisibility(TextUtils.isEmpty(label) ? View.GONE : View.VISIBLE);
             heroLabel.setTextColor(V.accent());
             heroTitle.setText(title);
             heroTitle.setVisibility(View.VISIBLE);
@@ -1434,11 +1435,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             heroLogo.setImageDrawable(null);
             heroLine.setText(line == null ? "" : line);
             U.gone(heroLine, TextUtils.isEmpty(line));
-            heroProgRow.setVisibility(progress > 0 || !TextUtils.isEmpty(remaining) ? View.VISIBLE : View.GONE);
+            heroProgRow.setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
             heroProgFill.setScaleX(Math.max(0.01f, progress));
             heroProgFill.setVisibility(progress > 0 ? View.VISIBLE : View.INVISIBLE);
             ((View) heroProgFill.getParent()).setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
-            heroRemaining.setText(remaining == null ? "" : remaining);
+            heroRemaining.setText("");
+            heroRemaining.setVisibility(View.GONE);
             hero.setTranslationY(V.dpf(12));
             hero.animate().alpha(ambient ? 0f : 1f).translationY(0).setStartDelay(60).setDuration(420)
                     .setInterpolator(new DecelerateInterpolator(1.6f)).withLayer().start();
@@ -1736,7 +1738,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 V.stylePill(p, has, r, null);
                 if (has) {
                     cwCount.setText(cwItems.size() > 1 ? (idx + 1) + " of " + cwItems.size() : "");
-                    showItem(it, "Continue");
+                    showItem(it, "");
                 }
             });
             p.setOnClickListener(v -> Nuvio.open(this, it));
