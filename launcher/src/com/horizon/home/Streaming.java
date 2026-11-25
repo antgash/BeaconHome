@@ -249,7 +249,7 @@ final class Streaming {
     static void load(Context c, final String key, final Cb cb) {
         List<Row> hit = mem.get(key);
         Long at = memAt.get(key);
-        if (hit != null && at != null && System.currentTimeMillis() - at < 6 * 3600_000L) { cb.done(hit); return; }
+        if (hit != null && at != null && System.currentTimeMillis() - at < 6 * 3600_000L && at / SHUFFLE_MS == window()) { cb.done(hit); return; }
         final Context app = c.getApplicationContext();
         U.IO.execute(() -> {
             List<Row> rows = loadSync(app, key);
@@ -283,6 +283,23 @@ final class Streaming {
             {"Sci-Fi & Fantasy", "10765"}, {"Mystery", "9648"}, {"Animation", "16"}, {"Documentary", "99"}};
     private static final String[] CAT_GENRES = {"Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Thriller", "Animation", "Documentary"};
 
+    private static final long SHUFFLE_MS = 12 * 3600_000L;
+
+    private static long window() { return System.currentTimeMillis() / SHUFFLE_MS; }
+
+    /** Mixes the genre rows (and the titles inside them); the mix only changes every 12 hours. */
+    private static List<Row> shuffled(List<Row> rows, String key) {
+        java.util.Random r = new java.util.Random(window() * 31 + key.hashCode());
+        List<Row> out = new ArrayList<>();
+        for (Row row : rows) {
+            List<Nuvio.Item> items = new ArrayList<>(row.items);
+            java.util.Collections.shuffle(items, r);
+            out.add(new Row(row.title, items));
+        }
+        java.util.Collections.shuffle(out, r);
+        return out;
+    }
+
     /** Runs the row builders side by side so a service with many rows still opens quickly. */
     private static List<Row> parallel(List<java.util.concurrent.Callable<Row>> jobs) {
         List<Row> out = new ArrayList<>();
@@ -305,10 +322,10 @@ final class Streaming {
         final String prov = "&with_watch_providers=" + Uri.encode(s.providers) + "&watch_region=" + s.region;
         List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
         for (final String[] g : TMDB_MOVIE_GENRES) jobs.add(() -> new Row(g[0] + " Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov
-                + "&with_genres=" + g[1] + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s)));
+                + "&with_genres=" + g[1] + "&page=" + (1 + (int) ((window() + g[1].hashCode()) % 3)) + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s)));
         for (final String[] g : TMDB_TV_GENRES) jobs.add(() -> new Row(g[0] + " Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov
-                + "&with_genres=" + g[1] + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s)));
-        return parallel(jobs);
+                + "&with_genres=" + g[1] + "&page=" + (1 + (int) ((window() + g[1].hashCode()) % 3)) + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s)));
+        return shuffled(parallel(jobs), s.key);
     }
 
     private static List<Row> catalogGenreRows(final Context c, final Service s) {
@@ -317,7 +334,7 @@ final class Streaming {
             jobs.add(() -> new Row(g + " Movies", parseCatalog(cachedGet(c, CATALOG + "/catalog/movie/" + s.catalog + "/genre=" + Uri.encode(g) + ".json", "metas"), "movie", s)));
             jobs.add(() -> new Row(g + " Series", parseCatalog(cachedGet(c, CATALOG + "/catalog/series/" + s.catalog + "/genre=" + Uri.encode(g) + ".json", "metas"), "series", s)));
         }
-        return parallel(jobs);
+        return shuffled(parallel(jobs), s.key);
     }
 
     // ---------------------------------------------------------------- TMDB (same sources as Nuvio)
