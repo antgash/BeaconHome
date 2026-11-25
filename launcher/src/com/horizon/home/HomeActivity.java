@@ -184,10 +184,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         super.onResume();
         lastInput = System.currentTimeMillis();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
-        if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> {
-            if (info != null && started && !menuOpen && !ambient)
-                showNotice("A new beacon build is available \u00b7 beacon settings \u2192 Update beacon");
-        }), 6000);
+        refreshUpdatePill();
+        if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> refreshUpdatePill()), 6000);
+    }
+
+    /** Shows the "Update available" pill while a newer build is known, hides it once that build is installed. */
+    private void refreshUpdatePill() {
+        if (updatePill == null) return;
+        boolean on = Updater.pending(this);
+        if (!on && updatePill.hasFocus()) menuPill.requestFocus();
+        updatePill.setVisibility(on ? View.VISIBLE : View.GONE);
     }
 
     @Override protected void onStop() {
@@ -401,7 +407,22 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menu.setOnClickListener(v -> { if (menuOpen) closeMenu(); else showMenu(); });
         menuPill = menu;
         LinearLayout left = U.row(this);
+        left.setClipChildren(false);
         left.addView(menu, new LinearLayout.LayoutParams(U.WRAP, V.dp(34)));
+
+        // Next to the menu, only while a newer beacon build exists: Select opens Settings at the update options.
+        LinearLayout up = V.pill(this, 34, 12, 14);
+        View dot = new View(this);
+        dot.setBackground(V.shape(V.accent(), 4, 0));
+        up.addView(dot, new LinearLayout.LayoutParams(V.dp(8), V.dp(8)));
+        TextView ut = V.text(this, "Update available", 13, 700, V.TEXT);
+        up.addView(ut, lp(U.WRAP, U.WRAP, 8, 0, 0, 0));
+        V.tint(up, V.TEXT);
+        up.setContentDescription("Update available");
+        up.setVisibility(View.GONE);
+        up.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class).putExtra(SettingsActivity.EXTRA_UPDATES, true)));
+        updatePill = up;
+        left.addView(up, lp(U.WRAP, V.dp(34), 10, 0, 0, 0));
         bar.addView(left, U.flp(U.WRAP, U.WRAP, Gravity.START | Gravity.CENTER_VERTICAL));
 
         // Centre: clock + weather
@@ -433,7 +454,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     // ------------------------------------------------------------------ beacon menu (Veil-style dropdown)
 
     private LinearLayout menuPanel;
-    private View menuPill;
+    private View menuPill, updatePill;
     private boolean menuOpen, reopenMenu;
 
     private void showMenu() {
@@ -514,7 +535,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
         menuPanel.addView(menuLabel("System"));
         menuPanel.addView(menuButton(Icon.MOON, "Use as Android TV screensaver", "Opens the system screensaver picker", this::openDreamSettings), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-        menuPanel.addView(menuButton(Icon.GEAR, "More settings", "Rows, background, projector and more", () -> {
+        menuPanel.addView(menuButton(Icon.GEAR, "More settings", "Display, general, and updates", () -> {
             closeMenu();
             startActivity(new Intent(this, SettingsActivity.class));
         }), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));

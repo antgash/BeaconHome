@@ -34,6 +34,8 @@ final class Updater {
     static final String REPO = "antgash/BeaconHome";
     static final String P_AUTO = "update_check";
     static final String P_LAST = "update_last";
+    static final String P_PEND_CODE = "update_pend_code";
+    static final String P_PEND_PUB = "update_pend_pub";
     static final String ACTION = "com.horizon.home.UPDATE_RESULT";
 
     static final class Info {
@@ -107,9 +109,24 @@ final class Updater {
             }
             final Info f = found;
             final boolean good = ok;
-            if (good) U.prefs(app).edit().putLong(P_LAST, System.currentTimeMillis()).apply();
+            if (good) {
+                android.content.SharedPreferences.Editor ed = U.prefs(app).edit().putLong(P_LAST, System.currentTimeMillis());
+                if (f != null) ed.putLong(P_PEND_CODE, f.code).putLong(P_PEND_PUB, f.published);
+                else ed.remove(P_PEND_CODE).remove(P_PEND_PUB);
+                ed.apply();
+            }
             U.MAIN.post(() -> cb.done(f, good));
         });
+    }
+
+    /** True while a newer build than this one is known to exist (remembered between checks; clears once it is installed). */
+    static boolean pending(Context c) {
+        android.content.SharedPreferences p = U.prefs(c);
+        long code = p.getLong(P_PEND_CODE, 0), pub = p.getLong(P_PEND_PUB, 0);
+        PackageInfo me = self(c);
+        if (me == null || (code <= 0 && pub <= 0)) return false;
+        if (code > 0) return code > longCode(me);
+        return pub > me.lastUpdateTime + 10 * 60 * 1000L;
     }
 
     /** This copy's build number. */

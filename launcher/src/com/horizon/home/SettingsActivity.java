@@ -34,6 +34,10 @@ import java.util.Set;
 
 /** Home settings: switch between Scenes and Nuvio Hero Wall, plus the details of each. */
 public class SettingsActivity extends Activity {
+    /** Set by Home's "Update available" pill: open with focus on the update options (and check right away). */
+    static final String EXTRA_UPDATES = "open_updates";
+    private ScrollView sv;
+    private View updateRow;
     private SharedPreferences prefs;
     private LinearLayout list;
     private final List<Runnable> refreshers = new ArrayList<>();
@@ -55,7 +59,7 @@ public class SettingsActivity extends Activity {
         panel.setElevation(U.f(20));
         root.addView(panel, U.flp(U.s(600), U.MATCH, Gravity.END, 0, 24, 24, 24));
 
-        ScrollView sv = new ScrollView(this);
+        sv = new ScrollView(this);
         sv.setVerticalScrollBarEnabled(false);
         sv.setVerticalFadingEdgeEnabled(true);
         sv.setFadingEdgeLength(U.s(40));
@@ -67,6 +71,13 @@ public class SettingsActivity extends Activity {
         setContentView(root);
         Sfx.attach(this);
         build();
+        if (getIntent().getBooleanExtra(EXTRA_UPDATES, false) && updateRow != null) {
+            sv.post(() -> {
+                sv.smoothScrollTo(0, Math.max(0, updateRow.getTop() - U.s(120)));
+                updateRow.requestFocus();
+            });
+            checkOrInstallUpdate();
+        }
     }
 
     @Override protected void onResume() {
@@ -83,12 +94,9 @@ public class SettingsActivity extends Activity {
         TextView sub = U.text(this, "Ad-free by design · no tracking · your home screen", 13, 0x99FFFFFF, U.REG);
         list.addView(sub, U.llp(U.WRAP, U.WRAP, 0, 8, 0, 6));
 
-        section("LOOK");
+        section("DISPLAY");
         choice("Screen edge margin", "edge", 64, new int[] {48, 64, 80, 96},
                 new String[] {"Small", "Medium", "Large", "Extra large"});
-        toggle("Weather", "Temperature next to the clock (Open-Meteo, no account)", "weather", true);
-
-        section("PROJECTOR CHANGES");
         action("Animation speed", () -> fastAnim() ? "Fast (0.5\u00d7)" : "Normal", () -> {
             final boolean fast = fastAnim();
             confirmRun(fast ? "Back to normal animation speed?" : "Use fast animations?",
@@ -131,10 +139,10 @@ public class SettingsActivity extends Activity {
         toggle("Show greeting", null, U.P_GREET, true);
         action("Your name", () -> prefs.getString(U.P_NAME, ""), this::editName);
         action("Show hidden apps again", () -> hiddenCount() + " hidden", this::unhideAll);
-        action("Projector settings", () -> "Picture, keystone, 3D, sound", () -> Apps.start(this, new Intent(Settings.ACTION_SETTINGS)));
         section("UPDATES");
         toggle("Check for updates", "Looks at github.com/" + Updater.REPO + " about twice a day and tells you on Home", Updater.P_AUTO, true);
         action("Update beacon", () -> updateState, this::checkOrInstallUpdate);
+        updateRow = list.getChildAt(list.getChildCount() - 1);
 
         action("About", () -> "Version " + version() + "  ·  ad-free home screen", null);
     }
