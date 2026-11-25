@@ -1354,7 +1354,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLabel);
         heroLogo = V.image(this, ImageView.ScaleType.FIT_START);
         heroLogo.setAdjustViewBounds(true);
-        heroLogo.setMaxHeight(V.dp(128));
+        heroLogo.setMaxHeight(V.dp(168));
         heroLogo.setMaxWidth(Integer.MAX_VALUE);
         heroLogo.setVisibility(View.GONE);
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
@@ -1380,7 +1380,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         heroRemaining = V.text(this, "", 11, 400, U.alpha(V.TEXT, 0.8f));
         heroProgRow.addView(heroRemaining, lp(U.WRAP, U.WRAP, 9, 0, 0, 0));
         hero.addView(heroProgRow, lp(U.WRAP, U.WRAP, 0, 10, 0, 0));
-        col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(160)));
+        col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(176)));
         hero.setGravity(Gravity.BOTTOM);
         hero.setClipChildren(false);
         hero.setClipToPadding(false);
@@ -1404,9 +1404,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void loadHeroLogo(final int token, String url) {
         Img.load(this, url, V.dp(700), bm -> {
             if (token != heroToken || bm == null) return;
-            // Fit the artwork into a box just under half the screen wide and short enough to stay clear of the menu and the rows.
-            float maxW = getResources().getDisplayMetrics().widthPixels * 0.46f;
-            float maxH = V.dp(128);
+            // Fit the artwork into the box between the beacon menu and the Continue watching heading (510 x 168 dp), kept in proportion.
+            float maxW = V.dp(510);
+            float maxH = V.dp(168);
             float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
             ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
             lpl.width = Math.round(bm.getWidth() * k);
