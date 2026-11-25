@@ -1354,8 +1354,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         hero.addView(heroLabel);
         heroLogo = V.image(this, ImageView.ScaleType.FIT_START);
         heroLogo.setAdjustViewBounds(true);
-        heroLogo.setMaxHeight(V.dp(78));
-        heroLogo.setMaxWidth(V.dp(420));
+        heroLogo.setMaxHeight(V.dp(116));
+        heroLogo.setMaxWidth(V.dp(560));
         heroLogo.setVisibility(View.GONE);
         hero.addView(heroLogo, lp(U.WRAP, U.WRAP, 0, 8, 0, 0));
         heroTitle = V.text(this, "", 44, 800, V.TEXT);
@@ -1380,7 +1380,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         heroRemaining = V.text(this, "", 11, 400, U.alpha(V.TEXT, 0.8f));
         heroProgRow.addView(heroRemaining, lp(U.WRAP, U.WRAP, 9, 0, 0, 0));
         hero.addView(heroProgRow, lp(U.WRAP, U.WRAP, 0, 10, 0, 0));
-        col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(150)));
+        col.addView(hero, new LinearLayout.LayoutParams(U.MATCH, V.dp(160)));
         hero.setGravity(Gravity.BOTTOM);
         hero.setClipChildren(false);
         hero.setClipToPadding(false);
@@ -1402,7 +1402,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private boolean heroSwapping;
 
     private void loadHeroLogo(final int token, String url) {
-        Img.load(this, url, V.dp(420), bm -> {
+        Img.load(this, url, V.dp(600), bm -> {
             if (token != heroToken || bm == null) return;
             heroLogo.setImageBitmap(bm);
             heroLogo.setVisibility(View.VISIBLE);
@@ -1435,7 +1435,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             heroLogo.setImageDrawable(null);
             heroLine.setText(line == null ? "" : line);
             U.gone(heroLine, TextUtils.isEmpty(line));
-            heroProgRow.setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
+            heroProgRow.setVisibility(View.GONE);
             heroProgFill.setScaleX(Math.max(0.01f, progress));
             heroProgFill.setVisibility(progress > 0 ? View.VISIBLE : View.INVISIBLE);
             ((View) heroProgFill.getParent()).setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
@@ -1787,7 +1787,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         final boolean art = prefs.getBoolean("title_logo", true);
         String logo = art ? it.logo : null;
-        setHero(it.key(), label, it.title, logo, line, it.progress(), remaining, Img.sized(it.art(), "w1280"));
+        setHero(it.key(), label, it.title, logo, "", 0, null, Img.sized(it.art(), "w1280"));
         if (art && TextUtils.isEmpty(logo)) {
             final Object k = it.key();
             U.IO.execute(() -> {
