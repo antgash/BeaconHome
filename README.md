@@ -1,4 +1,4 @@
-# beacon
+# beacon - Android TV Home configured to connect with Nuvio
 
 An ad-free home screen for Android TV / Google TV / projectors, built around **Nuvio**, with a full **Live TV guide**, a Veil-style menu and a drifting-artwork screensaver. It also includes a Nuvio setup, speed tweaks, and a built-in updater that installs new builds straight from this repo's Releases.
 
