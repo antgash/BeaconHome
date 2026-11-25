@@ -4,6 +4,7 @@
 #   ANDROID_HOME   path to the Android SDK            (default: ~/Android/Sdk)
 #   BUILD_TOOLS    build-tools version to use         (default: newest installed)
 #   KEYSTORE       keystore to sign with              (default: ./kit.keystore, created if missing)
+#   TMDB_KEY       TMDB v3 API key baked into the app (optional; gives the streaming rows more titles)
 set -e
 cd "$(dirname "$0")"
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
@@ -14,7 +15,8 @@ JAR="$SDK/platforms/android-30/android.jar"
 VC="${VERSION_CODE:-17}"; VN="${VERSION_NAME:-3.3}"
 KS="${KEYSTORE:-kit.keystore}"; KP="${KEYSTORE_PASS:-horizonkit}"
 echo "SDK: $SDK  build-tools: $BTV  platform: $JAR"
-rm -rf build && mkdir -p build/res build/classes build/dex
+rm -rf build && mkdir -p build/res build/classes build/dex build/gen/com/horizon/home
+printf 'package com.horizon.home;\nfinal class Keys { static final String TMDB = "%s"; private Keys() {} }\n' "$(printf '%s' "${TMDB_KEY:-}" | tr -cd 'A-Za-z0-9')" > build/gen/com/horizon/home/Keys.java
 "$BT/aapt2" compile --dir res -o build/res/res.zip
 "$BT/aapt2" link -I "$JAR" -A assets --manifest AndroidManifest.xml -o build/base.apk build/res/res.zip \
     --java build/gen --min-sdk-version 26 --target-sdk-version 35 --version-code "$VC" --version-name "$VN" --auto-add-overlay
