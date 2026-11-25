@@ -540,6 +540,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.addView(toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
 
         menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+        menuPanel.addView(cwStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
         menuPanel.addView(toggleButton(Icon.EYE, "Title artwork", "title_logo", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
 
 
@@ -766,6 +767,96 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if ("weather".equals(key)) loadWeather();
         });
         return row;
+    }
+
+    private static final String[] CW_STYLES = {"PILLS", "RINGS", "POSTER CARDS", "FEATURED"};
+
+    private int cwStyle() {
+        int d = prefs.getBoolean("cw_rings", true) ? 1 : 0;
+        return Math.max(0, Math.min(3, prefs.getInt("cw_style", d)));
+    }
+
+    /** Continue watching look: cycles pills, progress rings, poster cards, featured + compact. */
+    private View cwStyleToggle() {
+        final LinearLayout row = menuButton(Icon.BEACON, "Card style", null, () -> {});
+        final TextView state = V.text(this, CW_STYLES[cwStyle()], 10, 800, V.TEXT);
+        View sp = new View(this);
+        row.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        row.addView(state);
+        V.tint(row, V.TEXT);
+        row.setOnClickListener(v -> {
+            int n = (cwStyle() + 1) % CW_STYLES.length;
+            prefs.edit().putInt("cw_style", n).apply();
+            state.setText(CW_STYLES[n]);
+            cwSig = "";
+            fillContinue();
+        });
+        return row;
+    }
+
+    /** Picture-first Continue watching tile: title and time left on the art, progress along the bottom. */
+    private View cwCard(final Nuvio.Item it, final int idx, final boolean big) {
+        final int w = V.dp(big ? 340 : 150), h = V.dp(big ? 92 : 84);
+        final FrameLayout t = new FrameLayout(this);
+        t.setFocusable(true);
+        t.setFocusableInTouchMode(true);
+        t.setBackground(V.shape(0x1AFFFFFF, 12, 0));
+        V.round(t, 12);
+        t.setLayoutParams(new LinearLayout.LayoutParams(w, h));
+        ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
+        t.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        Img.load(this, Img.sized(it.cardArt(), "w500"), V.dp(big ? 340 : 150), b -> { if (b != null) iv.setImageBitmap(b); });
+        View shade = big
+                ? Ui.gradient(this, GradientDrawable.Orientation.LEFT_RIGHT, 0xEB0A0808, 0x330A0808)
+                : Ui.gradient(this, GradientDrawable.Orientation.TOP_BOTTOM, 0x00000000, 0xD0000000);
+        t.addView(shade, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        long left = it.durationMs > 0 ? Math.max(0, it.durationMs - it.positionMs) : 0;
+        String sub = !TextUtils.isEmpty(it.episode) ? it.episode : remainingLine(it);
+        if (left > 0) sub = (!TextUtils.isEmpty(it.episode) ? it.episode + "  ·  " : "") + Nuvio.duration(left) + " left";
+        LinearLayout tx = U.col(this);
+        tx.setGravity(big ? Gravity.CENTER_VERTICAL : Gravity.BOTTOM);
+        if (big) {
+            TextView lab = V.text(this, "RESUME", 8, 800, V.accent());
+            tx.addView(lab, lp(U.WRAP, U.WRAP, 0, 0, 0, 3));
+        }
+        TextView title = V.text(this, it.title, big ? 15 : 10.5f, 700, 0xFFFFFFFF);
+        V.ellipsize(title);
+        tx.addView(title, new LinearLayout.LayoutParams(big ? V.dp(230) : U.MATCH, U.WRAP));
+        TextView st = V.text(this, sub == null ? "Movie" : sub, big ? 10 : 8.5f, 500, 0xDDFFFFFF);
+        V.ellipsize(st);
+        tx.addView(st, lp(big ? V.dp(230) : U.MATCH, U.WRAP, 0, 2, 0, 0));
+        FrameLayout.LayoutParams tlp = new FrameLayout.LayoutParams(U.MATCH, U.MATCH);
+        tlp.setMargins(V.dp(big ? 14 : 9), V.dp(big ? 8 : 6), V.dp(9), V.dp(big ? 16 : 13));
+        t.addView(tx, tlp);
+        if (it.progress() > 0) {
+            FrameLayout bar = new FrameLayout(this);
+            bar.setBackground(V.shape(0x59FFFFFF, 2, 0));
+            View fill = new View(this);
+            fill.setBackground(V.shape(V.accent(), 2, 0));
+            fill.setPivotX(0);
+            fill.setScaleX(it.progress());
+            bar.addView(fill, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+            FrameLayout.LayoutParams blp = U.flp(U.MATCH, V.dp(3), Gravity.BOTTOM);
+            blp.setMargins(V.dp(big ? 14 : 9), 0, V.dp(big ? 14 : 9), V.dp(6));
+            t.addView(bar, blp);
+        }
+        final View ring = new View(this);
+        ring.setBackground(new V.Glow(12, 0f, 1));
+        ring.setAlpha(0f);
+        t.addView(ring, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        t.setContentDescription(it.title);
+        t.setOnFocusChangeListener((v, has) -> {
+            t.animate().scaleX(has ? 1.06f : 1f).scaleY(has ? 1.06f : 1f)
+                    .setDuration(170).setInterpolator(new DecelerateInterpolator()).start();
+            ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
+            V.tileGlow(t, has, 12, 1.06f);
+            if (has) {
+                cwCount.setText(cwItems.size() > 1 ? (idx + 1) + " of " + cwItems.size() : "");
+                showItem(it, "Continue");
+            }
+        });
+        t.setOnClickListener(v -> Nuvio.open(this, it));
+        return t;
     }
 
     /** Focus look on the home screen: accent glow (new) or the original solid fill. */
@@ -1330,7 +1421,27 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             final int idx = i;
             long left = it.durationMs > 0 ? Math.max(0, it.durationMs - it.positionMs) : 0;
             queued += left / 60000;
-            LinearLayout p = V.pill(this, 54, 6, 17);
+            final int style = cwStyle();
+            if (style >= 2) {
+                View card = cwCard(it, idx, style == 3 && idx == 0);
+                addToRow(cwRow, card);
+                continue;
+            }
+            final boolean rings = style == 1;
+            LinearLayout p = rings ? V.pill(this, 66, 8, 22) : V.pill(this, 54, 6, 17);
+            if (rings) {
+                FrameLayout box = new FrameLayout(this);
+                final ProgressRing ring = new ProgressRing(this, it.progress());
+                box.addView(ring, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+                FrameLayout thumb = new FrameLayout(this);
+                thumb.setBackground(V.shape(0x1AFFFFFF, 21, 0));
+                V.circle(thumb);
+                ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
+                thumb.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+                Img.load(this, Img.sized(it.cardArt(), "w500"), V.dp(80), b2 -> { if (b2 != null) iv.setImageBitmap(b2); });
+                box.addView(thumb, U.flp(V.dp(46), V.dp(46), Gravity.CENTER));
+                p.addView(box, new LinearLayout.LayoutParams(V.dp(54), V.dp(54)));
+            } else {
             FrameLayout thumb = new FrameLayout(this);
             thumb.setBackground(V.shape(0x1AFFFFFF, 21, 0));
             V.round(thumb, -1);
@@ -1352,10 +1463,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 thumb.addView(bar, blp);
             }
             p.addView(thumb, new LinearLayout.LayoutParams(V.dp(74), V.dp(42)));
+            }
             LinearLayout tx = U.col(this);
             TextView t = V.text(this, it.title, 12, 700, V.TEXT);
             V.ellipsize(t);
             String sub = !TextUtils.isEmpty(it.episode) ? it.episode : remainingLine(it);
+            if (rings && !TextUtils.isEmpty(it.episode) && it.durationMs > 0) sub = it.episode + "  ·  " + remainingLine(it);
             TextView s = V.dim(V.text(this, sub == null ? "Movie" : sub, 9.5f, 500, V.TEXT), 0.72f);
             V.ellipsize(s);
             // Fixed width from the longer line (wrap_content cut titles short on this TV).
@@ -1365,7 +1478,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             tx.addView(t, new LinearLayout.LayoutParams(tw, U.WRAP));
             tx.addView(s, lp(tw, U.WRAP, 0, 3, 0, 0));
             p.addView(tx, lp(U.WRAP, U.WRAP, 10, 0, 0, 0));
-            final float r = 27;
+            final float r = rings ? 33 : 27;
             p.setOnFocusChangeListener((v, has) -> {
                 V.stylePill(p, has, r, null);
                 if (has) {
@@ -1378,6 +1491,28 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         cwTonight.setText((hour >= 17 || hour < 3) && queued >= 10 ? "·  Tonight · about " + Nuvio.duration(queued * 60000L) + " to catch up" : "");
+    }
+
+    /** Thin accent arc around a circular thumbnail showing how far through you are. */
+    private static final class ProgressRing extends View {
+        private final float frac;
+        private final android.graphics.Paint track = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Paint arc = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.RectF box = new android.graphics.RectF();
+        ProgressRing(android.content.Context c, float frac) {
+            super(c);
+            this.frac = frac;
+            float w = V.dpf(2.5f);
+            track.setStyle(android.graphics.Paint.Style.STROKE); track.setStrokeWidth(w); track.setColor(0x3CFFFFFF);
+            arc.setStyle(android.graphics.Paint.Style.STROKE); arc.setStrokeWidth(w); arc.setColor(V.accent());
+            arc.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+        }
+        @Override protected void onDraw(android.graphics.Canvas c) {
+            float in = V.dpf(2.5f);
+            box.set(in, in, getWidth() - in, getHeight() - in);
+            c.drawOval(box, track);
+            if (frac > 0) c.drawArc(box, -90, 360f * frac, false, arc);
+        }
     }
 
     private String remainingLine(Nuvio.Item it) {
