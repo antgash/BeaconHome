@@ -20,6 +20,7 @@ set "P=com.beacon.home"
 "%ADB%" -s %IP% shell pm grant %P% android.permission.READ_TV_LISTINGS >nul 2>&1
 "%ADB%" -s %IP% shell pm grant %P% android.permission.DUMP >nul 2>&1
 "%ADB%" -s %IP% shell appops set %P% GET_USAGE_STATS allow >nul 2>&1
+"%ADB%" -s %IP% shell appops set %P% SYSTEM_ALERT_WINDOW allow >nul 2>&1
 rem -- remember what the Home button and home screen were before (only the first time) --
 if not exist "%B%\home.txt" "%ADB%" -s %IP% shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -n 1" > "%B%\home.txt"
 if not exist "%B%\a11y-services.txt" "%ADB%" -s %IP% shell settings get secure enabled_accessibility_services > "%B%\a11y-services.txt"

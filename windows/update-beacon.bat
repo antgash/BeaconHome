@@ -13,6 +13,7 @@ if not exist "%B%" mkdir "%B%"
 "%ADB%" -s %IP% get-state >nul 2>&1 || ( echo Can't reach the device at %IP%. & echo - Is it on and on the same Wi-Fi? & echo - Android 11+ / Google TV ^(Mi Box S 2nd gen, Chromecast^): run pair-device.bat first. & echo - Otherwise run find-projector.bat, then setup-config.bat. & pause & exit /b 1 )
 if not exist BeaconHome.apk ( echo Put the new BeaconHome.apk next to this file first. & pause & exit /b 1 )
 "%ADB%" -s %IP% install -r -g BeaconHome.apk && "%ADB%" -s %IP% shell pm grant com.beacon.home android.permission.DUMP >nul 2>&1
+"%ADB%" -s %IP% shell appops set com.beacon.home SYSTEM_ALERT_WINDOW allow >nul 2>&1
 "%ADB%" -s %IP% shell input keyevent KEYCODE_HOME
 echo Updated.
 pause
