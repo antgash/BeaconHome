@@ -24,7 +24,7 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 2. Install it on your TV, either way:
    - **On the TV:** copy the APK over (USB stick, the *Downloader* app, or a file manager) and open it. Allow *Install unknown apps* if Android asks.
    - **From a PC:** `adb install -r BeaconHome.apk`, or put the APK in the `windows` folder and run `install-beacon.bat`.
-3. Open **beacon** from your app list. To make it the home screen, use *beacon settings → Home screen* (or run `windows/use-beacon-home.bat`).
+3. Open **beacon** from your app list. To make it the home screen, open the beacon menu → *System → Home screen* (or run `windows/use-beacon-home.bat`).
 
 Needs Android TV / Google TV 8 or newer. Install the Android TV build of Nuvio too if you want *Continue watching*.
 
@@ -32,28 +32,28 @@ Needs Android TV / Google TV 8 or newer. Install the Android TV build of Nuvio t
 
 beacon updates itself from this repo's Releases:
 
-- Open **beacon settings → Updates → Update beacon**. It checks GitHub and shows whether you're up to date; if a newer build exists, press it again to download and install it, then confirm Android's install prompt. The first time, Android may ask you to allow installs from beacon (*Settings → Apps → Special app access → Install unknown apps*).
+- Open the beacon menu (top-left pill) → **Updates → Update beacon**, or select the **Update available** pill on Home, which opens the same page and checks right away. It checks GitHub and shows whether you're up to date; if a newer build exists, press it again to download and install it, then confirm Android's install prompt. The first time, Android may ask you to allow installs from beacon (*Settings → Apps → Special app access → Install unknown apps*).
 - With **Check for updates** switched on (the default), beacon checks about twice a day and shows a small notice on Home when a new build is out.
-- Every build is published as its own numbered release (for example `v3.3.108`), and the build number is shown in *About*. You can always download an APK from Releases by hand instead.
+- After the install finishes beacon reopens by itself. For that to work on every update, run `install-beacon.bat` or `update-beacon.bat` once from a PC, which also grants the permission it needs. Every build is published as its own numbered release (for example `v3.3.108`), and the build number is shown under *Updates → About*. You can always download an APK from Releases by hand instead.
 
 ## What's new in beacon (compared with Horizon Home Kit)
 
 **Name and build**
-- **A "beacon" shortcut in the app list** (with the new icon and banner) that opens the home screen, next to "beacon settings".
+- **A "beacon" shortcut in the app list** (with the new icon and banner) that opens the home screen.
 - Renamed from Horizon to **beacon** everywhere you can see it: the top-left pill, menus, launcher and screensaver labels, the Home-button accessibility service, the APK (`BeaconHome.apk`) and the Windows scripts (`install-beacon.bat`, `update-beacon.bat`, `use-beacon-home.bat`, `uninstall-beacon.bat`).
 - beacon has its own app id, `com.beacon.home`, so it installs **next to** an existing Horizon instead of replacing it. It starts fresh, so you'll need to pick beacon as the home app and set it up again; you can uninstall Horizon whenever you like. Live TV guide links work with both `beacon://guide` and the old `horizon://guide`.
 - GitHub Actions builds with `bash launcher/build.sh`, numbers each build from the run number and publishes it as its own release (the newest 10 are kept).
-- **Built-in updater**: *beacon settings → Updates* checks this repo's newest release, downloads it and hands it to Android's installer. It also checks about twice a day and tells you on Home. See *Updating* above.
+- **Built-in updater**: *beacon menu → Updates* checks this repo's newest release, downloads it and hands it to Android's installer. It also checks about twice a day and tells you on Home. See *Updating* above.
 
 **Top bar and menu**
-- The top-left pill opens a **Veil-style dropdown menu**:
-  - **Start screensaver**: preview it right now (any key leaves).
-  - **Screensaver starts after**: Off, 1, 3, 5, 10 or 20 minutes.
-  - **Theme** colour bubbles, a **Colours from artwork** toggle, **Focus style** (Glow or Fill) and **Title artwork**.
+- The top-left pill opens the **beacon menu**, a short list of categories. Select one to open its page, and Back returns to the list:
+  - **Appearance**: theme colour bubbles, **Colours from artwork**, **Focus style** (Glow or Fill), **Card style** (see below) and **Title artwork**.
+  - **Screensaver**: **Start screensaver** at the top (preview it right now; any key leaves), **Screensaver starts after** (Off, 1, 3, 5, 10 or 20 minutes), **Artwork changes every**, and **Use as Android TV screensaver** (jumps to the system screensaver picker).
   - **Sound**: navigation sounds on/off and an 8-step volume.
-  - **Weather** toggle and **Weather location**: search for a city by name, or go back to automatic.
-  - **Use as Android TV screensaver**: jumps to the system screensaver picker.
-  - **More settings**: the full settings screen.
+  - **Weather**: show it by the clock, and **Weather location** (search for a city by name, or go back to automatic).
+  - **System**: **Screen edge margin**, **Animation speed**, **Google TV recommendations**, **Home screen** (beacon or Google TV), **Nuvio connection** and **Show hidden apps again**.
+  - **Updates**: automatic check on/off, **Update beacon** and **About** (version).
+- There is no separate settings screen any more: everything lives in the menu. The hero area on Home is blank until you select something, with no greeting.
 - The **clock is centered with the weather beside it**, in **Fahrenheit**.
 - The ad-blocking (NextDNS) pill and the free-memory pill are gone from the top bar, and **all ad-blocking features have been removed from beacon** (the NextDNS code, its settings entry and the `ad-block-on/off` scripts). HDMI, Wi-Fi and settings buttons remain on the right.
 
@@ -74,9 +74,14 @@ beacon updates itself from this repo's Releases:
 - The long-press menu uses a Veil-style action sheet.
 - **Streaming tiles** can be **rearranged** the same way, and **hidden** (long-press → *Hide from Home*). Once any are hidden, a blank tile with a **+** at the end of the row lists them so you can add them back (one at a time or *Add all*).
 - **Continue Watching refreshes right away when you switch profiles in Nuvio**, without opening Nuvio again. When most of the list is replaced (a profile switch), the row slides in fresh from its first item, the heading flashes in the accent colour and a short "Continue watching updated" message appears.
-- **Title artwork instead of text.** The focused show or movie's title graphic (its logo) replaces the plain-text title when one can be found. It's looked up by name, with a strict match so a similar title never shows the wrong art, and falls back to text. Turn it off with *Title artwork* in the menu.
-- **Focus glow.** The item you've selected gets a ring and a soft outward glow in your theme colour instead of filling solid white. *Focus style* in the menu switches between **Glow** and the original **Fill**.
-- **Navigation sounds**, ported from Veil: soft synthesised tones (no audio files) for moving, selecting, going back and toggles. The beacon menu has a **Sound** section with an on/off toggle and an 8-step volume (Left/Right to change it).
+- **Title artwork instead of text.** The focused show or movie's title graphic (its logo) replaces the plain-text title when one can be found. It's looked up by name, with a strict match so a similar title never shows the wrong art, and falls back to text. Turn it off with *Appearance → Title artwork*.
+- **Card style for Continue watching.** *Appearance → Card style* cycles three looks:
+  - **Pills**: the original wide thumbnail pills.
+  - **Rings**: a round thumbnail with a thin ring in your theme colour that fills as you get through the show or film (the default).
+  - **Poster cards**: picture tiles with the title and time left on the art and a progress bar along the bottom.
+- **Faster Continue watching.** The row re-checks about every 20 seconds and redraws quietly only when something changed, keeping your place.
+- **Focus glow.** The item you've selected gets a ring and a soft outward glow in your theme colour instead of filling solid white. *Appearance → Focus style* switches between **Glow** and the original **Fill**.
+- **Navigation sounds**, ported from Veil: soft synthesised tones (no audio files) for moving, selecting, going back and toggles. The beacon menu's **Sound** page has an on/off toggle and an 8-step volume (Left/Right to change it).
 - **Episode wallpapers use the series artwork**, not the episode still.
 - **Long titles shrink to fit on one row** instead of wrapping or being cut off.
 - **Smoother artwork**: a new picture starts where the old one is, so it no longer re-zooms; a double-darkening glitch that dimmed the picture for a moment is fixed.
@@ -93,8 +98,8 @@ beacon updates itself from this repo's Releases:
   - Full screen with channel up/down and a see-through guide.
   - Favourites, and "Open in Nuvio".
   - Picks the sharpest version of each stream (up to 1080p).
-- **Settings on the TV itself** (no PC needed): updates, animation speed, Google TV recommendations, and the home screen switch. Each change has an undo.
-- **Switch back to the Google TV home any time** from beacon's settings on the TV (or `use-original-home.bat` from the PC), and back to beacon again.
+- **Settings on the TV itself** (no PC needed), in the beacon menu: updates, animation speed, Google TV recommendations, and the home screen switch. Each change has an undo.
+- **Switch back to the Google TV home any time** from *System → Home screen* in the beacon menu (or `use-original-home.bat` from the PC), and back to beacon again.
 - The remote's **Home button** always brings you to beacon.
 
 **Live TV addon** (`livetv-addon/`): a Nuvio/Stremio addon you host free on Cloudflare.
@@ -110,9 +115,9 @@ beacon updates itself from this repo's Releases:
 
 ## Using the screensaver
 
-- **Preview or in-app idle mode:** open the beacon menu (top-left pill) → *Start screensaver*. *Screensaver starts after* sets how long Home sits idle before it begins on its own.
+- **Preview or in-app idle mode:** open the beacon menu (top-left pill) → *Screensaver → Start screensaver*. *Screensaver starts after* sets how long Home sits idle before it begins on its own.
 - **As the Android TV screensaver:** Settings → Device Preferences → Screen saver → choose **beacon**. If your device doesn't list it, run:
   `adb shell settings put secure screensaver_components com.beacon.home/com.horizon.home.BeaconDream`
-- The system screensaver's own start time is set in Android's Screen saver settings (*When to start*). The menu's timer only controls beacon's in-app idle mode.
+- The system screensaver's own start time is set in Android's Screen saver settings (*When to start*). The *Screensaver starts after* setting only controls beacon's in-app idle mode.
 - If you used the earlier Horizon build as your screensaver, choose beacon again once.
-- Set the weather city in the menu first so the screensaver can show the temperature.
+- Set the weather city in *Weather → Weather location* first so the screensaver can show the temperature.
