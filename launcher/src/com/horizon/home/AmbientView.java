@@ -232,9 +232,9 @@ final class AmbientView extends FrameLayout {
                 else U.IO.execute(() -> {
                     // no artwork on the item yet: look it up by title, the same way the home screen does
                     Context ac = getContext().getApplicationContext();
-                    String l = it.tmdbId > 0 ? Streaming.tmdbLogo(ac, it) : null;
-                    if (l == null) l = Streaming.logoByTitle(ac, it);
-                    final String found = l;
+                    String lg = it.tmdbId > 0 ? Streaming.tmdbLogo(ac, it) : null;
+                    if (lg == null) lg = Streaming.logoByTitle(ac, it);
+                    final String found = lg;
                     if (found != null) U.MAIN.post(() -> { it.logo = found; if (tk == token && current == it) showLogo(found, tk); });
                 });
             }
