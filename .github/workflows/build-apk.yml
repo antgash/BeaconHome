@@ -16,6 +16,8 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0" "platforms;android-30" >/dev/null
       - name: Build
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
         run: BUILD_TOOLS=34.0.0 VERSION_CODE=$((100 + ${{ github.run_number }})) VERSION_NAME=3.3.${{ github.run_number }} bash launcher/build.sh
       - uses: actions/upload-artifact@v4
         with: { name: BeaconHome, path: launcher/build/BeaconHome.apk }
