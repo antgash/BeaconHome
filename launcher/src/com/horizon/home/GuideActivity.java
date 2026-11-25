@@ -91,7 +91,7 @@ public class GuideActivity extends Activity {
     private final Map<String, String> catNames = new HashMap<>();
     private SharedPreferences prefs;
     private Set<String> favs = new HashSet<>();
-    private String cat = "news", lang = "hin", country = "in", srcF = "working";
+    private String cat = "news", lang = "eng", country = "us", srcF = "working";
     private final Map<String, String[]> countries = new LinkedHashMap<>(); // cc -> {flag, name, channels, guide}
     private int loadToken;
     static final Map<String, String> LANGS = new LinkedHashMap<>();
@@ -141,7 +141,7 @@ public class GuideActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = U.prefs(this);
         favs = new HashSet<>(prefs.getStringSet(P_FAV, new HashSet<>()));
-        country = prefs.getString(P_CC, "in");
+        country = prefs.getString(P_CC, "us");
         srcF = prefs.getString(P_SRC_F, "working");
         loadFilters();
         build();
@@ -621,6 +621,11 @@ public class GuideActivity extends Activity {
         return n != null ? n : k.toUpperCase(Locale.ROOT);
     }
 
+    /** Categories not offered in the picker (their channels still show under All categories). */
+    private static final java.util.Set<String> HIDDEN_CATS = new HashSet<>(java.util.Arrays.asList("religious", "legislative", "business"));
+    /** Listed right after News, in this order. */
+    private static final String[] AFTER_NEWS = {"classic", "comedy", "cooking"};
+
     private TextView openChip;
 
     private void openDrop(final TextView chip) {
@@ -642,6 +647,18 @@ public class GuideActivity extends Activity {
         else opts.put("all", total);
         List<Map.Entry<String, Integer>> l = new ArrayList<>(cnt.entrySet());
         Collections.sort(l, (a, b) -> b.getValue() - a.getValue());
+        if (isCat) {
+            // some categories are left out of the picker, and a few are listed straight after News
+            List<Map.Entry<String, Integer>> kept = new ArrayList<>();
+            for (Map.Entry<String, Integer> e : l) if (!HIDDEN_CATS.contains(e.getKey())) kept.add(e);
+            List<Map.Entry<String, Integer>> after = new ArrayList<>();
+            for (String k : AFTER_NEWS) for (Map.Entry<String, Integer> e : kept) if (e.getKey().equals(k)) after.add(e);
+            kept.removeAll(after);
+            int at = 0;
+            for (int i = 0; i < kept.size(); i++) if ("news".equals(kept.get(i).getKey())) at = i + 1;
+            kept.addAll(at, after);
+            l = kept;
+        }
         for (Map.Entry<String, Integer> e : l) opts.put(e.getKey(), e.getValue());
         final String cur = isCat ? cat : lang;
         View focusMe = null;
