@@ -795,6 +795,33 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    /**
+     * Refits the menu's height after something inside it grew or shrank (an opened changelog entry), without
+     * scrolling back to the top or moving the selection: the anchor row stays where it is on screen.
+     */
+    private void refitMenuKeeping(final View anchor) {
+        final ScrollView sv = menuScroll;
+        if (sv == null || !menuOpen || menuPanel == null) return;
+        final int before = topInPanel(anchor) - sv.getScrollY();
+        sv.getLayoutParams().height = U.WRAP;
+        sv.requestLayout();
+        sv.post(() -> {
+            if (menuScroll != sv) return;
+            if (sv.getHeight() > menuMaxH) { sv.getLayoutParams().height = menuMaxH; sv.requestLayout(); }
+            sv.post(() -> { if (menuScroll == sv) sv.scrollTo(0, Math.max(0, topInPanel(anchor) - before)); });
+        });
+    }
+
+    private int topInPanel(View v) {
+        android.graphics.Rect r = new android.graphics.Rect();
+        v.getDrawingRect(r);
+        try { menuPanel.offsetDescendantRectToMyCoords(v, r); } catch (Throwable ignored) { return 0; }
+        return r.top;
+    }
+
+    /** Closes every open changelog entry (opening one closes the others). */
+    private final List<Runnable> changelogClosers = new ArrayList<>();
+
     private final List<Runnable> menuRefreshers = new ArrayList<>();
     private TextView updateSub;
     private String updateState = "Tap to check for a new build";
@@ -1060,12 +1087,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         // The opened notes take focus (a ring around them) so the menu scrolls to show them; Select closes them.
         body.setOnFocusChangeListener((v, has) -> body.setBackground(has
                 ? V.shape(V.MENU_ROW, 14, U.alpha(V.accent(), 0.9f)) : V.shape(V.MENU_ROW, 14, 0)));
+        final Runnable close = () -> { body.setVisibility(View.GONE); chev.setRotation(0f); };
+        changelogClosers.add(close);
         final Runnable toggle = () -> {
             boolean open = body.getVisibility() != View.VISIBLE;
+            // Keep the selection where it is: work out the heading's place first, then close the others.
+            head.requestFocus();
+            if (open) for (Runnable r : changelogClosers) if (r != close) r.run();
             body.setVisibility(open ? View.VISIBLE : View.GONE);
             chev.setRotation(open ? 180f : 0f);
-            if (!open) head.requestFocus();
-            if (menuPanel != null) menuPanel.post(this::fitMenu);
+            refitMenuKeeping(head);
         };
         head.setOnClickListener(v -> { Sfx.select(); toggle.run(); });
         body.setOnClickListener(v -> { Sfx.select(); toggle.run(); });
@@ -1113,6 +1144,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.removeAllViews();
         menuFirst = null;
         menuRefreshers.clear();
+        changelogClosers.clear();
         String[] titles = {"look", "Appearance", "system", "System", "screensaver", "Screensaver", "sound", "Sound", "weather", "Weather", "updates", "Updates & downloads"};
         String title = "beacon";
         for (int i = 0; i < titles.length; i += 2) if (titles[i].equals(page)) title = titles[i + 1];
