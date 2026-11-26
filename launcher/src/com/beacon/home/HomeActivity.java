@@ -995,57 +995,82 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private TextView nbSub;
     private String nbState;
-    private NuvioBeaconInstaller.Release nbPending;
 
-    private String nbIdle() {
-        String v = NuvioBeaconInstaller.installed(this);
-        return v == null ? "Not installed · select to download from GitHub" : "Installed " + v + " · select to check for a newer build";
-    }
+    private static final String NB_SUB = "Built for beacon";
+    private boolean nbBusy;
 
     private void setNbState(String t) {
         nbState = t;
         if (nbSub != null) nbSub.setText(t);
     }
 
-    /** First press finds the newest Nuvio Beacon release; the next press (if it's newer) downloads and installs it. */
-    private void checkOrInstallNuvioBeacon() {
-        if (nbPending != null) {
-            final NuvioBeaconInstaller.Release r = nbPending;
-            nbPending = null;
-            setNbState("Downloading… 0%");
-            NuvioBeaconInstaller.downloadAndInstall(this, r, pct -> setNbState("Downloading… " + pct + "%"), this::setNbState);
-            return;
-        }
-        setNbState("Checking GitHub…");
+    /** Downloads and installs Nuvio Beacon when it isn't installed yet; does nothing once it is (it updates itself). */
+    private void downloadNuvioBeacon() {
+        if (nbBusy || NuvioBeaconInstaller.installed(this) != null) return;
+        nbBusy = true;
+        setNbState("Checking GitHub\u2026");
         NuvioBeaconInstaller.latest(this, (r, ok) -> {
-            if (!ok) { setNbState("Couldn't reach GitHub · select to retry"); return; }
-            if (r == null) { setNbState("No build for this device yet"); return; }
-            String have = NuvioBeaconInstaller.installed(this);
-            if (r.tag.equals(have)) { setNbState("Up to date (" + have + ")"); return; }
-            nbPending = r;
-            long mb = Math.max(1, r.size / (1024 * 1024));
-            setNbState((have == null ? "Ready to install " : "Update to ") + r.tag + " (" + mb + " MB) · select to " + (have == null ? "install" : "update"));
+            if (!ok || r == null) {
+                nbBusy = false;
+                setNbState(!ok ? "Couldn't reach GitHub \u00b7 select to retry" : "No build for this TV yet");
+                return;
+            }
+            setNbState("Downloading\u2026 0%");
+            NuvioBeaconInstaller.downloadAndInstall(this, r, pct -> setNbState("Downloading\u2026 " + pct + "%"), msg -> {
+                nbBusy = false;
+                setNbState(msg);
+            });
         });
     }
 
-    private void checkOrInstallUpdate() {
-        if (pendingUpdate != null) { downloadAndInstall(pendingUpdate); return; }
-        setUpdateState("Checking…");
-        Updater.check(this, (info, ok) -> {
-            if (!ok) { setUpdateState("Couldn't reach GitHub · select to retry"); return; }
-            if (info == null) { setUpdateState("Up to date (build " + Updater.installedCode(this) + ") · select to check again"); return; }
-            pendingUpdate = info;
-            setUpdateState("New build available (" + Updater.why(this, info) + ") · select to install");
-        });
-    }
+    /** A changelog row: title, date and summary; Select opens it to list the main changes (and a picture). */
+    private View changelogEntry(final Changelog.Entry e) {
+        final LinearLayout box = U.col(this);
+        final LinearLayout head = menuButton(Icon.BEACON, e.title, e.date + "  \u00b7  " + e.summary, () -> {});
+        View sp = new View(this);
+        head.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
+        final Icon chev = new Icon(this, Icon.CHEVRON_DOWN);
+        head.addView(chev, new LinearLayout.LayoutParams(V.dp(12), V.dp(12)));
+        V.tint(head, V.TEXT);
+        box.addView(head, new LinearLayout.LayoutParams(U.MATCH, V.dp(48)));
 
-    private void downloadAndInstall(final Updater.Info info) {
-        setUpdateState("Downloading… 0%");
-        Updater.download(this, info, pct -> setUpdateState("Downloading… " + pct + "%"), apk -> {
-            if (apk == null) { setUpdateState("Download failed · select to retry"); return; }
-            if (Updater.install(this, apk)) setUpdateState("Confirm the install on screen");
-            else setUpdateState("Couldn't start the installer · select to retry");
-        });
+        final LinearLayout body = U.col(this);
+        body.setPadding(V.dp(12), V.dp(10), V.dp(12), V.dp(10));
+        body.setBackground(V.shape(V.MENU_ROW, 14, 0));
+        body.setFocusable(true);
+        body.setFocusableInTouchMode(true);
+        if (!TextUtils.isEmpty(e.image)) {
+            final ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
+            V.round(iv, 10);
+            body.addView(iv, lp(U.MATCH, V.dp(150), 0, 0, 0, 10));
+            Img.load(this, e.image, 640, b -> { if (b != null) iv.setImageBitmap(b); });
+        }
+        for (int i = 0; i < e.changes.length; i++) {
+            LinearLayout line = U.row(this);
+            line.setGravity(Gravity.TOP);
+            Icon ic = new Icon(this, e.icons[i]);
+            ic.setColor(U.alpha(V.TEXT, 0.85f));
+            line.addView(ic, lp(V.dp(12), V.dp(12), 0, 2, 0, 0));
+            TextView t = V.text(this, e.changes[i], 10.5f, 500, U.alpha(V.TEXT, 0.88f));
+            line.addView(t, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
+            ((LinearLayout.LayoutParams) t.getLayoutParams()).leftMargin = V.dp(9);
+            body.addView(line, lp(U.MATCH, U.WRAP, 0, i == 0 ? 0 : 7, 0, 0));
+        }
+        body.setVisibility(View.GONE);
+        // The opened notes take focus (a ring around them) so the menu scrolls to show them; Select closes them.
+        body.setOnFocusChangeListener((v, has) -> body.setBackground(has
+                ? V.shape(V.MENU_ROW, 14, U.alpha(V.accent(), 0.9f)) : V.shape(V.MENU_ROW, 14, 0)));
+        final Runnable toggle = () -> {
+            boolean open = body.getVisibility() != View.VISIBLE;
+            body.setVisibility(open ? View.VISIBLE : View.GONE);
+            chev.setRotation(open ? 180f : 0f);
+            if (!open) head.requestFocus();
+            if (menuPanel != null) menuPanel.post(this::fitMenu);
+        };
+        head.setOnClickListener(v -> { Sfx.select(); toggle.run(); });
+        body.setOnClickListener(v -> { Sfx.select(); toggle.run(); });
+        box.addView(body, lp(U.MATCH, U.WRAP, 0, 6, 0, 0));
+        return box;
     }
 
     private void openMenuPage(String page) {
@@ -1068,7 +1093,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel.removeAllViews();
         menuFirst = null;
         menuRefreshers.clear();
-        String[] titles = {"look", "Appearance", "system", "System", "screensaver", "Screensaver", "sound", "Sound", "weather", "Weather", "updates", "Updates"};
+        String[] titles = {"look", "Appearance", "system", "System", "screensaver", "Screensaver", "sound", "Sound", "weather", "Weather", "updates", "Updates & downloads"};
         String title = "beacon";
         for (int i = 0; i < titles.length; i += 2) if (titles[i].equals(page)) title = titles[i + 1];
         menuPanel.addView(V.text(this, title, 24, 800, V.TEXT));
@@ -1083,7 +1108,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SUN, "Weather", TextUtils.isEmpty(city) ? "Automatic location" : city, () -> openMenuPage("weather")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.GEAR, "System", "Margins, animation, home screen, apps", () -> openMenuPage("system")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.CHECK, "Updates", Updater.pending(this) ? "Update available" : "Check for a new version", () -> openMenuPage("updates")), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(hubRow(Icon.CHECK, "Updates & downloads", Updater.pending(this) ? "Update available" : "Check for a new version", () -> openMenuPage("updates")), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
             menuPanel.addView(V.dim(V.text(this, "beacon " + versionName() + "  \u00b7  ad-free home screen", 9, 500, V.TEXT), 0.5f), lp(U.WRAP, U.WRAP, 4, 0, 0, 12));
             menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
             return;
@@ -1166,10 +1191,19 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             LinearLayout ur = menuButton(Icon.CHECK, "Update beacon", updateState, this::checkOrInstallUpdate);
             updateSub = (TextView) ((LinearLayout) ur.getChildAt(1)).getChildAt(1);
             menuPanel.addView(ur, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            if (nbState == null || nbPending == null && !nbState.startsWith("Downloading")) nbState = nbIdle();
-            LinearLayout nb = menuButton(Icon.NUVIO, "Nuvio Beacon", nbState, this::checkOrInstallNuvioBeacon);
+            if (!nbBusy) nbState = NB_SUB;
+            LinearLayout nb = menuButton(Icon.DOWNLOAD, "Download Nuvio Beacon", nbState, this::downloadNuvioBeacon);
             nbSub = (TextView) ((LinearLayout) nb.getChildAt(1)).getChildAt(1);
-            menuPanel.addView(nb, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            View nbSp = new View(this);
+            nb.addView(nbSp, new LinearLayout.LayoutParams(0, 1, 1f));
+            final TextView nbMark = V.text(this, NuvioBeaconInstaller.installed(this) != null ? "INSTALLED" : "", 10, 800, V.TEXT);
+            nb.addView(nbMark);
+            V.tint(nb, V.TEXT);
+            menuRefreshers.add(() -> nbMark.setText(NuvioBeaconInstaller.installed(this) != null ? "INSTALLED" : ""));
+            menuPanel.addView(nb, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(menuLabel("Changelog"));
+            for (Changelog.Entry e : Changelog.ENTRIES) menuPanel.addView(changelogEntry(e), lp(U.MATCH, U.WRAP, 0, 0, 0, 8));
+            menuPanel.addView(new View(this), lp(U.MATCH, V.dp(6), 0, 0, 0, 0));
             menuPanel.addView(menuButton(Icon.INFO, "About", "Version " + versionName() + "  ·  ad-free home screen", () -> {}), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("weather".equals(page)) {
             menuFirst = toggleButton(Icon.SUN, "Show weather by the clock", "weather", true);
