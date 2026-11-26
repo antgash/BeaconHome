@@ -28,6 +28,7 @@
             <action android:name="android.intent.action.VIEW" />
         </intent>
         <package android:name="com.nuvio.tv" />
+        <package android:name="com.nuvio.tv.beacon" />
         <package android:name="com.google.android.tvlauncher" />
     </queries>
 

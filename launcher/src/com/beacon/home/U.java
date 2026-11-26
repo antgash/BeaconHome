@@ -53,6 +53,8 @@ final class U {
 
     /** The official Nuvio app: the default for "Nuvio app" in the beacon menu's System page. */
     static final String NUVIO = "com.nuvio.tv";
+    /** antgash/NuvioTVbeacon: official Nuvio plus the launcher profile provider, installed next to it. */
+    static final String NUVIO_BEACON = "com.nuvio.tv.beacon";
     static final String P_NUVIO_PKG = "nuvio_pkg";
     private static volatile String nuvioPkg = NUVIO;
 
