@@ -716,8 +716,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             String hay = (a.pkg + " " + a.label).toLowerCase(Locale.ROOT);
             if (!hay.contains("nuvio") || !seen.add(a.pkg)) continue;
             final String pkg = a.pkg;
-            // The beacon fork is also labelled "Nuvio", so name it plainly.
-            String label = U.NUVIO_BEACON.equals(pkg) ? "Nuvio (beacon build)" : a.label;
+            // The fork is called Nuvio Beacon (older builds were labelled just "Nuvio").
+            String label = U.NUVIO_BEACON.equals(pkg) ? "Nuvio Beacon" : a.label;
             sh.add((pkg.equals(cur) ? "\u2713 " : "") + label, Icon.NUVIO, () -> setNuvioApp(pkg));
         }
         sh.add("Another app\u2026", Icon.APPS, this::pickAnyApp);
