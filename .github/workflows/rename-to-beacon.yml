@@ -1,0 +1,24 @@
+name: Rename package to beacon (one time)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rename com.horizon.home to com.beacon.home
+        run: |
+          set -e
+          test -d launcher/src/com/horizon/home
+          mkdir -p launcher/src/com/beacon
+          git mv launcher/src/com/horizon/home launcher/src/com/beacon/home
+          grep -rlI -e 'com\.horizon\.home' -e 'com/horizon/home' launcher windows README.md SETUP-WITH-CLAUDE.md 2>/dev/null \
+            | xargs -r sed -i -e 's/com\.horizon\.home/com.beacon.home/g' -e 's#com/horizon/home#com/beacon/home#g'
+          git rm -q .github/workflows/rename-to-beacon.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Rename Java package and folder from horizon to beacon"
+          git push
