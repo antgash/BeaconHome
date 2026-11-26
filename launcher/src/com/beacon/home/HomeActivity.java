@@ -405,7 +405,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         updateClock();
         updateNetwork();
         loadWeather();
-        if (reopenMenu) { reopenMenu = false; U.MAIN.post(this::showMenu); }
+        if (reopenMenu) { reopenMenu = false; U.MAIN.post(() -> showMenu(true)); }
     }
 
     private View space(float dp) {
@@ -701,23 +701,27 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private View menuPill, updatePill;
     private boolean menuOpen, reopenMenu;
 
-    private void showMenu() {
+    private void showMenu() { showMenu(false); }
+
+    /** instant: no fade or slide (the menu reopening after a setting rebuilt Home, so it looks like it never closed). */
+    private void showMenu(boolean instant) {
         if (menuOpen || ambient) return;
         menuOpen = true;
         if (scrim == null) {
             scrim = new View(this);
-            scrim.setBackgroundColor(0x8C000000);
             scrim.setAlpha(0f);
             ui.addView(scrim, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
         }
+        scrim.setBackgroundColor(V.MENU_SCRIM);
         ScrollView sv = new ScrollView(this);
         sv.setVerticalScrollBarEnabled(false);
         sv.setFillViewport(false);
         menuPanel = U.col(this);
         menuPanel.setPadding(V.dp(16), V.dp(16), V.dp(16), V.dp(16));
         sv.addView(menuPanel, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
-        sv.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.10f), 0.98f), 20, 0x40FFFFFF));
+        sv.setBackground(V.shape(V.MENU_PANEL, 20, V.MENU_PANEL_LINE));
         sv.setClipToOutline(true);
+        sv.setElevation(V.MENU_SHADOW ? V.dpf(16) : 0f);
         int top = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
         FrameLayout.LayoutParams lp = U.flp(V.dp(330), U.WRAP, Gravity.TOP | Gravity.START);
         lp.topMargin = top;
@@ -739,9 +743,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         scrim.bringToFront();
         sv.bringToFront();
         scrim.animate().cancel();
-        scrim.animate().alpha(1f).setDuration(200).start();
-        sv.setTranslationY(-V.dpf(12));
-        sv.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
+        if (instant) {
+            scrim.setAlpha(1f);
+            sv.setAlpha(1f);
+        } else {
+            scrim.animate().alpha(1f).setDuration(200).start();
+            sv.setTranslationY(-V.dpf(12));
+            sv.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
+        }
         sv.post(this::fitMenu);
     }
 
@@ -1207,7 +1216,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         row.setPadding(V.dp(9), 0, V.dp(12), 0);
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
-        row.setBackground(V.shape(V.GLASS, 14, V.LINE));
+        row.setBackground(V.shape(V.MENU_ROW, 14, V.MENU_ROW_LINE));
         FrameLayout tile = new FrameLayout(this);
         tile.setBackground(V.shape(0x22FFFFFF, 9, 0));
         Icon ic = new Icon(this, icon);
@@ -1220,7 +1229,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         V.tint(row, V.TEXT);
         // same focus look as Home: accent glow, or the solid fill when "Focus style" is set to Fill
         row.setOnFocusChangeListener((v, has) -> V.stylePill(row, has, 14,
-                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0))));
+                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0)),
+                V.MENU_ROW, V.MENU_ROW_LINE));
         row.setOnClickListener(v -> r.run());
         return row;
     }
@@ -1449,7 +1459,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             for (int i = 0; i < chips.length; i++) {
                 boolean on = i == sel[0];
                 if (!chips[i].hasFocus()) {
-                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.GLASS, 15, V.LINE));
+                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.MENU_ROW, 15, V.MENU_ROW_LINE));
                     chips[i].setTextColor(V.TEXT);
                 }
             }

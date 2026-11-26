@@ -65,7 +65,28 @@ final class V {
         else if (surface == 2) { GLASS = 0xEE2E3544; GLASS_STRONG = 0xF2363E4E; LINE = 0; }      // slate
         else { GLASS = 0x14FFFFFF; GLASS_STRONG = 0x1FFFFFFF; LINE = 0x29FFFFFF; }
         String id = U.prefs(c).getString("theme", "ember");
-        for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); return; }
+        for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); break; }
+        loadMenuSurface();
+    }
+
+    // The beacon menu is made of the chosen surface: the panel, its rows and the dimming behind it all follow
+    // it, with rows one step lighter than the panel. Android 11 can't blur what is behind a view, so the
+    // glass panel is a frosted, mostly opaque tint of the theme background instead of a live blur.
+    static int MENU_PANEL, MENU_PANEL_LINE, MENU_ROW, MENU_ROW_LINE, MENU_SCRIM;
+    static boolean MENU_SHADOW;
+
+    static void loadMenuSurface() {
+        if (surface == 1) {          // smoke: deep see-through black, no edge, soft shadow
+            MENU_PANEL = 0xD90A0A0E; MENU_PANEL_LINE = 0; MENU_ROW = 0x10FFFFFF; MENU_ROW_LINE = 0;
+            MENU_SCRIM = 0x66000000; MENU_SHADOW = true;
+        } else if (surface == 2) {   // slate: solid lifted card
+            MENU_PANEL = 0xFF2A303D; MENU_PANEL_LINE = 0; MENU_ROW = 0xFF343B4A; MENU_ROW_LINE = 0;
+            MENU_SCRIM = 0x73000000; MENU_SHADOW = true;
+        } else {                     // frosted glass: light veil with a hairline edge
+            MENU_PANEL = U.alpha(U.mix(BG, 0xFFFFFFFF, 0.14f), 0.82f); MENU_PANEL_LINE = 0x38FFFFFF;
+            MENU_ROW = 0x12FFFFFF; MENU_ROW_LINE = 0x1FFFFFFF;
+            MENU_SCRIM = 0x59000000; MENU_SHADOW = false;
+        }
     }
 
     static float scale = 1f;
@@ -159,11 +180,16 @@ final class V {
     }
 
     static void stylePill(ViewGroup p, boolean focused, float radiusDp, Runnable extra) {
+        stylePill(p, focused, radiusDp, extra, GLASS, LINE);
+    }
+
+    /** Same, with the resting fill and edge given (menu rows rest on the menu's own surface colours). */
+    static void stylePill(ViewGroup p, boolean focused, float radiusDp, Runnable extra, int restFill, int restLine) {
         if (!glowFocus) {
-            p.setBackground(focused ? shape(TEXT, radiusDp, 0) : shape(GLASS, radiusDp, LINE));
+            p.setBackground(focused ? shape(TEXT, radiusDp, 0) : shape(restFill, radiusDp, restLine));
             tint(p, focused ? INK : TEXT);
         } else {
-            p.setBackground(focused ? glowShape(radiusDp) : shape(GLASS, radiusDp, LINE));
+            p.setBackground(focused ? glowShape(radiusDp) : shape(restFill, radiusDp, restLine));
             tint(p, TEXT);
             if (focused) tintIcons(p, accent());
             glow(p, focused);
