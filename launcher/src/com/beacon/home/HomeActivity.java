@@ -89,6 +89,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // rows
     private LinearLayout cwBlock, cwRow, svcRow, appsRow;
+    private boolean appCircle;
+    private FrameLayout dockBox;
+    private TextView dockLabel;
     private LinearLayout volumeRow;
     private TextView cwCount, cwTonight;
     private int defaultFocusId = View.NO_ID;
@@ -208,8 +211,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         lastInput = System.currentTimeMillis();
         observeNuvio();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
-        observeProfiles();
-        refreshProfiles();
         refreshUpdatePill();
         if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> refreshUpdatePill()), 6000);
     }
@@ -249,8 +250,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     @Override protected void onDestroy() {
         super.onDestroy();
         try { getContentResolver().unregisterContentObserver(nuvioObserver); } catch (Throwable ignored) {}
-        try { getContentResolver().unregisterContentObserver(profileObserver); } catch (Throwable ignored) {}
-        U.MAIN.removeCallbacks(profileReload);
         U.MAIN.removeCallbacks(nuvioReload);
         prefs.unregisterOnSharedPreferenceChangeListener(this);
     }
@@ -302,7 +301,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override public void onSharedPreferenceChanged(SharedPreferences p, String key) {
         if (key == null || key.startsWith("last_") || key.startsWith("count_") || key.equals("svc")) return;
-        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key) || "focus_glow".equals(key) || "surface".equals(key)) {
+        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key) || "focus_glow".equals(key) || "surface".equals(key) || "app_style".equals(key)) {
             V.loadTheme(this);
             if (player != null) player.stop();
             build();
@@ -405,7 +404,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         updateClock();
         updateNetwork();
         loadWeather();
-        if (reopenMenu) { reopenMenu = false; U.MAIN.post(() -> showMenu(true)); }
+        if (reopenMenu) { reopenMenu = false; U.MAIN.post(this::showMenu); }
     }
 
     private View space(float dp) {
@@ -440,10 +439,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout left = U.row(this);
         left.setClipChildren(false);
         left.addView(menu, new LinearLayout.LayoutParams(U.WRAP, V.dp(34)));
-
-        // Next to the menu: the active Nuvio profile's picture. Select lists the profiles to switch to.
-        // Hidden until Nuvio says it offers profiles to launchers (older Nuvio builds don't).
-        left.addView(buildProfileButton(), lp(V.dp(34), V.dp(34), 10, 0, 0, 0));
 
         // Next to the menu, only while a newer beacon build exists: Select opens Settings at the update options.
         LinearLayout up = V.pill(this, 34, 12, 14);
@@ -486,242 +481,29 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
 
-    // ------------------------------------------------------------------ Nuvio profile button
-
-    private FrameLayout profileBtn;
-    private ImageView profileImg;
-    private TextView profileInitial;
-    private List<NuvioProfiles.Profile> profiles;
-    private String profilePkg;
-    private int profileLoads;
-
-    private final Runnable profileReload = this::refreshProfiles;
-
-    private final android.database.ContentObserver profileObserver = new android.database.ContentObserver(U.MAIN) {
-        @Override public void onChange(boolean selfChange) {
-            U.MAIN.removeCallbacks(profileReload);
-            U.MAIN.postDelayed(profileReload, 400);
-        }
-    };
-
-    private View buildProfileButton() {
-        final FrameLayout b = new FrameLayout(this);
-        b.setFocusable(true);
-        b.setFocusableInTouchMode(true);
-        b.setClipChildren(false);
-        b.setPadding(V.dp(2), V.dp(2), V.dp(2), V.dp(2));
-        b.setContentDescription("Nuvio profile");
-
-        FrameLayout face = new FrameLayout(this);
-        face.setBackground(V.shape(0xFF1E88E5, 17, 0));
-        V.circle(face);
-        profileInitial = V.text(this, "", 14, 800, V.TEXT);
-        profileInitial.setGravity(Gravity.CENTER);
-        face.addView(profileInitial, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-        profileImg = V.image(this, ImageView.ScaleType.CENTER_CROP);
-        face.addView(profileImg, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-        b.addView(face, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-
-        b.setBackground(V.shape(0, 17, 0));
-        b.setOnFocusChangeListener((v, has) -> {
-            b.setBackground(has ? ring() : V.shape(0, 17, 0));
-            b.animate().scaleX(has ? 1.1f : 1f).scaleY(has ? 1.1f : 1f).setDuration(150).start();
-        });
-        b.setOnClickListener(v -> showProfileMenu());
-        b.setVisibility(View.GONE);
-        profileBtn = b;
-        return b;
-    }
-
-    private static GradientDrawable ring() {
-        GradientDrawable g = new GradientDrawable();
-        g.setShape(GradientDrawable.OVAL);
-        g.setColor(0);
-        g.setStroke(V.dp(2), V.TEXT);
-        return g;
-    }
-
-    private void observeProfiles() {
-        String pkg = U.nuvio();
-        if (pkg.equals(profilePkg)) return;
-        try { getContentResolver().unregisterContentObserver(profileObserver); } catch (Throwable ignored) {}
-        try {
-            getContentResolver().registerContentObserver(NuvioProfiles.uri(pkg), true, profileObserver);
-            profilePkg = pkg;
-        } catch (Throwable ignored) {} // retried on the next resume
-    }
-
-    /** Re-reads Nuvio's profiles off the main thread and updates the button. */
-    private void refreshProfiles() {
-        final int load = ++profileLoads;
-        U.IO.execute(() -> {
-            final List<NuvioProfiles.Profile> list = NuvioProfiles.load(getApplicationContext());
-            U.MAIN.post(() -> { if (load == profileLoads) showProfile(list); });
-        });
-    }
-
-    private void showProfile(List<NuvioProfiles.Profile> list) {
-        if (profileBtn == null) return;
-        profiles = list;
-        final NuvioProfiles.Profile p = NuvioProfiles.active(list);
-        if (p == null) {
-            if (profileBtn.hasFocus() && menuPill != null) menuPill.requestFocus();
-            profileBtn.setVisibility(View.GONE);
-            return;
-        }
-        profileBtn.setContentDescription("Nuvio profile: " + p.name);
-        ((View) profileImg.getParent()).setBackground(V.shape(p.colorInt(), 17, 0));
-        profileInitial.setText(p.initial());
-        setAvatar(profileImg, p, 96);
-        profileBtn.setVisibility(View.VISIBLE);
-    }
-
-    private void setAvatar(final ImageView iv, NuvioProfiles.Profile p, int px) {
-        final String uri = p.avatar;
-        iv.setTag(uri);
-        if (TextUtils.isEmpty(uri)) { iv.setImageDrawable(null); return; }
-        Bitmap hit = Img.cached(uri, px);
-        if (hit != null) { iv.setImageBitmap(hit); return; }
-        iv.setImageDrawable(null);
-        Img.load(this, uri, px, bmp -> { if (uri.equals(iv.getTag())) iv.setImageBitmap(bmp); });
-    }
-
-    /** A small sheet listing Nuvio's profiles; picking one makes it active in Nuvio too. */
-    private void showProfileMenu() {
-        final List<NuvioProfiles.Profile> list = profiles;
-        if (list == null || list.isEmpty()) return;
-        final android.app.Dialog d = new android.app.Dialog(this, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar);
-        android.view.Window w = d.getWindow();
-        if (w != null) {
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            w.setGravity(Gravity.TOP | Gravity.START);
-            android.view.WindowManager.LayoutParams a = w.getAttributes();
-            int[] at = new int[2];
-            profileBtn.getLocationOnScreen(at);
-            a.x = Math.max(0, at[0] - V.dp(8));
-            a.y = at[1] + profileBtn.getHeight() + V.dp(8);
-            w.setAttributes(a);
-        }
-
-        LinearLayout col = U.col(this);
-        col.setPadding(V.dp(9), V.dp(9), V.dp(9), V.dp(9));
-        col.setBackground(V.shape(V.MENU_PANEL, 18, V.MENU_PANEL_LINE));
-        TextView title = V.text(this, "Nuvio profiles", 10, 500, U.alpha(V.TEXT, 0.65f));
-        title.setPadding(V.dp(8), V.dp(4), 0, V.dp(6));
-        col.addView(title, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
-
-        View focus = null;
-        for (final NuvioProfiles.Profile p : list) {
-            final LinearLayout row = U.row(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(V.dp(6), 0, V.dp(12), 0);
-            row.setFocusable(true);
-            row.setFocusableInTouchMode(true);
-            row.setBackground(V.shape(0, 25, 0));
-
-            FrameLayout face = new FrameLayout(this);
-            face.setBackground(V.shape(p.colorInt(), 14, 0));
-            V.circle(face);
-            TextView ini = V.text(this, p.initial(), 12, 800, V.TEXT);
-            ini.setGravity(Gravity.CENTER);
-            face.addView(ini, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-            ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
-            face.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-            setAvatar(iv, p, 96);
-            row.addView(face, new LinearLayout.LayoutParams(V.dp(28), V.dp(28)));
-
-            final TextView name = V.text(this, p.name, 12.5f, 600, V.TEXT);
-            V.ellipsize(name);
-            row.addView(name, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
-            ((LinearLayout.LayoutParams) name.getLayoutParams()).leftMargin = V.dp(10);
-            if (p.pin) {
-                TextView pin = V.text(this, "PIN", 9.5f, 700, U.alpha(V.TEXT, 0.6f));
-                row.addView(pin, lp(U.WRAP, U.WRAP, 8, 0, 0, 0));
-            }
-            final Icon check = new Icon(this, Icon.CHECK);
-            check.setColor(V.TEXT);
-            check.setVisibility(p.active ? View.VISIBLE : View.INVISIBLE);
-            row.addView(check, lp(V.dp(13), V.dp(13), 8, 0, 0, 0));
-
-            row.setOnFocusChangeListener((v, has) -> {
-                row.setBackground(V.shape(has ? V.TEXT : 0, 25, 0));
-                name.setTextColor(has ? V.INK : V.TEXT);
-                check.setColor(has ? V.INK : V.TEXT);
-            });
-            row.setOnClickListener(v -> {
-                Sfx.select();
-                d.dismiss();
-                if (!p.active) switchProfile(p);
-            });
-            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(U.MATCH, V.dp(40));
-            rp.topMargin = V.dp(4);
-            col.addView(row, rp);
-            if (focus == null || p.active) focus = row;
-        }
-        d.setContentView(col, new ViewGroup.LayoutParams(V.dp(240), U.WRAP));
-        d.show();
-        Sfx.watch(d.getWindow());
-        Sfx.open();
-        final View f = focus;
-        if (f != null) f.post(f::requestFocus);
-    }
-
-    private void switchProfile(final NuvioProfiles.Profile p) {
-        if (p.pin) { openNuvioProfiles(p); return; }
-        U.IO.execute(() -> {
-            final String r = NuvioProfiles.switchTo(getApplicationContext(), p.id);
-            U.MAIN.post(() -> {
-                if ("ok".equals(r)) {
-                    Toast.makeText(this, "Switched to " + p.name, Toast.LENGTH_SHORT).show();
-                    refreshProfiles();
-                    nuvioAt = 0;
-                    loadNuvio();
-                } else if ("pin_required".equals(r)) {
-                    openNuvioProfiles(p);
-                } else {
-                    Toast.makeText(this, "Couldn't switch Nuvio profile", Toast.LENGTH_SHORT).show();
-                    refreshProfiles();
-                }
-            });
-        });
-    }
-
-    /** PIN-protected profiles are chosen in Nuvio itself, so the PIN stays in Nuvio. */
-    private void openNuvioProfiles(NuvioProfiles.Profile p) {
-        if (NuvioProfiles.openPicker(this)) {
-            Toast.makeText(this, p.name + " has a PIN — choose it in Nuvio", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, "Couldn't open Nuvio", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     // ------------------------------------------------------------------ beacon menu (Veil-style dropdown)
 
     private LinearLayout menuPanel;
     private View menuPill, updatePill;
     private boolean menuOpen, reopenMenu;
 
-    private void showMenu() { showMenu(false); }
-
-    /** instant: no fade or slide (the menu reopening after a setting rebuilt Home, so it looks like it never closed). */
-    private void showMenu(boolean instant) {
+    private void showMenu() {
         if (menuOpen || ambient) return;
         menuOpen = true;
         if (scrim == null) {
             scrim = new View(this);
+            scrim.setBackgroundColor(0x8C000000);
             scrim.setAlpha(0f);
             ui.addView(scrim, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
         }
-        scrim.setBackgroundColor(V.MENU_SCRIM);
         ScrollView sv = new ScrollView(this);
         sv.setVerticalScrollBarEnabled(false);
         sv.setFillViewport(false);
         menuPanel = U.col(this);
         menuPanel.setPadding(V.dp(16), V.dp(16), V.dp(16), V.dp(16));
         sv.addView(menuPanel, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
-        sv.setBackground(V.shape(V.MENU_PANEL, 20, V.MENU_PANEL_LINE));
+        sv.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.10f), 0.98f), 20, 0x40FFFFFF));
         sv.setClipToOutline(true);
-        sv.setElevation(V.MENU_SHADOW ? V.dpf(16) : 0f);
         int top = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
         FrameLayout.LayoutParams lp = U.flp(V.dp(330), U.WRAP, Gravity.TOP | Gravity.START);
         lp.topMargin = top;
@@ -743,14 +525,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         scrim.bringToFront();
         sv.bringToFront();
         scrim.animate().cancel();
-        if (instant) {
-            scrim.setAlpha(1f);
-            sv.setAlpha(1f);
-        } else {
-            scrim.animate().alpha(1f).setDuration(200).start();
-            sv.setTranslationY(-V.dpf(12));
-            sv.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
-        }
+        scrim.animate().alpha(1f).setDuration(200).start();
+        sv.setTranslationY(-V.dpf(12));
+        sv.animate().alpha(1f).translationY(0).setDuration(200).withLayer().start();
         sv.post(this::fitMenu);
     }
 
@@ -1038,7 +815,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(cwStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(surfaceToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(surfaceToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(appStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("screensaver".equals(page)) {
             menuFirst = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
                 closeMenu();
@@ -1216,7 +994,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         row.setPadding(V.dp(9), 0, V.dp(12), 0);
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
-        row.setBackground(V.shape(V.MENU_ROW, 14, V.MENU_ROW_LINE));
+        row.setBackground(V.shape(V.GLASS, 14, V.LINE));
         FrameLayout tile = new FrameLayout(this);
         tile.setBackground(V.shape(0x22FFFFFF, 9, 0));
         Icon ic = new Icon(this, icon);
@@ -1229,8 +1007,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         V.tint(row, V.TEXT);
         // same focus look as Home: accent glow, or the solid fill when "Focus style" is set to Fill
         row.setOnFocusChangeListener((v, has) -> V.stylePill(row, has, 14,
-                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0)),
-                V.MENU_ROW, V.MENU_ROW_LINE));
+                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0))));
         row.setOnClickListener(v -> r.run());
         return row;
     }
@@ -1329,6 +1106,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return cycleRow(Icon.BEACON, "Surface", new String[] {"FROSTED GLASS", "SMOKE", "SLATE"},
                 () -> prefs.getInt("surface", 0),
                 i -> prefs.edit().putInt("surface", i).apply(), true);
+    }
+
+    /** App row: Pill (name beside each icon) or Circle (a centred dock of round icons, name above the selected one). */
+    private View appStyleToggle() {
+        return cycleRow(Icon.APPS, "App style", new String[] {"PILL", "CIRCLE"},
+                () -> prefs.getInt("app_style", 0),
+                i -> prefs.edit().putInt("app_style", i).apply(), true);
     }
 
     private int menuRestoreIdx = -1;
@@ -1459,7 +1243,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             for (int i = 0; i < chips.length; i++) {
                 boolean on = i == sel[0];
                 if (!chips[i].hasFocus()) {
-                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.MENU_ROW, 15, V.MENU_ROW_LINE));
+                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.GLASS, 15, V.LINE));
                     chips[i].setTextColor(V.TEXT);
                 }
             }
@@ -1963,7 +1747,24 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void buildApps(LinearLayout col) {
         LinearLayout block = U.col(this);
-        appsRow = row(block, 10);
+        appCircle = prefs.getInt("app_style", 0) == 1;
+        if (appCircle) {
+            // Circle dock: the selected app's name floats in a small label above the dock.
+            dockBox = new FrameLayout(this);
+            dockBox.setClipChildren(false);
+            dockLabel = V.text(this, "", 16, 600, V.TEXT);
+            dockLabel.setSingleLine(true);
+            dockLabel.setGravity(Gravity.CENTER);
+            dockLabel.setPadding(V.dp(14), 0, V.dp(14), 0);
+            dockLabel.setBackground(V.shape(V.GLASS_STRONG, 15, V.LINE));
+            dockLabel.setVisibility(View.INVISIBLE);
+            dockBox.addView(dockLabel, new FrameLayout.LayoutParams(U.WRAP, V.dp(30), Gravity.CENTER_VERTICAL | Gravity.START));
+            block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, V.dp(30)));
+        }
+        appsRow = row(block, appCircle ? 14 : 10);
+        if (appCircle && appsRow.getParent() instanceof View) {
+            ((FrameLayout.LayoutParams) appsRow.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+        }
         col.addView(block, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
     }
 
@@ -2488,9 +2289,63 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // --- apps (pinned) + All apps
 
+    /** Circle style: put the name label above the focused icon, kept inside the dock. */
+    private void placeDockLabel(final View it, final String name) {
+        if (dockLabel == null) return;
+        dockLabel.setText(name);
+        dockLabel.setVisibility(View.VISIBLE);
+        dockLabel.post(() -> {
+            int[] a = new int[2], b = new int[2], c = new int[2];
+            it.getLocationOnScreen(a);
+            dockBox.getLocationOnScreen(b);
+            appsRow.getLocationOnScreen(c);
+            float centre = a[0] - b[0] + it.getWidth() / 2f;
+            float w = dockLabel.getWidth();
+            float left = centre - w / 2f;
+            float dockL = c[0] - b[0], dockR = dockL + appsRow.getWidth();
+            if (left + w > dockR) left = dockR - w;
+            if (left < dockL) left = dockL;
+            dockLabel.setTranslationX(left);
+        });
+    }
+
     private void fillApps() {
         appsRow.removeAllViews();
+        appsRow.setTag(appCircle ? 14f : 10f);
+        if (appCircle) {
+            appsRow.setPadding(V.dp(14), V.dp(14), V.dp(14), V.dp(14));
+            appsRow.setBackground(V.shape(V.GLASS_STRONG, 30, V.LINE));
+        }
         for (final Apps.App a : pinned()) {
+            if (appCircle) {
+                final FrameLayout it = new FrameLayout(this);
+                it.setFocusable(true);
+                it.setFocusableInTouchMode(true);
+                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(48), V.dp(48)));
+                ImageView ic = V.image(this, ImageView.ScaleType.CENTER_CROP);
+                ic.setImageDrawable(a.icon);
+                ic.setBackground(V.shape(V.GLASS_STRONG, 19, 0));
+                V.circle(ic);
+                it.addView(ic, new FrameLayout.LayoutParams(V.dp(38), V.dp(38), Gravity.CENTER));
+                it.setContentDescription(a.label);
+                it.setTag(a.pkg);
+                it.setOnFocusChangeListener((v, has) -> {
+                    it.setBackground(has ? new V.Glow(24, 0.14f, 0) : null);
+                    it.animate().scaleX(has ? 1.12f : 1f).scaleY(has ? 1.12f : 1f).setDuration(160).start();
+                    if (has) placeDockLabel(it, a.label);
+                    else it.post(() -> { if (!appsRow.hasFocus() && dockLabel != null) dockLabel.setVisibility(View.INVISIBLE); });
+                });
+                it.setOnClickListener(v -> Apps.launch(this, a));
+                it.setOnLongClickListener(v -> { appMenu(a); return true; });
+                it.setOnKeyListener((v, keyCode, ev) -> {
+                    if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                    if (ev.getAction() == KeyEvent.ACTION_DOWN && ev.getRepeatCount() == 0)
+                        startActivity(new Intent(this, AllAppsActivity.class));
+                    return true;
+                });
+                addToRow(appsRow, it);
+                continue;
+            }
             LinearLayout p = V.pill(this, 42, 6, 16);
             ImageView ic = V.image(this, ImageView.ScaleType.CENTER_CROP);
             ic.setImageDrawable(a.icon);
@@ -2511,7 +2366,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             addToRow(appsRow, p);
         }
         // The All apps button only remains when nothing is pinned (the row needs something to focus).
+        if (appCircle && appsRow.getChildCount() > 0) {
+            ((ViewGroup.MarginLayoutParams) appsRow.getChildAt(appsRow.getChildCount() - 1).getLayoutParams()).rightMargin = 0;
+        }
         if (appsRow.getChildCount() > 0) return;
+        if (appCircle) { appsRow.setBackground(null); appsRow.setPadding(V.dp(EDGE), V.dp(6), V.dp(EDGE), V.dp(8)); }
         LinearLayout all = V.pill(this, 42, 6, 18);
         FrameLayout dot = new FrameLayout(this);
         dot.setBackground(V.shape(0x24FFFFFF, 15, 0));
