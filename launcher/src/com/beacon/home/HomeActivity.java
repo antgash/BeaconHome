@@ -799,7 +799,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
      * Refits the menu's height after something inside it grew or shrank (an opened changelog entry), without
      * scrolling back to the top or moving the selection: the anchor row stays where it is on screen.
      */
-    private void refitMenuKeeping(final View anchor) {
+    private void refitMenuKeeping(final View anchor) { refitMenu(anchor, false); }
+
+    /**
+     * Refits the menu's height after something inside it grew or shrank. With toTop the anchor row scrolls up to
+     * the top of the menu (an opened changelog entry, so its notes show below it); otherwise it stays where it is
+     * on screen. The selection never moves.
+     */
+    private void refitMenu(final View anchor, final boolean toTop) {
         final ScrollView sv = menuScroll;
         if (sv == null || !menuOpen || menuPanel == null) return;
         final int before = topInPanel(anchor) - sv.getScrollY();
@@ -808,7 +815,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         sv.post(() -> {
             if (menuScroll != sv) return;
             if (sv.getHeight() > menuMaxH) { sv.getLayoutParams().height = menuMaxH; sv.requestLayout(); }
-            sv.post(() -> { if (menuScroll == sv) sv.scrollTo(0, Math.max(0, topInPanel(anchor) - before)); });
+            sv.post(() -> {
+                if (menuScroll != sv) return;
+                int top = topInPanel(anchor);
+                if (toTop) sv.smoothScrollTo(0, Math.max(0, top - V.dp(8)));
+                else sv.scrollTo(0, Math.max(0, top - before));
+            });
         });
     }
 
@@ -1096,7 +1108,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (open) for (Runnable r : changelogClosers) if (r != close) r.run();
             body.setVisibility(open ? View.VISIBLE : View.GONE);
             chev.setRotation(open ? 180f : 0f);
-            refitMenuKeeping(head);
+            refitMenu(head, open);   // opening: the title moves to the top with its notes below; closing: stays put
         };
         head.setOnClickListener(v -> { Sfx.select(); toggle.run(); });
         body.setOnClickListener(v -> { Sfx.select(); toggle.run(); });
