@@ -296,7 +296,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override public void onSharedPreferenceChanged(SharedPreferences p, String key) {
         if (key == null || key.startsWith("last_") || key.startsWith("count_") || key.equals("svc")) return;
-        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key) || "focus_glow".equals(key)) {
+        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key) || "focus_glow".equals(key) || "surface".equals(key)) {
             V.loadTheme(this);
             if (player != null) player.stop();
             build();
@@ -810,7 +810,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(cwStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(toggleButton(Icon.EYE, "Title artwork", "title_logo", true), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(surfaceToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("screensaver".equals(page)) {
             menuFirst = menuButton(Icon.PLAY, "Start screensaver", "Preview it now · press any key to leave", () -> {
                 closeMenu();
@@ -1091,6 +1091,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             cwSig = "";
             fillContinue();
         }, false);
+    }
+
+    /** Pill and button surface: frosted glass or dark material (no borders). Left/Right change it. */
+    private View surfaceToggle() {
+        return cycleRow(Icon.BEACON, "Surface", new String[] {"FROSTED GLASS", "DARK MATERIAL"},
+                () -> prefs.getInt("surface", 0),
+                i -> prefs.edit().putInt("surface", i).apply(), true);
     }
 
     private int menuRestoreIdx = -1;
@@ -1959,7 +1966,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             c.add(Calendar.MILLISECOND, (int) left);
             remaining = Nuvio.duration(left) + " left · done by " + DateFormat.getTimeFormat(this).format(c.getTime());
         }
-        final boolean art = prefs.getBoolean("title_logo", true);
+        final boolean art = true;   // title artwork is always on
         String logo = art ? it.logo : null;
         cwHeroKey = it.key();
         setHero(it.key(), label, it.title, logo, "", 0, null, Img.sized(it.art(), "w1280"));

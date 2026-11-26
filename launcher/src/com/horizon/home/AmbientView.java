@@ -227,7 +227,7 @@ final class AmbientView extends FrameLayout {
             String l = !TextUtils.isEmpty(it.episode) ? it.episode : it.meta();
             line.setText(l == null ? "" : l);
             line.setVisibility(TextUtils.isEmpty(l) ? View.GONE : View.VISIBLE);
-            if (U.prefs(getContext()).getBoolean("title_logo", true)) {
+            {
                 if (!TextUtils.isEmpty(it.logo)) showLogo(it.logo, tk);
                 else U.IO.execute(() -> {
                     // no artwork on the item yet: look it up by title, the same way the home screen does

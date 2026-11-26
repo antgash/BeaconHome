@@ -30,9 +30,11 @@ final class V {
     static int BG = 0xFF15171C;
     static final int TEXT = 0xFFF4F5F7;
     static final int INK = 0xFF111318;
-    static final int GLASS = 0x14FFFFFF;
-    static final int GLASS_STRONG = 0x1FFFFFFF;
-    static final int LINE = 0x29FFFFFF;
+    // Pill and button surfaces. "Frosted glass" is a light veil with a faint edge; "Dark material" is a
+    // semi-transparent near-black with no edge at all. loadTheme() picks one from the "surface" setting.
+    static int GLASS = 0x14FFFFFF;
+    static int GLASS_STRONG = 0x1FFFFFFF;
+    static int LINE = 0x29FFFFFF;
 
     /** Themes: id, name, background, accent. "ember" is the Mars-orange house theme. */
     static final String[][] THEMES = {
@@ -57,6 +59,8 @@ final class V {
 
     static void loadTheme(Context c) {
         glowFocus = U.prefs(c).getBoolean("focus_glow", true);
+        if (U.prefs(c).getInt("surface", 0) == 1) { GLASS = 0x9C0A0A0E; GLASS_STRONG = 0xB00A0A0E; LINE = 0; }
+        else { GLASS = 0x14FFFFFF; GLASS_STRONG = 0x1FFFFFFF; LINE = 0x29FFFFFF; }
         String id = U.prefs(c).getString("theme", "ember");
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); return; }
     }
