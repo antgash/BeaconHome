@@ -991,6 +991,43 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (updateSub != null) updateSub.setText(t);
     }
 
+    // ------------------------------------------------------------------ Nuvio Beacon download (Updates page)
+
+    private TextView nbSub;
+    private String nbState;
+    private NuvioBeaconInstaller.Release nbPending;
+
+    private String nbIdle() {
+        String v = NuvioBeaconInstaller.installed(this);
+        return v == null ? "Not installed · select to download from GitHub" : "Installed " + v + " · select to check for a newer build";
+    }
+
+    private void setNbState(String t) {
+        nbState = t;
+        if (nbSub != null) nbSub.setText(t);
+    }
+
+    /** First press finds the newest Nuvio Beacon release; the next press (if it's newer) downloads and installs it. */
+    private void checkOrInstallNuvioBeacon() {
+        if (nbPending != null) {
+            final NuvioBeaconInstaller.Release r = nbPending;
+            nbPending = null;
+            setNbState("Downloading… 0%");
+            NuvioBeaconInstaller.downloadAndInstall(this, r, pct -> setNbState("Downloading… " + pct + "%"), this::setNbState);
+            return;
+        }
+        setNbState("Checking GitHub…");
+        NuvioBeaconInstaller.latest(this, (r, ok) -> {
+            if (!ok) { setNbState("Couldn't reach GitHub · select to retry"); return; }
+            if (r == null) { setNbState("No build for this device yet"); return; }
+            String have = NuvioBeaconInstaller.installed(this);
+            if (r.tag.equals(have)) { setNbState("Up to date (" + have + ")"); return; }
+            nbPending = r;
+            long mb = Math.max(1, r.size / (1024 * 1024));
+            setNbState((have == null ? "Ready to install " : "Update to ") + r.tag + " (" + mb + " MB) · select to " + (have == null ? "install" : "update"));
+        });
+    }
+
     private void checkOrInstallUpdate() {
         if (pendingUpdate != null) { downloadAndInstall(pendingUpdate); return; }
         setUpdateState("Checking…");
@@ -1129,6 +1166,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             LinearLayout ur = menuButton(Icon.CHECK, "Update beacon", updateState, this::checkOrInstallUpdate);
             updateSub = (TextView) ((LinearLayout) ur.getChildAt(1)).getChildAt(1);
             menuPanel.addView(ur, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            if (nbState == null || nbPending == null && !nbState.startsWith("Downloading")) nbState = nbIdle();
+            LinearLayout nb = menuButton(Icon.NUVIO, "Nuvio Beacon", nbState, this::checkOrInstallNuvioBeacon);
+            nbSub = (TextView) ((LinearLayout) nb.getChildAt(1)).getChildAt(1);
+            menuPanel.addView(nb, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(menuButton(Icon.INFO, "About", "Version " + versionName() + "  ·  ad-free home screen", () -> {}), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("weather".equals(page)) {
             menuFirst = toggleButton(Icon.SUN, "Show weather by the clock", "weather", true);

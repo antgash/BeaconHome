@@ -122,6 +122,7 @@
         </activity>
 
         <receiver android:name="com.beacon.home.Updater$Result" android:exported="false" />
+        <receiver android:name="com.beacon.home.NuvioBeaconInstaller$Result" android:exported="false" />
         <receiver android:name="com.beacon.home.Updater$Reopen" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
