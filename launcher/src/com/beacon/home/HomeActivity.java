@@ -502,7 +502,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         menuPanel = U.col(this);
         menuPanel.setPadding(V.dp(16), V.dp(16), V.dp(16), V.dp(16));
         sv.addView(menuPanel, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
-        sv.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.10f), 0.98f), 20, 0x40FFFFFF));
+        // The whole panel uses the chosen surface: frosted glass keeps its light edge, smoke is a deep see-through
+        // black and slate a lifted see-through card, both with a soft shadow and no edge.
+        if (V.surface == 1) sv.setBackground(V.shape(0xEB0A0A0E, 20, 0));
+        else if (V.surface == 2) sv.setBackground(V.shape(0xE02E3544, 20, 0));
+        else sv.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.10f), 0.98f), 20, 0x40FFFFFF));
+        if (V.surface != 0) sv.setElevation(V.dpf(10));
         sv.setClipToOutline(true);
         int top = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
         FrameLayout.LayoutParams lp = U.flp(V.dp(330), U.WRAP, Gravity.TOP | Gravity.START);
@@ -994,7 +999,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         row.setPadding(V.dp(9), 0, V.dp(12), 0);
         row.setFocusable(true);
         row.setFocusableInTouchMode(true);
-        row.setBackground(V.shape(V.GLASS, 14, V.LINE));
+        row.setBackground(V.shape(V.MENU_ROW, 14, V.LINE));
         FrameLayout tile = new FrameLayout(this);
         tile.setBackground(V.shape(0x22FFFFFF, 9, 0));
         Icon ic = new Icon(this, icon);
@@ -1007,7 +1012,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         V.tint(row, V.TEXT);
         // same focus look as Home: accent glow, or the solid fill when "Focus style" is set to Fill
         row.setOnFocusChangeListener((v, has) -> V.stylePill(row, has, 14,
-                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0))));
+                () -> tile.setBackground(V.shape(has && !V.glowFocus ? 0x22000000 : 0x22FFFFFF, 9, 0)), V.MENU_ROW));
         row.setOnClickListener(v -> r.run());
         return row;
     }
@@ -1243,7 +1248,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             for (int i = 0; i < chips.length; i++) {
                 boolean on = i == sel[0];
                 if (!chips[i].hasFocus()) {
-                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.GLASS, 15, V.LINE));
+                    chips[i].setBackground(on ? V.shape(U.alpha(V.accent(), 0.28f), 15, V.accent()) : V.shape(V.MENU_ROW, 15, V.LINE));
                     chips[i].setTextColor(V.TEXT);
                 }
             }
@@ -1752,18 +1757,25 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             // Circle dock: the selected app's name floats in a small label above the dock.
             dockBox = new FrameLayout(this);
             dockBox.setClipChildren(false);
-            dockLabel = V.text(this, "", 16, 600, V.TEXT);
+            dockLabel = V.text(this, "", 13, 600, V.TEXT);
             dockLabel.setSingleLine(true);
             dockLabel.setGravity(Gravity.CENTER);
-            dockLabel.setPadding(V.dp(14), 0, V.dp(14), 0);
-            dockLabel.setBackground(V.shape(V.GLASS_STRONG, 15, V.LINE));
+            dockLabel.setPadding(V.dp(11), 0, V.dp(11), 0);
+            dockLabel.setBackground(V.shape(V.GLASS_STRONG, 10, V.LINE));
             dockLabel.setVisibility(View.INVISIBLE);
-            dockBox.addView(dockLabel, new FrameLayout.LayoutParams(U.WRAP, V.dp(30), Gravity.CENTER_VERTICAL | Gravity.START));
-            block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, V.dp(30)));
+            // The box has no height of its own, so the rows above never move; the label floats over the gap
+            // above the dock (block and box must not clip it).
+            block.setClipChildren(false);
+            FrameLayout.LayoutParams dl = new FrameLayout.LayoutParams(U.WRAP, V.dp(20), Gravity.TOP | Gravity.START);
+            dl.topMargin = -V.dp(7);
+            dockBox.addView(dockLabel, dl);
+            block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, 0));
         }
-        appsRow = row(block, appCircle ? 14 : 10);
+        appsRow = row(block, 10);
         if (appCircle && appsRow.getParent() instanceof View) {
-            ((FrameLayout.LayoutParams) appsRow.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+            FrameLayout.LayoutParams ap = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
+            ap.gravity = Gravity.CENTER_HORIZONTAL;
+            ap.topMargin = V.dp(16); // 16 + 40 = the 56 a pill row takes, so nothing above shifts
         }
         col.addView(block, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
     }
@@ -2311,27 +2323,27 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void fillApps() {
         appsRow.removeAllViews();
-        appsRow.setTag(appCircle ? 14f : 10f);
+        appsRow.setTag(appCircle ? 10f : 10f);
         if (appCircle) {
-            appsRow.setPadding(V.dp(14), V.dp(14), V.dp(14), V.dp(14));
-            appsRow.setBackground(V.shape(V.GLASS_STRONG, 30, V.LINE));
+            appsRow.setPadding(V.dp(5), V.dp(5), V.dp(5), V.dp(5));
+            appsRow.setBackground(V.shape(V.GLASS_STRONG, 20, V.LINE));
         }
         for (final Apps.App a : pinned()) {
             if (appCircle) {
                 final FrameLayout it = new FrameLayout(this);
                 it.setFocusable(true);
                 it.setFocusableInTouchMode(true);
-                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(48), V.dp(48)));
+                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(30), V.dp(30)));
                 ImageView ic = V.image(this, ImageView.ScaleType.CENTER_CROP);
                 ic.setImageDrawable(a.icon);
-                ic.setBackground(V.shape(V.GLASS_STRONG, 19, 0));
+                ic.setBackground(V.shape(V.GLASS_STRONG, 13, 0));
                 V.circle(ic);
-                it.addView(ic, new FrameLayout.LayoutParams(V.dp(38), V.dp(38), Gravity.CENTER));
+                it.addView(ic, new FrameLayout.LayoutParams(V.dp(26), V.dp(26), Gravity.CENTER));
                 it.setContentDescription(a.label);
                 it.setTag(a.pkg);
                 it.setOnFocusChangeListener((v, has) -> {
-                    it.setBackground(has ? new V.Glow(24, 0.14f, 0) : null);
-                    it.animate().scaleX(has ? 1.12f : 1f).scaleY(has ? 1.12f : 1f).setDuration(160).start();
+                    it.setBackground(has ? new V.Glow(15, 0.14f, 0) : null);
+                    it.animate().scaleX(has ? 1.15f : 1f).scaleY(has ? 1.15f : 1f).setDuration(160).start();
                     if (has) placeDockLabel(it, a.label);
                     else it.post(() -> { if (!appsRow.hasFocus() && dockLabel != null) dockLabel.setVisibility(View.INVISIBLE); });
                 });
