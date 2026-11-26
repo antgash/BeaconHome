@@ -48,11 +48,7 @@ final class ActionSheet {
         LinearLayout col = new LinearLayout(act);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(V.dp(9), V.dp(9), V.dp(9), V.dp(9));
-        int sheet = (0xED << 24) | (U.mix(V.BG, 0xFFFFFFFF, 0.1f) & 0x00FFFFFF);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(sheet);
-        bg.setCornerRadius(V.dpf(18));
-        col.setBackground(bg);
+        col.setBackground(V.shape(V.MENU_PANEL, 18, V.MENU_PANEL_LINE));
 
         TextView t = V.text(act, title, 10, 500, U.alpha(V.TEXT, 0.65f));
         V.ellipsize(t);

@@ -605,7 +605,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
         LinearLayout col = U.col(this);
         col.setPadding(V.dp(9), V.dp(9), V.dp(9), V.dp(9));
-        col.setBackground(V.shape((0xED << 24) | (U.mix(V.BG, 0xFFFFFFFF, 0.1f) & 0x00FFFFFF), 18, 0));
+        col.setBackground(V.shape(V.MENU_PANEL, 18, V.MENU_PANEL_LINE));
         TextView title = V.text(this, "Nuvio profiles", 10, 500, U.alpha(V.TEXT, 0.65f));
         title.setPadding(V.dp(8), V.dp(4), 0, V.dp(6));
         col.addView(title, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));

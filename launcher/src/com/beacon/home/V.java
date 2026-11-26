@@ -69,22 +69,21 @@ final class V {
         loadMenuSurface();
     }
 
-    // The beacon menu is made of the chosen surface: the panel, its rows and the dimming behind it all follow
-    // it, with rows one step lighter than the panel. Android 11 can't blur what is behind a view, so the
-    // glass panel is a frosted, mostly opaque tint of the theme background instead of a live blur.
+    // Menus are solid (nothing shows through) and take their colours from the chosen surface: the panel,
+    // its rows (one step lighter than the panel) and the dimming behind it all follow it.
     static int MENU_PANEL, MENU_PANEL_LINE, MENU_ROW, MENU_ROW_LINE, MENU_SCRIM;
     static boolean MENU_SHADOW;
 
     static void loadMenuSurface() {
-        if (surface == 1) {          // smoke: deep see-through black, no edge, soft shadow
-            MENU_PANEL = 0xD90A0A0E; MENU_PANEL_LINE = 0; MENU_ROW = 0x10FFFFFF; MENU_ROW_LINE = 0;
+        if (surface == 1) {          // smoke: near-black, no edge, soft shadow
+            MENU_PANEL = 0xFF121216; MENU_PANEL_LINE = 0; MENU_ROW = 0xFF1E1E24; MENU_ROW_LINE = 0;
             MENU_SCRIM = 0x66000000; MENU_SHADOW = true;
-        } else if (surface == 2) {   // slate: solid lifted card
+        } else if (surface == 2) {   // slate: cool grey-blue card
             MENU_PANEL = 0xFF2A303D; MENU_PANEL_LINE = 0; MENU_ROW = 0xFF343B4A; MENU_ROW_LINE = 0;
             MENU_SCRIM = 0x73000000; MENU_SHADOW = true;
-        } else {                     // frosted glass: light veil with a hairline edge
-            MENU_PANEL = U.alpha(U.mix(BG, 0xFFFFFFFF, 0.14f), 0.82f); MENU_PANEL_LINE = 0x38FFFFFF;
-            MENU_ROW = 0x12FFFFFF; MENU_ROW_LINE = 0x1FFFFFFF;
+        } else {                     // frosted glass: a light tint of the theme background with a hairline edge
+            MENU_PANEL = U.mix(BG, 0xFFFFFFFF, 0.12f); MENU_PANEL_LINE = 0x38FFFFFF;
+            MENU_ROW = U.mix(MENU_PANEL, 0xFFFFFFFF, 0.07f); MENU_ROW_LINE = 0x1FFFFFFF;
             MENU_SCRIM = 0x59000000; MENU_SHADOW = false;
         }
     }
