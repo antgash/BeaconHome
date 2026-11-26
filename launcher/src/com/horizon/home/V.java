@@ -30,8 +30,9 @@ final class V {
     static int BG = 0xFF15171C;
     static final int TEXT = 0xFFF4F5F7;
     static final int INK = 0xFF111318;
-    // Pill and button surfaces. "Frosted glass" is a light veil with a faint edge; "Dark material" is a
-    // semi-transparent near-black with no edge at all. loadTheme() picks one from the "surface" setting.
+    // Pill and button surfaces. "Frosted glass" is a light veil with a faint edge; "Smoke" is a
+    // semi-transparent near-black and "Slate" a solid cool grey-blue lifted by a soft shadow, both with no edge. loadTheme() picks one from the "surface" setting.
+    static int surface;   // 0 frosted glass, 1 smoke, 2 slate
     static int GLASS = 0x14FFFFFF;
     static int GLASS_STRONG = 0x1FFFFFFF;
     static int LINE = 0x29FFFFFF;
@@ -59,7 +60,9 @@ final class V {
 
     static void loadTheme(Context c) {
         glowFocus = U.prefs(c).getBoolean("focus_glow", true);
-        if (U.prefs(c).getInt("surface", 0) == 1) { GLASS = 0x9C0A0A0E; GLASS_STRONG = 0xB00A0A0E; LINE = 0; }
+        surface = U.prefs(c).getInt("surface", 0);
+        if (surface == 1) { GLASS = 0x9C0A0A0E; GLASS_STRONG = 0xB00A0A0E; LINE = 0; }          // smoke
+        else if (surface == 2) { GLASS = 0xEE2E3544; GLASS_STRONG = 0xF2363E4E; LINE = 0; }      // slate
         else { GLASS = 0x14FFFFFF; GLASS_STRONG = 0x1FFFFFFF; LINE = 0x29FFFFFF; }
         String id = U.prefs(c).getString("theme", "ember");
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); return; }
@@ -148,7 +151,7 @@ final class V {
         p.setFocusable(true);
         p.setFocusableInTouchMode(true);
         p.setBackground(shape(GLASS, heightDp / 2f, LINE));
-        p.setElevation(0.01f);
+        p.setElevation(surface == 2 ? dpf(3) : 0.01f);
         p.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(heightDp)));
         final float r = heightDp / 2f;
         p.setOnFocusChangeListener((v, has) -> stylePill(p, has, r, null));

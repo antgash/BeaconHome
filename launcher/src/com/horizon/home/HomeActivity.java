@@ -1097,9 +1097,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }, false);
     }
 
-    /** Pill and button surface: frosted glass or dark material (no borders). Left/Right change it. */
+    /** Pill and button surface: frosted glass, smoke or slate (the last two have no borders). Left/Right change it. */
     private View surfaceToggle() {
-        return cycleRow(Icon.BEACON, "Surface", new String[] {"FROSTED GLASS", "DARK MATERIAL"},
+        return cycleRow(Icon.BEACON, "Surface", new String[] {"FROSTED GLASS", "SMOKE", "SLATE"},
                 () -> prefs.getInt("surface", 0),
                 i -> prefs.edit().putInt("surface", i).apply(), true);
     }
