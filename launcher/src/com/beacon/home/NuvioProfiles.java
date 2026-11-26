@@ -23,6 +23,8 @@ final class NuvioProfiles {
     static final class Profile {
         int id;
         String name, color, avatar;
+        /** The Nuvio app these profiles came from. */
+        String pkg;
         boolean active, pin;
 
         String initial() {
@@ -37,9 +39,22 @@ final class NuvioProfiles {
 
     static Uri uri(String pkg) { return Uri.parse("content://" + pkg + ".launcher/profiles"); }
 
-    /** All profiles, or null when the chosen Nuvio app doesn't offer them. Call off the main thread. */
-    static List<Profile> load(Context c) {
+    /** Where profiles are read from: the chosen Nuvio app, then Nuvio Beacon (which always offers them). */
+    static String[] sources() {
         String pkg = U.nuvio();
+        return U.NUVIO_BEACON.equals(pkg) ? new String[] {pkg} : new String[] {pkg, U.NUVIO_BEACON};
+    }
+
+    /** All profiles from the first source that offers them, or null when none does. Call off the main thread. */
+    static List<Profile> load(Context c) {
+        for (String pkg : sources()) {
+            List<Profile> list = load(c, pkg);
+            if (list != null && !list.isEmpty()) return list;
+        }
+        return null;
+    }
+
+    private static List<Profile> load(Context c, String pkg) {
         Cursor cur = null;
         try {
             cur = c.getContentResolver().query(uri(pkg), null, null, null, null);
@@ -50,6 +65,7 @@ final class NuvioProfiles {
                     pin = cur.getColumnIndex("has_pin");
             while (cur.moveToNext()) {
                 Profile p = new Profile();
+                p.pkg = pkg;
                 p.id = cur.getInt(id);
                 p.name = cur.getString(name);
                 p.color = color < 0 ? null : cur.getString(color);
@@ -74,9 +90,9 @@ final class NuvioProfiles {
     }
 
     /** Asks Nuvio to switch. Returns "ok", "pin_required", "not_found" or "failed". Call off the main thread. */
-    static String switchTo(Context c, int id) {
+    static String switchTo(Context c, Profile p) {
         try {
-            Bundle b = c.getContentResolver().call(uri(U.nuvio()), SWITCH, String.valueOf(id), null);
+            Bundle b = c.getContentResolver().call(uri(p.pkg), SWITCH, String.valueOf(p.id), null);
             String r = b == null ? null : b.getString("result");
             return r == null ? "failed" : r;
         } catch (Throwable t) {
@@ -86,8 +102,8 @@ final class NuvioProfiles {
     }
 
     /** Opens Nuvio on its own profile screen (PIN-protected profiles are chosen there). */
-    static boolean openPicker(Context c) {
-        Intent i = c.getPackageManager().getLaunchIntentForPackage(U.nuvio());
+    static boolean openPicker(Context c, String pkg) {
+        Intent i = c.getPackageManager().getLaunchIntentForPackage(pkg);
         if (i == null) return false;
         i.putExtra(EXTRA_SHOW_PROFILES, true);
         // SINGLE_TOP + CLEAR_TOP so a Nuvio that is already open still gets the request (onNewIntent).

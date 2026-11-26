@@ -72,9 +72,10 @@ final class V {
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); break; }
         // Panels (the beacon menu and the long-press sheets) follow the surface too.
         if (surface == 0) MENU_ROW = U.mix(BG, 0xFFFFFFFF, 0.17f); // solid, one step lighter than the panel
-        if (surface == 1) { MENU_PANEL = 0xEB0A0A0E; MENU_PANEL_LINE = 0; }
-        else if (surface == 2) { MENU_PANEL = 0xE02E3544; MENU_PANEL_LINE = 0; }
-        else { MENU_PANEL = U.alpha(U.mix(BG, 0xFFFFFFFF, 0.10f), 0.98f); MENU_PANEL_LINE = 0x40FFFFFF; }
+        // Menus are fully solid (nothing shows through), in the chosen surface's colours.
+        if (surface == 1) { MENU_PANEL = 0xFF0E0E12; MENU_PANEL_LINE = 0; }
+        else if (surface == 2) { MENU_PANEL = 0xFF2E3544; MENU_PANEL_LINE = 0; }
+        else { MENU_PANEL = U.mix(BG, 0xFFFFFFFF, 0.10f); MENU_PANEL_LINE = 0x40FFFFFF; }
     }
 
     static float scale = 1f;
