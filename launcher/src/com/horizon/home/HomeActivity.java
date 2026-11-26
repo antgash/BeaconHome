@@ -223,6 +223,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     @Override protected void onStop() {
         super.onStop();
         started = false;
+        if (menuOpen) closeMenu();   // leaving Home (a film, another app) closes the menu too
         if (player != null) player.stop();
         if (wall != null) wall.pause();
         stopGif();
@@ -256,6 +257,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         // `started` is false while another app covers Home, so true here = Home pressed on Home.
         endRearrange(false);
         boolean alreadyHome = started;
+        if (menuOpen) closeMenu();   // Home closes the beacon menu, wherever in it you are
         if (ambient) exitAmbient(true);
         if (alreadyHome) focusFirstApp(); else focusDefault();
     }
@@ -897,7 +899,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void closeMenu() {
         if (!menuOpen) return;
         menuOpen = false;
-        menuPage = null;
+        menuPage = null;          // the next opening always starts on the hub, like the first time
+        menuRestoreIdx = -1;
+        reopenMenu = false;
         menuScroll = null;
         menuFirst = null;
         final View host = menuHost;
