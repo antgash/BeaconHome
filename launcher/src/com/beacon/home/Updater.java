@@ -1,4 +1,4 @@
-package com.horizon.home;
+package com.beacon.home;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -36,7 +36,7 @@ final class Updater {
     static final String P_LAST = "update_last";
     static final String P_PEND_CODE = "update_pend_code";
     static final String P_PEND_PUB = "update_pend_pub";
-    static final String ACTION = "com.horizon.home.UPDATE_RESULT";
+    static final String ACTION = "com.beacon.home.UPDATE_RESULT";
 
     static final class Info {
         long code, published;

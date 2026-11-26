@@ -1,4 +1,4 @@
-package com.horizon.home;
+package com.beacon.home;
 
 import android.animation.ObjectAnimator;
 import android.content.Context;

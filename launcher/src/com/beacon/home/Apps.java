@@ -1,4 +1,4 @@
-package com.horizon.home;
+package com.beacon.home;
 
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;

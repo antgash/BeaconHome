@@ -42,7 +42,7 @@
         android:theme="@style/Home">
 
         <activity
-            android:name="com.horizon.home.HomeActivity"
+            android:name="com.beacon.home.HomeActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
@@ -65,7 +65,7 @@
         </activity>
 
         <service
-            android:name="com.horizon.home.BeaconDream"
+            android:name="com.beacon.home.BeaconDream"
             android:exported="true"
             android:label="beacon"
             android:permission="android.permission.BIND_DREAM_SERVICE">
@@ -76,7 +76,7 @@
         </service>
 
         <service
-            android:name="com.horizon.home.HomeButtonService"
+            android:name="com.beacon.home.HomeButtonService"
             android:exported="true"
             android:label="@string/a11y_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
@@ -89,21 +89,21 @@
         </service>
 
         <activity
-            android:name="com.horizon.home.AllAppsActivity"
+            android:name="com.beacon.home.AllAppsActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode" />
 
         <activity
-            android:name="com.horizon.home.ServiceActivity"
+            android:name="com.beacon.home.ServiceActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode" />
 
         <activity
-            android:name="com.horizon.home.GuideActivity"
+            android:name="com.beacon.home.GuideActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:taskAffinity="com.beacon.home.guide"
@@ -120,8 +120,8 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="com.horizon.home.Updater$Result" android:exported="false" />
-        <receiver android:name="com.horizon.home.Updater$Reopen" android:exported="true">
+        <receiver android:name="com.beacon.home.Updater$Result" android:exported="false" />
+        <receiver android:name="com.beacon.home.Updater$Reopen" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>

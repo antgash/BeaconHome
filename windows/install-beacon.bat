@@ -26,15 +26,15 @@ if not exist "%B%\home.txt" "%ADB%" -s %IP% shell "cmd package resolve-activity 
 if not exist "%B%\a11y-services.txt" "%ADB%" -s %IP% shell settings get secure enabled_accessibility_services > "%B%\a11y-services.txt"
 if not exist "%B%\a11y-enabled.txt" "%ADB%" -s %IP% shell settings get secure accessibility_enabled > "%B%\a11y-enabled.txt"
 rem -- make beacon the home screen; a tiny helper sends the remote's Home button to it --
-"%ADB%" -s %IP% shell cmd package set-home-activity %P%/com.horizon.home.HomeActivity
-"%ADB%" -s %IP% shell settings put secure enabled_accessibility_services %P%/com.horizon.home.HomeButtonService
+"%ADB%" -s %IP% shell cmd package set-home-activity %P%/com.beacon.home.HomeActivity
+"%ADB%" -s %IP% shell settings put secure enabled_accessibility_services %P%/com.beacon.home.HomeButtonService
 "%ADB%" -s %IP% shell settings put secure accessibility_enabled 1
 rem -- hand over your settings (kept only on the projector) --
 set "X="
 if not "%NAME%"=="" set X=%X% --es name "%NAME%"
 if not "%TMDB_KEY%"=="" set X=%X% --es tmdb "%TMDB_KEY%"
 if not "%LIVETV%"=="" set X=%X% --es livetv "%LIVETV%"
-"%ADB%" -s %IP% shell am start -n %P%/com.horizon.home.HomeActivity %X% >nul
+"%ADB%" -s %IP% shell am start -n %P%/com.beacon.home.HomeActivity %X% >nul
 echo Done. Press Home on the remote.
 echo To go back to the original home screen any time, run use-original-home.bat.
 pause

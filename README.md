@@ -118,7 +118,7 @@ beacon updates itself from this repo's Releases:
 
 - **Preview or in-app idle mode:** open the beacon menu (top-left pill) → *Screensaver → Start screensaver*. *Screensaver starts after* sets how long Home sits idle before it begins on its own.
 - **As the Android TV screensaver:** Settings → Device Preferences → Screen saver → choose **beacon**. If your device doesn't list it, run:
-  `adb shell settings put secure screensaver_components com.beacon.home/com.horizon.home.BeaconDream`
+  `adb shell settings put secure screensaver_components com.beacon.home/com.beacon.home.BeaconDream`
 - The system screensaver's own start time is set in Android's Screen saver settings (*When to start*). The *Screensaver starts after* setting only controls beacon's in-app idle mode.
 - If you used the earlier Horizon build as your screensaver, choose beacon again once.
 - Set the weather city in *Weather → Weather location* first so the screensaver can show the temperature.

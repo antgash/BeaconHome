@@ -1,4 +1,4 @@
-package com.horizon.home;
+package com.beacon.home;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
