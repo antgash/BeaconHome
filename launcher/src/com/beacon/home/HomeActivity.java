@@ -1757,7 +1757,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             // Circle dock: the selected app's name floats in a small label above the dock.
             dockBox = new FrameLayout(this);
             dockBox.setClipChildren(false);
-            dockLabel = V.text(this, "", 13, 600, V.TEXT);
+            dockLabel = V.text(this, "", 12, 600, V.TEXT);
             dockLabel.setSingleLine(true);
             dockLabel.setGravity(Gravity.CENTER);
             dockLabel.setPadding(V.dp(11), 0, V.dp(11), 0);
@@ -1766,8 +1766,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             // The box has no height of its own, so the rows above never move; the label floats over the gap
             // above the dock (block and box must not clip it).
             block.setClipChildren(false);
-            FrameLayout.LayoutParams dl = new FrameLayout.LayoutParams(U.WRAP, V.dp(20), Gravity.TOP | Gravity.START);
-            dl.topMargin = -V.dp(7);
+            FrameLayout.LayoutParams dl = new FrameLayout.LayoutParams(U.WRAP, V.dp(18), Gravity.TOP | Gravity.START);
+            dl.topMargin = -V.dp(7); // label spans -7..11, dock starts at 14
             dockBox.addView(dockLabel, dl);
             block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, 0));
         }
@@ -1775,7 +1775,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (appCircle && appsRow.getParent() instanceof View) {
             FrameLayout.LayoutParams ap = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
             ap.gravity = Gravity.CENTER_HORIZONTAL;
-            ap.topMargin = V.dp(16); // 16 + 40 = the 56 a pill row takes, so nothing above shifts
+            // 14 + 48 - 6 = the 56 a pill row takes, so nothing above shifts; the dock's last 6dp hangs into the bottom margin.
+            ap.topMargin = V.dp(14);
+            ap.bottomMargin = -V.dp(6);
         }
         col.addView(block, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
     }
@@ -2333,16 +2335,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 final FrameLayout it = new FrameLayout(this);
                 it.setFocusable(true);
                 it.setFocusableInTouchMode(true);
-                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(30), V.dp(30)));
+                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(38), V.dp(38)));
                 ImageView ic = V.image(this, ImageView.ScaleType.CENTER_CROP);
                 ic.setImageDrawable(a.icon);
-                ic.setBackground(V.shape(V.GLASS_STRONG, 13, 0));
+                ic.setBackground(V.shape(V.GLASS_STRONG, 17, 0));
                 V.circle(ic);
-                it.addView(ic, new FrameLayout.LayoutParams(V.dp(26), V.dp(26), Gravity.CENTER));
+                it.addView(ic, new FrameLayout.LayoutParams(V.dp(34), V.dp(34), Gravity.CENTER));
                 it.setContentDescription(a.label);
                 it.setTag(a.pkg);
                 it.setOnFocusChangeListener((v, has) -> {
-                    it.setBackground(has ? new V.Glow(15, 0.14f, 0) : null);
+                    it.setBackground(has ? new V.Glow(19, 0.14f, 0) : null);
                     it.animate().scaleX(has ? 1.15f : 1f).scaleY(has ? 1.15f : 1f).setDuration(160).start();
                     if (has) placeDockLabel(it, a.label);
                     else it.post(() -> { if (!appsRow.hasFocus() && dockLabel != null) dockLabel.setVisibility(View.INVISIBLE); });

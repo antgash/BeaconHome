@@ -65,12 +65,13 @@ final class V {
     static void loadTheme(Context c) {
         glowFocus = U.prefs(c).getBoolean("focus_glow", true);
         surface = U.prefs(c).getInt("surface", 0);
-        if (surface == 1) { GLASS = 0x9C0A0A0E; GLASS_STRONG = 0xB00A0A0E; LINE = 0; MENU_ROW = 0x1EFFFFFF; }          // smoke
-        else if (surface == 2) { GLASS = 0xA62E3544; GLASS_STRONG = 0xB8363E4E; LINE = 0; MENU_ROW = 0x22FFFFFF; }      // slate (semi-transparent)
-        else { GLASS = 0x14FFFFFF; GLASS_STRONG = 0x1FFFFFFF; LINE = 0x29FFFFFF; MENU_ROW = 0x14FFFFFF; }
+        if (surface == 1) { GLASS = 0x9C0A0A0E; GLASS_STRONG = 0xB00A0A0E; LINE = 0; MENU_ROW = 0xFF1B1B20; }          // smoke
+        else if (surface == 2) { GLASS = 0xA62E3544; GLASS_STRONG = 0xB8363E4E; LINE = 0; MENU_ROW = 0xFF3C4455; }      // slate (semi-transparent)
+        else { GLASS = 0x14FFFFFF; GLASS_STRONG = 0x1FFFFFFF; LINE = 0x29FFFFFF; }
         String id = U.prefs(c).getString("theme", "ember");
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); break; }
         // Panels (the beacon menu and the long-press sheets) follow the surface too.
+        if (surface == 0) MENU_ROW = U.mix(BG, 0xFFFFFFFF, 0.17f); // solid, one step lighter than the panel
         if (surface == 1) { MENU_PANEL = 0xEB0A0A0E; MENU_PANEL_LINE = 0; }
         else if (surface == 2) { MENU_PANEL = 0xE02E3544; MENU_PANEL_LINE = 0; }
         else { MENU_PANEL = U.alpha(U.mix(BG, 0xFFFFFFFF, 0.10f), 0.98f); MENU_PANEL_LINE = 0x40FFFFFF; }
