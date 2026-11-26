@@ -564,10 +564,22 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    /** Name of the active Nuvio profile, shown on the Continue watching heading (null: plain heading). */
+    private String cwOwner;
+
+    /** "Anthony’s continue watching" when a Nuvio profile is known, else "Continue watching". */
+    private String cwHeading() {
+        if (TextUtils.isEmpty(cwOwner)) return "Continue watching";
+        String n = cwOwner.trim();
+        return n + (n.toLowerCase(Locale.ROOT).endsWith("s") ? "\u2019" : "\u2019s") + " continue watching";
+    }
+
     private void showProfile(List<NuvioProfiles.Profile> list) {
         if (profileBtn == null) return;
         profiles = list;
         final NuvioProfiles.Profile p = NuvioProfiles.active(list);
+        cwOwner = p == null ? null : p.name;
+        if (cwHead != null) cwHead.setText(cwHeading());
         if (p == null) {
             if (profileBtn.hasFocus() && menuPill != null) menuPill.requestFocus();
             profileBtn.setVisibility(View.GONE);
@@ -1957,7 +1969,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout h = U.row(this);
         h.setGravity(Gravity.BOTTOM);
         h.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
-        cwHead = V.text(this, "Continue watching", 12, 700, V.TEXT);
+        cwHead = V.text(this, cwHeading(), 12, 700, V.TEXT);
         h.addView(cwHead);
         cwCount = V.text(this, "", 9, 400, U.alpha(V.TEXT, 0.6f));
         h.addView(cwCount, lp(U.WRAP, U.WRAP, 7, 0, 0, 1));
