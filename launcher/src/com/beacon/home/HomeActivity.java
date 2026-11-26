@@ -208,6 +208,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         lastInput = System.currentTimeMillis();
         observeNuvio();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
+        observeProfiles();
+        refreshProfiles();
         refreshUpdatePill();
         if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> refreshUpdatePill()), 6000);
     }
@@ -247,6 +249,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     @Override protected void onDestroy() {
         super.onDestroy();
         try { getContentResolver().unregisterContentObserver(nuvioObserver); } catch (Throwable ignored) {}
+        try { getContentResolver().unregisterContentObserver(profileObserver); } catch (Throwable ignored) {}
+        U.MAIN.removeCallbacks(profileReload);
         U.MAIN.removeCallbacks(nuvioReload);
         prefs.unregisterOnSharedPreferenceChangeListener(this);
     }
@@ -437,6 +441,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         left.setClipChildren(false);
         left.addView(menu, new LinearLayout.LayoutParams(U.WRAP, V.dp(34)));
 
+        // Next to the menu: the active Nuvio profile's picture. Select lists the profiles to switch to.
+        // Hidden until Nuvio says it offers profiles to launchers (older Nuvio builds don't).
+        left.addView(buildProfileButton(), lp(V.dp(34), V.dp(34), 10, 0, 0, 0));
+
         // Next to the menu, only while a newer beacon build exists: Select opens Settings at the update options.
         LinearLayout up = V.pill(this, 34, 12, 14);
         View dot = new View(this);
@@ -477,6 +485,215 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         bar.addView(right, U.flp(U.WRAP, U.WRAP, Gravity.END | Gravity.CENTER_VERTICAL));
     }
 
+
+    // ------------------------------------------------------------------ Nuvio profile button
+
+    private FrameLayout profileBtn;
+    private ImageView profileImg;
+    private TextView profileInitial;
+    private List<NuvioProfiles.Profile> profiles;
+    private String profilePkg;
+    private int profileLoads;
+
+    private final Runnable profileReload = this::refreshProfiles;
+
+    private final android.database.ContentObserver profileObserver = new android.database.ContentObserver(U.MAIN) {
+        @Override public void onChange(boolean selfChange) {
+            U.MAIN.removeCallbacks(profileReload);
+            U.MAIN.postDelayed(profileReload, 400);
+        }
+    };
+
+    private View buildProfileButton() {
+        final FrameLayout b = new FrameLayout(this);
+        b.setFocusable(true);
+        b.setFocusableInTouchMode(true);
+        b.setClipChildren(false);
+        b.setPadding(V.dp(2), V.dp(2), V.dp(2), V.dp(2));
+        b.setContentDescription("Nuvio profile");
+
+        FrameLayout face = new FrameLayout(this);
+        face.setBackground(V.shape(0xFF1E88E5, 17, 0));
+        V.circle(face);
+        profileInitial = V.text(this, "", 14, 800, V.TEXT);
+        profileInitial.setGravity(Gravity.CENTER);
+        face.addView(profileInitial, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        profileImg = V.image(this, ImageView.ScaleType.CENTER_CROP);
+        face.addView(profileImg, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        b.addView(face, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+
+        b.setBackground(V.shape(0, 17, 0));
+        b.setOnFocusChangeListener((v, has) -> {
+            b.setBackground(has ? ring() : V.shape(0, 17, 0));
+            b.animate().scaleX(has ? 1.1f : 1f).scaleY(has ? 1.1f : 1f).setDuration(150).start();
+        });
+        b.setOnClickListener(v -> showProfileMenu());
+        b.setVisibility(View.GONE);
+        profileBtn = b;
+        return b;
+    }
+
+    private static GradientDrawable ring() {
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(0);
+        g.setStroke(V.dp(2), V.TEXT);
+        return g;
+    }
+
+    private void observeProfiles() {
+        String pkg = U.nuvio();
+        if (pkg.equals(profilePkg)) return;
+        try { getContentResolver().unregisterContentObserver(profileObserver); } catch (Throwable ignored) {}
+        try {
+            getContentResolver().registerContentObserver(NuvioProfiles.uri(pkg), true, profileObserver);
+            profilePkg = pkg;
+        } catch (Throwable ignored) {} // retried on the next resume
+    }
+
+    /** Re-reads Nuvio's profiles off the main thread and updates the button. */
+    private void refreshProfiles() {
+        final int load = ++profileLoads;
+        U.IO.execute(() -> {
+            final List<NuvioProfiles.Profile> list = NuvioProfiles.load(getApplicationContext());
+            U.MAIN.post(() -> { if (load == profileLoads) showProfile(list); });
+        });
+    }
+
+    private void showProfile(List<NuvioProfiles.Profile> list) {
+        if (profileBtn == null) return;
+        profiles = list;
+        final NuvioProfiles.Profile p = NuvioProfiles.active(list);
+        if (p == null) {
+            if (profileBtn.hasFocus() && menuPill != null) menuPill.requestFocus();
+            profileBtn.setVisibility(View.GONE);
+            return;
+        }
+        profileBtn.setContentDescription("Nuvio profile: " + p.name);
+        ((View) profileImg.getParent()).setBackground(V.shape(p.colorInt(), 17, 0));
+        profileInitial.setText(p.initial());
+        setAvatar(profileImg, p, 96);
+        profileBtn.setVisibility(View.VISIBLE);
+    }
+
+    private void setAvatar(final ImageView iv, NuvioProfiles.Profile p, int px) {
+        final String uri = p.avatar;
+        iv.setTag(uri);
+        if (TextUtils.isEmpty(uri)) { iv.setImageDrawable(null); return; }
+        Bitmap hit = Img.cached(uri, px);
+        if (hit != null) { iv.setImageBitmap(hit); return; }
+        iv.setImageDrawable(null);
+        Img.load(this, uri, px, bmp -> { if (uri.equals(iv.getTag())) iv.setImageBitmap(bmp); });
+    }
+
+    /** A small sheet listing Nuvio's profiles; picking one makes it active in Nuvio too. */
+    private void showProfileMenu() {
+        final List<NuvioProfiles.Profile> list = profiles;
+        if (list == null || list.isEmpty()) return;
+        final android.app.Dialog d = new android.app.Dialog(this, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar);
+        android.view.Window w = d.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            w.setGravity(Gravity.TOP | Gravity.START);
+            android.view.WindowManager.LayoutParams a = w.getAttributes();
+            int[] at = new int[2];
+            profileBtn.getLocationOnScreen(at);
+            a.x = Math.max(0, at[0] - V.dp(8));
+            a.y = at[1] + profileBtn.getHeight() + V.dp(8);
+            w.setAttributes(a);
+        }
+
+        LinearLayout col = U.col(this);
+        col.setPadding(V.dp(9), V.dp(9), V.dp(9), V.dp(9));
+        col.setBackground(V.shape((0xED << 24) | (U.mix(V.BG, 0xFFFFFFFF, 0.1f) & 0x00FFFFFF), 18, 0));
+        TextView title = V.text(this, "Nuvio profiles", 10, 500, U.alpha(V.TEXT, 0.65f));
+        title.setPadding(V.dp(8), V.dp(4), 0, V.dp(6));
+        col.addView(title, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
+
+        View focus = null;
+        for (final NuvioProfiles.Profile p : list) {
+            final LinearLayout row = U.row(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(V.dp(6), 0, V.dp(12), 0);
+            row.setFocusable(true);
+            row.setFocusableInTouchMode(true);
+            row.setBackground(V.shape(0, 25, 0));
+
+            FrameLayout face = new FrameLayout(this);
+            face.setBackground(V.shape(p.colorInt(), 14, 0));
+            V.circle(face);
+            TextView ini = V.text(this, p.initial(), 12, 800, V.TEXT);
+            ini.setGravity(Gravity.CENTER);
+            face.addView(ini, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+            ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
+            face.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+            setAvatar(iv, p, 96);
+            row.addView(face, new LinearLayout.LayoutParams(V.dp(28), V.dp(28)));
+
+            final TextView name = V.text(this, p.name, 12.5f, 600, V.TEXT);
+            V.ellipsize(name);
+            row.addView(name, new LinearLayout.LayoutParams(0, U.WRAP, 1f));
+            ((LinearLayout.LayoutParams) name.getLayoutParams()).leftMargin = V.dp(10);
+            if (p.pin) {
+                TextView pin = V.text(this, "PIN", 9.5f, 700, U.alpha(V.TEXT, 0.6f));
+                row.addView(pin, lp(U.WRAP, U.WRAP, 8, 0, 0, 0));
+            }
+            final Icon check = new Icon(this, Icon.CHECK);
+            check.setColor(V.TEXT);
+            check.setVisibility(p.active ? View.VISIBLE : View.INVISIBLE);
+            row.addView(check, lp(V.dp(13), V.dp(13), 8, 0, 0, 0));
+
+            row.setOnFocusChangeListener((v, has) -> {
+                row.setBackground(V.shape(has ? V.TEXT : 0, 25, 0));
+                name.setTextColor(has ? V.INK : V.TEXT);
+                check.setColor(has ? V.INK : V.TEXT);
+            });
+            row.setOnClickListener(v -> {
+                Sfx.select();
+                d.dismiss();
+                if (!p.active) switchProfile(p);
+            });
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(U.MATCH, V.dp(40));
+            rp.topMargin = V.dp(4);
+            col.addView(row, rp);
+            if (focus == null || p.active) focus = row;
+        }
+        d.setContentView(col, new ViewGroup.LayoutParams(V.dp(240), U.WRAP));
+        d.show();
+        Sfx.watch(d.getWindow());
+        Sfx.open();
+        final View f = focus;
+        if (f != null) f.post(f::requestFocus);
+    }
+
+    private void switchProfile(final NuvioProfiles.Profile p) {
+        if (p.pin) { openNuvioProfiles(p); return; }
+        U.IO.execute(() -> {
+            final String r = NuvioProfiles.switchTo(getApplicationContext(), p.id);
+            U.MAIN.post(() -> {
+                if ("ok".equals(r)) {
+                    Toast.makeText(this, "Switched to " + p.name, Toast.LENGTH_SHORT).show();
+                    refreshProfiles();
+                    nuvioAt = 0;
+                    loadNuvio();
+                } else if ("pin_required".equals(r)) {
+                    openNuvioProfiles(p);
+                } else {
+                    Toast.makeText(this, "Couldn't switch Nuvio profile", Toast.LENGTH_SHORT).show();
+                    refreshProfiles();
+                }
+            });
+        });
+    }
+
+    /** PIN-protected profiles are chosen in Nuvio itself, so the PIN stays in Nuvio. */
+    private void openNuvioProfiles(NuvioProfiles.Profile p) {
+        if (NuvioProfiles.openPicker(this)) {
+            Toast.makeText(this, p.name + " has a PIN — choose it in Nuvio", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Couldn't open Nuvio", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     // ------------------------------------------------------------------ beacon menu (Veil-style dropdown)
 

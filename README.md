@@ -53,6 +53,7 @@ beacon updates itself from this repo's Releases:
   - **Weather**: show it by the clock, and **Weather location** (search for a city by name, or go back to automatic).
   - **System**: **Screen edge margin**, **Animation speed**, **Google TV recommendations**, **Home screen** (beacon or Google TV), **Nuvio app**, **Nuvio connection** and **Show hidden apps again**.
   - **Updates**: automatic check on/off, **Update beacon** and **About** (version).
+- **Nuvio profile button** next to the beacon pill: it shows the active Nuvio profile's picture, and Select lists every profile so you can switch. The switch happens in Nuvio too. Profiles with a PIN open Nuvio's own profile screen so the PIN is entered there. This needs a Nuvio version that shares its profiles with launchers (proposed to Nuvio; the button stays hidden until then).
 - There is no separate settings screen any more: everything lives in the menu. The hero area on Home is blank until you select something, with no greeting.
 - The **clock is centered with the weather beside it**, in **Fahrenheit**.
 - The ad-blocking (NextDNS) pill and the free-memory pill are gone from the top bar, and **all ad-blocking features have been removed from beacon** (the NextDNS code, its settings entry and the `ad-block-on/off` scripts). HDMI, Wi-Fi and settings buttons remain on the right.
