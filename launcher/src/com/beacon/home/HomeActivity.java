@@ -504,9 +504,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         sv.addView(menuPanel, new FrameLayout.LayoutParams(U.MATCH, U.WRAP));
         // The whole panel uses the chosen surface: frosted glass keeps its light edge, smoke is a deep see-through
         // black and slate a lifted see-through card, both with a soft shadow and no edge.
-        if (V.surface == 1) sv.setBackground(V.shape(0xEB0A0A0E, 20, 0));
-        else if (V.surface == 2) sv.setBackground(V.shape(0xE02E3544, 20, 0));
-        else sv.setBackground(V.shape(U.alpha(U.mix(V.BG, 0xFFFFFFFF, 0.10f), 0.98f), 20, 0x40FFFFFF));
+        sv.setBackground(V.shape(V.MENU_PANEL, 20, V.MENU_PANEL_LINE));
         if (V.surface != 0) sv.setElevation(V.dpf(10));
         sv.setClipToOutline(true);
         int top = V.dp(26 + (EDGE - 48) / 2 + 34 + 8);
