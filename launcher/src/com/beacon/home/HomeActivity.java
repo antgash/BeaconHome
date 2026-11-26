@@ -1073,6 +1073,26 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return box;
     }
 
+    private void checkOrInstallUpdate() {
+        if (pendingUpdate != null) { downloadAndInstall(pendingUpdate); return; }
+        setUpdateState("Checking…");
+        Updater.check(this, (info, ok) -> {
+            if (!ok) { setUpdateState("Couldn't reach GitHub · select to retry"); return; }
+            if (info == null) { setUpdateState("Up to date (build " + Updater.installedCode(this) + ") · select to check again"); return; }
+            pendingUpdate = info;
+            setUpdateState("New build available (" + Updater.why(this, info) + ") · select to install");
+        });
+    }
+
+    private void downloadAndInstall(final Updater.Info info) {
+        setUpdateState("Downloading… 0%");
+        Updater.download(this, info, pct -> setUpdateState("Downloading… " + pct + "%"), apk -> {
+            if (apk == null) { setUpdateState("Download failed · select to retry"); return; }
+            if (Updater.install(this, apk)) setUpdateState("Confirm the install on screen");
+            else setUpdateState("Couldn't start the installer · select to retry");
+        });
+    }
+
     private void openMenuPage(String page) {
         buildMenuPage(page);
         if (menuPanel != null) menuPanel.post(this::fitMenu);
