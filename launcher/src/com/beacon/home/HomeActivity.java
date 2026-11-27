@@ -1991,6 +1991,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void buildHero(LinearLayout col) {
         hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.VERTICAL);
+        // Fading a view group normally draws it into a temporary image cut to its own box, which cropped the
+        // title artwork where it overhangs the box (the top or bottom slice appeared only when the fade ended).
+        // Fading each child directly keeps the overhang visible all the way through.
+        hero.forceHasOverlappingRendering(false);
         hero.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
         heroLabel = V.caps(this, "", 10, V.accent());
         hero.addView(heroLabel);
@@ -2111,15 +2115,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 // where the logo sits now, ignoring the hero's slide-in and any shift already applied
                 float centre = c[1] - hero.getTranslationY() - heroLogo.getTranslationY() + heroLogo.getHeight() / 2f;
                 heroLogo.setTranslationY((top + bottom) / 2f - centre);
-                // The artwork is moved partly outside the hero box to centre it, and Android only repaints the part
-                // inside the box it thinks changed, so the overhang (top or bottom) used to appear a moment later.
-                // Repaint the whole screen as it's placed and on every frame of its fade-in, so it shows in one go.
-                final View whole = getWindow().getDecorView();
-                whole.invalidate();
-                if (heroLogo.getAlpha() < 1f) heroLogo.animate().alpha(1f).setDuration(160)
-                        .setUpdateListener(an -> whole.invalidate())
-                        .withEndAction(() -> { heroLogo.animate().setUpdateListener(null); whole.invalidate(); })
-                        .start();
+                getWindow().getDecorView().invalidate();   // the artwork can overhang the hero box: repaint all of it
+                if (heroLogo.getAlpha() < 1f) heroLogo.animate().alpha(1f).setDuration(160).start();
                 return true;
             }
         });
@@ -2161,9 +2158,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             ((View) heroProgFill.getParent()).setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
             heroRemaining.setText(remaining == null ? "" : remaining);
             heroRemaining.setVisibility(View.VISIBLE);
-            hero.setTranslationY(V.dpf(12));
-            hero.animate().alpha(ambient ? 0f : 1f).translationY(0).setStartDelay(60).setDuration(420)
-                    .setInterpolator(new DecelerateInterpolator(1.6f)).start();
+            // A quick fade in place (no slide up).
+            hero.setTranslationY(0);
+            hero.animate().alpha(ambient ? 0f : 1f).setStartDelay(0).setDuration(180)
+                    .setInterpolator(new DecelerateInterpolator(1.2f)).start();
             heroSwapping = false;
             if (!TextUtils.isEmpty(logoUrl)) loadHeroLogo(token, logoUrl);
             else if (key != null && key.equals(wantKey) && wantLogo != null) loadHeroLogo(token, wantLogo);
