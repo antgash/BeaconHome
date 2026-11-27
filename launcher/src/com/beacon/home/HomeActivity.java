@@ -90,6 +90,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     // rows
     private LinearLayout cwBlock, cwRow, svcRow, appsRow;
     private boolean appCircle, appCards;
+    private String pendingFocusPkg;
+    private boolean pendingFocusMenu;
     private FrameLayout dockBox;
     private TextView dockLabel;
     private LinearLayout volumeRow;
@@ -2209,6 +2211,19 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         defaultFocusId = cwRow.getChildCount() > 0 ? cwRow.getChildAt(0).getId()
                 : svcRow.getChildCount() > 0 ? svcRow.getChildAt(0).getId()
                 : appsRow.getChildCount() > 0 ? appsRow.getChildAt(0).getId() : View.NO_ID;
+        if (pendingFocusPkg != null || pendingFocusMenu) {
+            final String want = pendingFocusPkg;
+            pendingFocusPkg = null;
+            pendingFocusMenu = false;
+            View target = null;
+            for (int i = 0; want != null && i < appsRow.getChildCount(); i++) if (want.equals(appsRow.getChildAt(i).getTag())) target = appsRow.getChildAt(i);
+            if (target == null && menuPill != null) target = menuPill;
+            if (target != null) {
+                final View tv = target;
+                tv.post(() -> tv.requestFocus());
+                return;
+            }
+        }
         if (!hadFocus || (!firstFocusDone && !apps.isEmpty())) {
             focusDefault();
             if (!apps.isEmpty()) firstFocusDone = true;
@@ -2724,6 +2739,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         appsRow.removeAllViews();
         appsRow.setTag(appCards ? CARD_GAP : 10f);
         final List<Apps.App> pins = pinned();
+        // The apps band always takes the same 56dp whatever the style, row size or number of apps, so the rows above never move.
+        if (appsRow.getParent() instanceof View && appsRow.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams fp = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
+            fp.topMargin = pins.isEmpty() ? 0 : appCircle ? V.dp(14) : appCards ? V.dp(CARD_TOP) : 0;
+            fp.bottomMargin = pins.isEmpty() ? 0 : (appCircle || appCards) ? -V.dp(6) : 0;
+        }
+        appsRow.setMinimumHeight(appCards && !pins.isEmpty() ? V.dp(CARD_H) : appCircle && !pins.isEmpty() ? V.dp(48) : 0);
+        appsRow.setGravity(Gravity.CENTER_VERTICAL);
         if (appCards) appsRow.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
         if (appCircle) {
             appsRow.setPadding(V.dp(5), V.dp(5), V.dp(5), V.dp(5));
@@ -2737,7 +2760,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 t.setFocusable(true);
                 t.setFocusableInTouchMode(true);
                 LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(tw, th);
-                tp.topMargin = V.dp((CARD_H - ch) / 2f); // smaller cards stay centred in the band
                 t.setLayoutParams(tp);
                 V.round(t, 10);
                 if (a.banner != null) {
@@ -2863,7 +2885,19 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         for (int i = 0; i < pins.size(); i++) if (pins.get(i).pkg.equals(a.pkg)) at = i;
         ActionSheet sheet = new ActionSheet(this, a.label).add("Open", Icon.PLAY, () -> Apps.launch(this, a));
         if (pins.size() > 1 && at >= 0) sheet.add("Rearrange", Icon.APPS, () -> startRearrange(appsRow, a.pkg));
-        sheet.add("Unpin from Home", Icon.UNPIN, () -> Apps.unpin(this, apps, a.pkg));
+        sheet.add("Unpin from Home", Icon.UNPIN, () -> {
+            // Selection goes to the next app on the left, else the next on the right, else up to the beacon menu.
+            pendingFocusPkg = null;
+            pendingFocusMenu = true;
+            for (int i = 0; i < appsRow.getChildCount(); i++) {
+                if (!a.pkg.equals(appsRow.getChildAt(i).getTag())) continue;
+                Object l = i > 0 ? appsRow.getChildAt(i - 1).getTag() : null;
+                Object r = i + 1 < appsRow.getChildCount() ? appsRow.getChildAt(i + 1).getTag() : null;
+                if (l instanceof String) { pendingFocusPkg = (String) l; pendingFocusMenu = false; }
+                else if (r instanceof String) { pendingFocusPkg = (String) r; pendingFocusMenu = false; }
+            }
+            Apps.unpin(this, apps, a.pkg);
+        });
         sheet.show();
     }
 
