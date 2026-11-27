@@ -2179,11 +2179,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         col.addView(block, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
     }
 
-    private static final float CARD_TOP = 2, CARD_H = 60, CARD_GAP = 10, CARD_MIN_W = 74;
+    /** Cards: a 5dp-padded dock behind them. 1 (top margin) + 5 + 51 (card) + 5 - 6 (hangs into the bottom margin) = the 56dp every style takes. */
+    private static final float CARD_TOP = 1, CARD_H = 51, CARD_PAD = 5, CARD_GAP = 10, CARD_MIN_W = 74;
 
     /** Width of a banner card: as wide as the band allows (16:9), shrinking so n cards fit, but never below CARD_MIN_W. */
     private float cardWidth(int n) {
-        float avail = getResources().getDisplayMetrics().widthPixels / V.scale - 2 * EDGE;
+        float avail = getResources().getDisplayMetrics().widthPixels / V.scale - 2 * EDGE - 2 * CARD_PAD;
         float full = CARD_H * 16f / 9f;
         float fit = (avail - (n - 1) * CARD_GAP) / Math.max(1, n);
         return Math.max(CARD_MIN_W, Math.min(full, fit));
@@ -2745,7 +2746,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             fp.topMargin = pins.isEmpty() ? 0 : appCircle ? V.dp(14) : appCards ? V.dp(CARD_TOP) : 0;
             fp.bottomMargin = pins.isEmpty() ? 0 : (appCircle || appCards) ? -V.dp(6) : 0;
         }
-        appsRow.setMinimumHeight(appCards && !pins.isEmpty() ? V.dp(CARD_H) : appCircle && !pins.isEmpty() ? V.dp(48) : 0);
+        appsRow.setMinimumHeight(appCards && !pins.isEmpty() ? V.dp(CARD_H + 2 * CARD_PAD) : appCircle && !pins.isEmpty() ? V.dp(48) : 0);
         if (appCircle || appCards) {
             appsRow.setGravity(Gravity.CENTER_VERTICAL);
         } else {
@@ -2754,7 +2755,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             appsRow.setMinimumWidth(getResources().getDisplayMetrics().widthPixels);
             appsRow.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL);
         }
-        if (appCards) appsRow.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
+        if (appCards) {
+            appsRow.setPadding(V.dp(CARD_PAD), V.dp(CARD_PAD), V.dp(CARD_PAD), V.dp(CARD_PAD));
+            appsRow.setBackground(V.shape(V.GLASS_STRONG, 15, V.LINE));
+        }
         if (appCircle) {
             appsRow.setPadding(V.dp(5), V.dp(5), V.dp(5), V.dp(5));
             appsRow.setBackground(V.shape(V.GLASS_STRONG, 20, V.LINE));
