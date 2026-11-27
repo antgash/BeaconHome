@@ -1616,6 +1616,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             }
         });
         t.setOnClickListener(v -> Nuvio.open(this, it));
+        t.setOnLongClickListener(v -> cwMenu(it));
         return t;
     }
 
@@ -2447,6 +2448,31 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // --- continue watching (from Nuvio's own Continue Watching list)
 
+    /** Long press on a Continue watching item: the same options as in Nuvio (Nuvio Beacon only). */
+    private boolean cwMenu(final Nuvio.Item it) {
+        if (!CwActions.available(it)) return false;
+        ActionSheet sheet = new ActionSheet(this, it.title);
+        sheet.add("Go to details", Icon.INFO, () -> CwActions.details(this, it));
+        if (!it.watchNext) sheet.add("Start from beginning", Icon.PLAY, () -> CwActions.fromBeginning(this, it));
+        sheet.add("Mark as watched", Icon.CHECK, () -> CwActions.markWatched(this, it, ok -> cwActionDone(it, ok, "Marked as watched")));
+        sheet.add("Remove from Continue watching", Icon.UNPIN, () -> CwActions.remove(this, it, ok -> cwActionDone(it, ok, "Removed")));
+        sheet.show();
+        return true;
+    }
+
+    /** The item is gone from Nuvio's row: drop it here too, keeping the selection in the same place. */
+    private void cwActionDone(Nuvio.Item it, boolean ok, String msg) {
+        if (!ok) { Toast.makeText(this, "Couldn't do that in Nuvio", Toast.LENGTH_SHORT).show(); return; }
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        if (nuvio == null) return;
+        int at = cwItems.indexOf(it);
+        nuvio.continueWatching.remove(it);
+        fillContinue();
+        stopAtEdges(cwRow);
+        if (cwRow.getChildCount() > 0) cwRow.getChildAt(Math.max(0, Math.min(at, cwRow.getChildCount() - 1))).requestFocus();
+        else focusDefault();
+    }
+
     private void fillContinue() {
         cwRow.removeAllViews();
         cwItems.clear();
@@ -2524,6 +2550,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 }
             });
             p.setOnClickListener(v -> Nuvio.open(this, it));
+            p.setOnLongClickListener(v -> cwMenu(it));
             addToRow(cwRow, p);
         }
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
