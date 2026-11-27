@@ -2273,8 +2273,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         for (int to = from + dir; to >= 0 && to < rows.length; to += dir) {
             LinearLayout r = rows[to];
             if (r == null || r.getChildCount() == 0) continue;
-            if (memIdx(to) < 0) return false; // never visited: the normal nearest-item move
-            View target = r.getChildAt(Math.min(memIdx(to), r.getChildCount() - 1));
+            // Never visited since the app started (e.g. after a reboot): enter the row at its first item,
+            // not whichever tile happens to sit nearest above/below the item we're leaving.
+            View target = r.getChildAt(Math.max(0, Math.min(memIdx(to), r.getChildCount() - 1)));
             if (target == null) return false;
             target.requestFocus();
             return true;
