@@ -276,11 +276,22 @@ final class Apps {
         }
     }
 
+    /** Asks Nuvio (Nuvio Beacon) to open straight into the active profile instead of asking who's watching. */
+    static final String EXTRA_USE_ACTIVE_PROFILE = "com.nuvio.tv.extra.USE_ACTIVE_PROFILE";
+
+    /** Adds {@link #EXTRA_USE_ACTIVE_PROFILE} when the intent is for a Nuvio app (other apps ignore it anyway). */
+    private static void useActiveNuvioProfile(Intent i) {
+        String pkg = i.getPackage() != null ? i.getPackage() : i.getComponent() != null ? i.getComponent().getPackageName() : null;
+        if (pkg != null && (U.NUVIO_BEACON.equals(pkg) || U.NUVIO.equals(pkg) || pkg.equals(U.nuvio())))
+            i.putExtra(EXTRA_USE_ACTIVE_PROFILE, true);
+    }
+
     static boolean launchPackage(Context c, String pkg) {
         Intent li = c.getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
         if (li == null) li = c.getPackageManager().getLaunchIntentForPackage(pkg);
         if (li == null) return false;
         li.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        useActiveNuvioProfile(li);
         try {
             c.startActivity(li);
             noteLaunch(c, pkg);
@@ -293,6 +304,7 @@ final class Apps {
     static boolean start(Context c, Intent i) {
         try {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            useActiveNuvioProfile(i);
             c.startActivity(i);
             return true;
         } catch (Throwable t) {
