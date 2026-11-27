@@ -578,6 +578,17 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return n + (n.toLowerCase(Locale.ROOT).endsWith("s") ? "\u2019" : "\u2019s") + " continue watching";
     }
 
+    /** Sets the heading: white text, with the profile's name (when there is one) in the given theme colour. */
+    private void paintCwHead(int accent) {
+        if (cwHead == null) return;
+        String text = cwHeading();
+        if (TextUtils.isEmpty(cwOwner)) { cwHead.setText(text); return; }
+        android.text.SpannableString sp = new android.text.SpannableString(text);
+        sp.setSpan(new android.text.style.ForegroundColorSpan(accent), 0, cwOwner.trim().length(),
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        cwHead.setText(sp);
+    }
+
     private void showProfile(List<NuvioProfiles.Profile> list) {
         if (profileBtn == null) return;
         profiles = list;
@@ -585,7 +596,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         cwOwner = p == null ? null : p.name;
         activeProfileId = p == null ? -1 : p.id;
         if (p != null) rememberProfileColour(p);
-        if (cwHead != null) cwHead.setText(cwHeading());
+        paintCwHead(V.accent());
         if (p == null) {
             if (profileBtn.hasFocus() && menuPill != null) menuPill.requestFocus();
             profileBtn.setVisibility(View.GONE);
@@ -1806,7 +1817,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (root.getBackground() != null) root.setBackgroundColor(V.BG);
         if (shade != null) shade.set(V.BG, null);
         if (heroLabel != null) heroLabel.setTextColor(V.accent());
-        if (cwHead != null) cwHead.setTextColor(V.accent());
+        paintCwHead(V.accent());
         if (heroProgFill != null) heroProgFill.setBackground(V.shape(V.accent(), 2, 0));
         redrawAll(root);
         if (menuOpen && menuHost != null) { // rebuild the open menu in the new colours, swapping it in the same frame
@@ -2172,14 +2183,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final int to = raw == null ? V.themeAccent : ArtColor.asAccent(raw);
         final Integer target = raw == null ? null : to;
         shade.set(V.BG, raw == null ? null : ArtColor.asGlow(raw));
-        if (from == to) { V.artAccent = target; Ui.accent = V.accent(); heroLabel.setTextColor(V.accent()); if (cwHead != null) cwHead.setTextColor(V.accent()); heroProgFill.setBackground(V.shape(V.accent(), 2, 0)); redrawAll(root); return; }
+        if (from == to) { V.artAccent = target; Ui.accent = V.accent(); heroLabel.setTextColor(V.accent()); paintCwHead(V.accent()); heroProgFill.setBackground(V.shape(V.accent(), 2, 0)); redrawAll(root); return; }
         final android.animation.ArgbEvaluator ev = new android.animation.ArgbEvaluator();
         accentFade = android.animation.ValueAnimator.ofFloat(0f, 1f);
         accentFade.setDuration(260);
         accentFade.addUpdateListener(a -> {
             V.artAccent = (Integer) ev.evaluate(a.getAnimatedFraction(), from, to);
             heroLabel.setTextColor(V.artAccent);
-            if (cwHead != null) cwHead.setTextColor(V.artAccent);
+            paintCwHead(V.artAccent);
             heroProgFill.setBackground(V.shape(V.artAccent, 2, 0));
             Ui.accent = V.artAccent;
             redrawAll(root);
@@ -2245,7 +2256,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout h = U.row(this);
         h.setGravity(Gravity.BOTTOM);
         h.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
-        cwHead = V.text(this, cwHeading(), 24, 800, V.accent());   // big, in the theme colour (follows it as it changes)
+        cwHead = V.text(this, "", 18, 800, V.TEXT);   // white, with the profile's name in the theme colour
+        paintCwHead(V.accent());
         h.addView(cwHead);
         cwCount = V.text(this, "", 10, 400, U.alpha(V.TEXT, 0.6f));
         h.addView(cwCount, lp(U.WRAP, U.WRAP, 10, 0, 0, 4));
@@ -3131,10 +3143,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         cwBlock.setTranslationX(V.dpf(36));
         cwBlock.animate().alpha(1f).translationX(0).setDuration(450).start();
         if (cwHead != null) {
-            // The heading is in the theme colour, so the flash pulses it white and settles back on the theme colour.
+            // The flash pulses the profile's name white and settles it back on the theme colour.
             android.animation.ValueAnimator a = android.animation.ValueAnimator.ofObject(new android.animation.ArgbEvaluator(), V.TEXT, V.accent());
             a.setDuration(1100);
-            a.addUpdateListener(an -> cwHead.setTextColor((Integer) an.getAnimatedValue()));
+            a.addUpdateListener(an -> paintCwHead((Integer) an.getAnimatedValue()));
             a.start();
         }
         cwBlock.post(this::showCwNotice);
