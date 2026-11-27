@@ -2054,13 +2054,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             if (lpl instanceof LinearLayout.LayoutParams) ((LinearLayout.LayoutParams) lpl).topMargin = cw ? 0 : V.dp(8);
             if (cw) {
                 // Fit into the box between the beacon menu and the Continue watching heading, kept in proportion.
-                // Never wider than about 40% of the screen, measured from the left edge.
-                float maxW = getResources().getDisplayMetrics().widthPixels * 0.40f;
-                float maxH = V.dp(168);
+                // Never wider than about 36% of the screen, measured from the left edge (10% smaller than before).
+                float maxW = getResources().getDisplayMetrics().widthPixels * 0.36f;
+                float maxH = V.dp(151);
                 float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
                 lpl.width = Math.round(bm.getWidth() * k);
                 lpl.height = Math.round(bm.getHeight() * k);
-                heroLogo.setMaxHeight(V.dp(168));
+                heroLogo.setMaxHeight(V.dp(151));
                 heroLogo.setMaxWidth(Integer.MAX_VALUE);
             } else {
                 // streaming services and everything else: the original size
@@ -2071,6 +2071,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             }
             heroLogo.setLayoutParams(lpl);
             heroLogo.setImageBitmap(bm);
+            // Hidden until it has been sized and placed, then faded in whole (no part of it appearing late).
+            heroLogo.animate().cancel();
+            heroLogo.setAlpha(cw ? 0f : 1f);
             heroLogo.setVisibility(View.VISIBLE);
             heroTitle.setVisibility(View.GONE);
             centerHeroLogo(cw);
@@ -2083,22 +2086,32 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
      */
     private void centerHeroLogo(final boolean cw) {
         heroLogo.setTranslationY(0);
-        if (!cw || menuPill == null || cwBlock == null) return;
+        heroLogo.setScaleX(1f);
+        heroLogo.setScaleY(1f);
+        if (!cw || menuPill == null || cwBlock == null) { heroLogo.setAlpha(1f); return; }
         final android.view.ViewTreeObserver vto = heroLogo.getViewTreeObserver();
         vto.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
             @Override public boolean onPreDraw() {
                 android.view.ViewTreeObserver o = heroLogo.getViewTreeObserver();
                 if (o.isAlive()) o.removeOnPreDrawListener(this);
-                if (!heroCw || heroLogo.getHeight() <= 0) return true;
+                if (!heroCw || heroLogo.getHeight() <= 0) { heroLogo.setAlpha(1f); return true; }
                 int[] a = new int[2], b = new int[2], c = new int[2];
                 menuPill.getLocationInWindow(a);
                 cwBlock.getLocationInWindow(b);
                 heroLogo.getLocationInWindow(c);
                 float top = a[1] + menuPill.getHeight();
                 float bottom = b[1] - cwBlock.getTranslationY();
+                // Shrink it (from its left edge) if it's taller than the gap, keeping space above and below.
+                float room = (bottom - top) - 2 * V.dp(12);
+                float k = room > 0 && heroLogo.getHeight() > room ? room / heroLogo.getHeight() : 1f;
+                heroLogo.setPivotX(0);
+                heroLogo.setPivotY(heroLogo.getHeight() / 2f);
+                heroLogo.setScaleX(k);
+                heroLogo.setScaleY(k);
                 // where the logo sits now, ignoring the hero's slide-in and any shift already applied
                 float centre = c[1] - hero.getTranslationY() - heroLogo.getTranslationY() + heroLogo.getHeight() / 2f;
                 heroLogo.setTranslationY((top + bottom) / 2f - centre);
+                if (heroLogo.getAlpha() < 1f) heroLogo.animate().alpha(1f).setDuration(160).start();
                 return true;
             }
         });
@@ -2275,6 +2288,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         cwBlock.addView(space(8));
         col.addView(cwBlock, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
         cwBlock.setVisibility(View.GONE);
+        // The gap the artwork sits in changes when rows above or below appear or go: fit it again.
+        cwBlock.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (t != ot && heroCw && heroLogo != null && heroLogo.getVisibility() == View.VISIBLE) centerHeroLogo(true);
+        });
     }
 
     private void buildServices(LinearLayout col) {
