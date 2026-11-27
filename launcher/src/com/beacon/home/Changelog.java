@@ -26,6 +26,9 @@ final class Changelog {
     }
 
     static final Entry[] ENTRIES = {
+            new Entry("New look", "Nov 27", "A lighthouse icon and banner", "asset:changelog/beacon-lighthouse.jpg",
+                    Icon.LIGHTHOUSE, "New lighthouse icon and app banner, also on the screensaver",
+                    Icon.GEAR, "Menu descriptions now list what each page contains"),
             new Entry("Nuvio Beacon", "Nov 26", "Switch Nuvio profiles from Home", "asset:changelog/nuvio-beacon.jpg",
                     Icon.NUVIO, "Nuvio Beacon: a build of Nuvio made for beacon, downloadable from this page",
                     Icon.EYE, "Profile button at the top right shows who's watching; select it to switch profiles",

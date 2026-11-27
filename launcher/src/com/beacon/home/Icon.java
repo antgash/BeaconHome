@@ -11,7 +11,7 @@ import android.view.View;
 final class Icon extends View {
     static final int WIFI = 1, WIFI_OFF = 2, ETHERNET = 3, HDMI = 4, GEAR = 5, SLIDERS = 6, WALL = 7,
             SEARCH = 8, PLAY = 9, INFO = 10, PREV = 11, NEXT = 12, EYE = 13, APPS = 14, CHECK = 15, NUVIO = 16,
-            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30, BEACON = 31, SPEAKER = 32, DOWNLOAD = 33;
+            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30, BEACON = 31, SPEAKER = 32, DOWNLOAD = 33, LIGHTHOUSE = 34;
 
     private int type;
     private int level = 4;
@@ -176,6 +176,28 @@ final class Icon extends View {
                 p.setColor(U.alpha(color, 0.75f)); c.drawCircle(12, 12, 6.6f, p);
                 p.setColor(U.alpha(color, 0.4f)); c.drawCircle(12, 12, 10.1f, p);
                 p.setColor(color);
+                break;
+            case LIGHTHOUSE:
+                // beacon's mark: a lighthouse under two signal arcs, standing on a curved shore
+                p.setStrokeWidth(1.6f);
+                r.set(12 - 4.4f, 8 - 4.4f, 12 + 4.4f, 8 + 4.4f);
+                c.drawArc(r, 150, 240, false, p);
+                p.setColor(U.alpha(color, 0.7f));
+                r.set(12 - 7.6f, 8 - 7.6f, 12 + 7.6f, 8 + 7.6f);
+                c.drawArc(r, 145, 250, false, p);
+                p.setColor(color);
+                path.reset(); // lantern
+                path.moveTo(12, 5.2f); path.lineTo(13.7f, 6.5f); path.lineTo(13.7f, 9f); path.lineTo(10.3f, 9f); path.lineTo(10.3f, 6.5f); path.close();
+                c.drawPath(path, fill);
+                r.set(9.6f, 9.5f, 14.4f, 10.6f); // gallery
+                c.drawRoundRect(r, 0.4f, 0.4f, fill);
+                path.reset(); // tower
+                path.moveTo(10.5f, 11.1f); path.lineTo(13.5f, 11.1f); path.lineTo(15.1f, 20f); path.lineTo(8.9f, 20f); path.close();
+                c.drawPath(path, fill);
+                path.reset(); // shore
+                path.moveTo(5.5f, 21.6f); path.quadTo(12, 19.6f, 18.5f, 21.6f);
+                c.drawPath(path, p);
+                p.setStrokeWidth(1.8f);
                 break;
             case ORBIT:
                 c.drawCircle(12, 12, 4.2f, fill);

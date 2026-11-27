@@ -1183,13 +1183,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (page == null) {
             int mins = prefs.getInt(U.P_AMBIENT_MIN, 3);
             String city = prefs.getString("wx_city", "");
-            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme colors, focus, cards, dock", () -> openMenuPage("look"));
+            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, cards, surface, dock", () -> openMenuPage("look"));
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.MOON, "Screensaver", mins == 0 ? "Off" : "Starts after " + mins + " min", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.SUN, "Weather", TextUtils.isEmpty(city) ? "Automatic location" : city, () -> openMenuPage("weather")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.GEAR, "System", "Margins, animation, home screen, apps", () -> openMenuPage("system")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(hubRow(Icon.CHECK, "Updates & downloads", Updater.pending(this) ? "Update available" : "Check for a new version", () -> openMenuPage("updates")), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(hubRow(Icon.MOON, "Screensaver", (mins == 0 ? "Off" : "After " + mins + " min") + " \u00b7 preview, artwork speed", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", (Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off") + " \u00b7 volume", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.SUN, "Weather", (prefs.getBoolean("weather", true) ? "Shown by the clock" : "Hidden") + " \u00b7 " + (TextUtils.isEmpty(city) ? "auto location" : city), () -> openMenuPage("weather")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.GEAR, "System", "Margins, home screen, Nuvio, hidden apps", () -> openMenuPage("system")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(hubRow(Icon.CHECK, "Updates & downloads", Updater.pending(this) ? "Update available \u00b7 Nuvio Beacon, Live TV" : "Updates, Nuvio Beacon, Live TV, changelog", () -> openMenuPage("updates")), lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
             menuPanel.addView(V.dim(V.text(this, "beacon " + versionName() + "  \u00b7  ad-free home screen", 9, 500, V.TEXT), 0.5f), lp(U.WRAP, U.WRAP, 4, 0, 0, 12));
             menuPanel.addView(menuButton(Icon.LEFT, "Back to close", null, this::closeMenu), lp(U.MATCH, V.dp(40), 0, 0, 0, 0));
             return;
@@ -1251,7 +1251,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                         "A background service only Google's home screen uses. Off saves memory.",
                         (on ? "pm disable-user --user 0 " : "pm enable ") + TVREC);
             }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(valueRow(Icon.BEACON, "Home screen", () -> beaconIsHome() ? "beacon" : "Google TV", this::switchHomeScreen), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(valueRow(Icon.LIGHTHOUSE, "Home screen", () -> beaconIsHome() ? "beacon" : "Google TV", this::switchHomeScreen), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.NUVIO, "Nuvio app", this::nuvioLabel, this::pickNuvio), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.APPS, "Show hidden apps again", () -> hiddenCount() + " hidden", () -> {
                 android.content.SharedPreferences.Editor e = prefs.edit();
