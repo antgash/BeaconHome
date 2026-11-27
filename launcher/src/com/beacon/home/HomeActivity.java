@@ -2165,9 +2165,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         if (appCircle && appsRow.getParent() instanceof View) {
             FrameLayout.LayoutParams ap = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
-            // 14 + 48 - 6 = the 56 a pill row takes, so nothing above shifts; the dock's last 6dp hangs into the bottom margin.
+            // 14 + 52 - 10 = the 56 a pill row takes, so nothing above shifts; the dock's last 10dp hangs into the bottom margin.
             ap.topMargin = V.dp(14);
-            ap.bottomMargin = -V.dp(6);
+            ap.bottomMargin = -V.dp(10);
         }
         if (appCards && appsRow.getParent() instanceof View) {
             // Cards: banners fill the band under the streaming row. 2 + 60 - 6 = the same 56 a pill row takes, and the
@@ -2744,9 +2744,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (appsRow.getParent() instanceof View && appsRow.getLayoutParams() instanceof FrameLayout.LayoutParams) {
             FrameLayout.LayoutParams fp = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
             fp.topMargin = pins.isEmpty() ? 0 : appCircle ? V.dp(14) : appCards ? V.dp(CARD_TOP) : 0;
-            fp.bottomMargin = pins.isEmpty() ? 0 : (appCircle || appCards) ? -V.dp(6) : 0;
+            fp.bottomMargin = pins.isEmpty() ? 0 : appCircle ? -V.dp(10) : appCards ? -V.dp(6) : 0;
         }
-        appsRow.setMinimumHeight(appCards && !pins.isEmpty() ? V.dp(CARD_H + 2 * CARD_PAD) : appCircle && !pins.isEmpty() ? V.dp(48) : 0);
+        appsRow.setMinimumHeight(appCards && !pins.isEmpty() ? V.dp(CARD_H + 2 * CARD_PAD) : appCircle && !pins.isEmpty() ? V.dp(52) : 0);
         if (appCircle || appCards) {
             appsRow.setGravity(Gravity.CENTER_VERTICAL);
         } else {
@@ -2817,16 +2817,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 final FrameLayout it = new FrameLayout(this);
                 it.setFocusable(true);
                 it.setFocusableInTouchMode(true);
-                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(38), V.dp(38)));
+                it.setLayoutParams(new LinearLayout.LayoutParams(V.dp(42), V.dp(42)));
                 ImageView ic = V.image(this, ImageView.ScaleType.CENTER_CROP);
                 ic.setImageDrawable(a.icon);
-                ic.setBackground(V.shape(V.GLASS_STRONG, 17, 0));
+                ic.setBackground(V.shape(V.GLASS_STRONG, 19, 0));
                 V.circle(ic);
-                it.addView(ic, new FrameLayout.LayoutParams(V.dp(34), V.dp(34), Gravity.CENTER));
+                it.addView(ic, new FrameLayout.LayoutParams(V.dp(38), V.dp(38), Gravity.CENTER));
                 it.setContentDescription(a.label);
                 it.setTag(a.pkg);
                 it.setOnFocusChangeListener((v, has) -> {
-                    it.setBackground(has ? new V.Glow(19, 0.14f, 0) : null);
+                    it.setBackground(has ? new V.Glow(21, 0.14f, 0) : null);
                     it.animate().scaleX(has ? 1.15f : 1f).scaleY(has ? 1.15f : 1f).setDuration(160).start();
                     if (has) placeDockLabel(it, a.label);
                     else it.post(() -> { if (!appsRow.hasFocus() && dockLabel != null) dockLabel.setVisibility(View.INVISIBLE); });
