@@ -147,7 +147,7 @@ final class NuvioBeaconInstaller {
                     }
                 }
                 h.disconnect();
-                ok = out.length() > 1024 * 1024;
+                ok = r.size > 0 ? out.length() == r.size : out.length() > 50 * 1024; // the Live TV app is well under 1 MB
             } catch (Throwable ignored) {
             }
             if (!ok) { out.delete(); U.MAIN.post(() -> state.accept("Download failed · select to retry")); return; }
