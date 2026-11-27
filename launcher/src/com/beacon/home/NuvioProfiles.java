@@ -23,6 +23,8 @@ final class NuvioProfiles {
     static final class Profile {
         int id;
         String name, color, avatar;
+        /** The accent of this profile's Nuvio theme ("#RRGGBB"), or null when Nuvio doesn't share it. */
+        String themeColor;
         /** The Nuvio app these profiles came from. */
         String pkg;
         boolean active, pin;
@@ -30,6 +32,12 @@ final class NuvioProfiles {
         String initial() {
             String n = name == null ? "" : name.trim();
             return n.isEmpty() ? "?" : n.substring(0, n.offsetByCodePoints(0, 1)).toUpperCase();
+        }
+
+        /** The colour beacon follows: Nuvio's theme accent for this profile, else the profile's own colour. */
+        int accentInt() {
+            try { if (themeColor != null) return android.graphics.Color.parseColor(themeColor); } catch (Exception ignored) {}
+            return colorInt();
         }
 
         int colorInt() {
@@ -61,7 +69,7 @@ final class NuvioProfiles {
             if (cur == null) return null;
             List<Profile> out = new ArrayList<>();
             int id = cur.getColumnIndex("_id"), name = cur.getColumnIndex("name"), color = cur.getColumnIndex("color"),
-                    avatar = cur.getColumnIndex("avatar_uri"), active = cur.getColumnIndex("is_active"),
+                    avatar = cur.getColumnIndex("avatar_uri"), theme = cur.getColumnIndex("theme_color"), active = cur.getColumnIndex("is_active"),
                     pin = cur.getColumnIndex("has_pin");
             while (cur.moveToNext()) {
                 Profile p = new Profile();
@@ -70,6 +78,7 @@ final class NuvioProfiles {
                 p.name = cur.getString(name);
                 p.color = color < 0 ? null : cur.getString(color);
                 p.avatar = avatar < 0 ? null : cur.getString(avatar);
+                p.themeColor = theme < 0 ? null : cur.getString(theme);
                 p.active = active >= 0 && cur.getInt(active) == 1;
                 p.pin = pin >= 0 && cur.getInt(pin) == 1;
                 out.add(p);

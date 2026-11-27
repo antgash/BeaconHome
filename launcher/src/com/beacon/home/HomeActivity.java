@@ -600,46 +600,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private int activeProfileId = -1;
 
-    /**
-     * The colour "Follow Nuvio" uses: the backdrop colour of the profile's picture (what you see on the profile
-     * button), or the profile's own colour when it has no picture or the picture's edge isn't one flat colour.
-     */
+    /** "Follow Nuvio": the accent of the active profile's Nuvio theme (the colour Nuvio highlights with). */
     private void rememberProfileColour(final NuvioProfiles.Profile p) {
-        final int hex = p.colorInt();
-        if (TextUtils.isEmpty(p.avatar)) { setProfileAccent(p.id, hex); return; }
-        Bitmap hit = Img.cached(p.avatar, 96);
-        if (hit != null) { setProfileAccent(p.id, avatarBackdrop(hit, hex)); return; }
-        Img.load(this, p.avatar, 96, bmp -> setProfileAccent(p.id, bmp == null ? hex : avatarBackdrop(bmp, hex)));
+        setProfileAccent(p.id, p.accentInt());
     }
 
     private void setProfileAccent(int profileId, int colour) {
-        if (profileId != activeProfileId) return; // the active profile changed while the picture loaded
+        if (profileId != activeProfileId) return;
         if (prefs.getInt("last_nuvio_accent", 0) == colour) return;
         prefs.edit().putInt("last_nuvio_accent", colour).apply();
         if ("nuvio".equals(V.themeMode(this))) applyThemeMode();
-    }
-
-    /** Average of the picture's outermost opaque pixels, if they are all about the same colour; otherwise the fallback. */
-    private static int avatarBackdrop(Bitmap b, int fallback) {
-        int w = b.getWidth(), h = b.getHeight();
-        if (w < 8 || h < 8) return fallback;
-        long r = 0, g = 0, bl = 0; int n = 0;
-        int[] rs = new int[32], gs = new int[32], bs = new int[32];
-        for (int i = 0; i < 32; i++) {
-            double a = i * Math.PI / 16;
-            int x = (int) Math.round(w / 2.0 + Math.cos(a) * (w / 2.0 - 4) * 0.96);
-            int y = (int) Math.round(h / 2.0 + Math.sin(a) * (h / 2.0 - 4) * 0.96);
-            int px = b.getPixel(Math.max(0, Math.min(w - 1, x)), Math.max(0, Math.min(h - 1, y)));
-            if (Color.alpha(px) < 200) continue;
-            rs[n] = Color.red(px); gs[n] = Color.green(px); bs[n] = Color.blue(px);
-            r += rs[n]; g += gs[n]; bl += bs[n]; n++;
-        }
-        if (n < 8) return fallback;
-        int mr = (int) (r / n), mg = (int) (g / n), mb = (int) (bl / n);
-        long spread = 0;
-        for (int i = 0; i < n; i++) spread += Math.abs(rs[i] - mr) + Math.abs(gs[i] - mg) + Math.abs(bs[i] - mb);
-        if (spread / n > 45) return fallback; // the edge isn't a flat backdrop
-        return Color.rgb(mr, mg, mb);
     }
 
     private void setAvatar(final ImageView iv, NuvioProfiles.Profile p, int px) {
