@@ -47,7 +47,7 @@ beacon updates itself from this repo's Releases:
 
 **Top bar and menu**
 - The top-left pill opens the **beacon menu**, a short list of categories. Select one to open its page, and Back returns to the list:
-  - **Appearance**: theme colour bubbles, **Colours from artwork**, **Surface** (Frosted glass, Smoke or Slate, the last two semi-transparent), **Focus style** (Glow or Fill), **Dock style** (see below), **Card style** (see below) and **Title artwork**.
+  - **Appearance**: **Theme colors** (*Follow Nuvio* uses the active Nuvio profile's colour, *From artwork* uses the picture on screen, *Choose* slides out the colour bubbles to pick a theme), **Surface** (Frosted glass, Smoke or Slate, the last two semi-transparent), **Focus style** (Glow or Fill), **Dock style** (see below), **Card style** (see below) and **Title artwork**.
   - **Screensaver**: **Start screensaver** at the top (preview it right now; any key leaves), **Screensaver starts after** (Off, 1, 3, 5, 10 or 20 minutes), **Artwork changes every**, and **Use as Android TV screensaver** (jumps to the system screensaver picker).
   - **Sound**: navigation sounds on/off and an 8-step volume.
   - **Weather**: show it by the clock, and **Weather location** (search for a city by name, or go back to automatic).

@@ -59,6 +59,16 @@ final class V {
 
     static int accent() { return artAccent != null ? artAccent : themeAccent; }
 
+    /** Where the accent colour comes from: "nuvio" (the active Nuvio profile), "artwork" or "choose" (a theme). */
+    static String themeMode(Context c) {
+        android.content.SharedPreferences p = U.prefs(c);
+        String m = p.getString("theme_mode", null);
+        if (m != null) return m;
+        return p.getBoolean("art_colours", true) ? "artwork" : "choose"; // from before this setting existed
+    }
+
+    static boolean artTint(Context c) { return "artwork".equals(themeMode(c)); }
+
     /** Focus style: true = accent ring + glow, false = the original solid fill. */
     static boolean glowFocus = true;
 
@@ -70,6 +80,10 @@ final class V {
         else { GLASS = 0x14FFFFFF; GLASS_STRONG = 0x1FFFFFFF; LINE = 0x29FFFFFF; }
         String id = U.prefs(c).getString("theme", "ember");
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); break; }
+        if ("nuvio".equals(themeMode(c))) { // follow the active Nuvio profile's colour (remembered from the last time it was read)
+            int n = U.prefs(c).getInt("last_nuvio_accent", 0);
+            if (n != 0) themeAccent = ArtColor.asAccent(n);
+        }
         // Panels (the beacon menu and the long-press sheets) follow the surface too.
         if (surface == 0) MENU_ROW = U.mix(BG, 0xFFFFFFFF, 0.17f); // solid, one step lighter than the panel
         // Menus are fully solid (nothing shows through), in the chosen surface's colours.
@@ -336,7 +350,7 @@ final class V {
         for (int i = 0; i < g.getChildCount(); i++) unclip(g.getChildAt(i));
     }
 
-    static int edge(Context c) { return U.prefs(c).getInt("edge", 64); }
+    static int edge(Context c) { return Math.min(80, U.prefs(c).getInt("edge", 64)); } // 96 (the old Extra large) is capped at Large
 
     /** Backgrounds (the first {@code bleed} children of root) stay full screen; the content moves in from the edges. */
     static void fit(android.app.Activity a, int bleed) {

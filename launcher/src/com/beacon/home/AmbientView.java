@@ -194,7 +194,7 @@ final class AmbientView extends FrameLayout {
                 if (!running || tk != token) return;
                 if (bm == null) { U.MAIN.postDelayed(next, 1500); return; }
                 // the colour of the text above the title follows the picture, as on the home screen
-                final boolean tint = U.prefs(getContext()).getBoolean("art_colours", true);
+                final boolean tint = V.artTint(getContext());
                 U.IO.execute(() -> {
                     final Integer c = tint ? ArtColor.extract(bm) : null;
                     U.MAIN.post(() -> {

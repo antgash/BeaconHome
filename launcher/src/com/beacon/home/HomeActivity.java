@@ -307,7 +307,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     @Override public void onSharedPreferenceChanged(SharedPreferences p, String key) {
         if (key == null || key.startsWith("last_") || key.startsWith("count_") || key.equals("svc")) return;
-        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "art_colours".equals(key) || "focus_glow".equals(key) || "surface".equals(key) || "app_style".equals(key)) {
+        if ("theme_mode".equals(key)) { applyThemeMode(); return; }
+        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "focus_glow".equals(key) || "surface".equals(key) || "app_style".equals(key)) {
             V.loadTheme(this);
             if (player != null) player.stop();
             build();
@@ -380,7 +381,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             configurePlayer();
             player.setListener(new ScenePlayer.Listener() {
                 @Override public void onScene(Scene s, int index, int count) {
-                    if (prefs.getBoolean("art_colours", true)) setAccent(s.accent);
+                    if (V.artTint(HomeActivity.this)) setAccent(s.accent);
                     if (heroKey == null) showGreeting();
                 }
                 @Override public void onProgress(float f) {}
@@ -581,6 +582,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         profiles = list;
         final NuvioProfiles.Profile p = NuvioProfiles.active(list);
         cwOwner = p == null ? null : p.name;
+        if (p != null && prefs.getInt("last_nuvio_accent", 0) != p.colorInt()) {
+            prefs.edit().putInt("last_nuvio_accent", p.colorInt()).apply();
+            if ("nuvio".equals(V.themeMode(this))) applyThemeMode();
+        }
         if (cwHead != null) cwHead.setText(cwHeading());
         if (p == null) {
             if (profileBtn.hasFocus() && menuPill != null) menuPill.requestFocus();
@@ -1168,7 +1173,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (page == null) {
             int mins = prefs.getInt(U.P_AMBIENT_MIN, 3);
             String city = prefs.getString("wx_city", "");
-            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, cards, artwork", () -> openMenuPage("look"));
+            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme colors, focus, cards, dock", () -> openMenuPage("look"));
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.MOON, "Screensaver", mins == 0 ? "Off" : "Starts after " + mins + " min", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -1181,10 +1186,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
 
         if ("look".equals(page)) {
-            menuPanel.addView(menuLabel("Theme"));
-            menuPanel.addView(themeRow(), lp(U.MATCH, V.dp(34), 0, 0, 0, 8));
-            menuFirst = toggleButton(Icon.EYE, "Colours from artwork", "art_colours", true);
-            menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            View themeBlock = buildThemeColors();
+            menuPanel.addView(themeBlock, lp(U.MATCH, U.WRAP, 0, 0, 0, 8));
+            menuFirst = menuFocusDot ? selectedThemeDot() : themeOption;
+            menuFocusDot = false;
             menuPanel.addView(focusStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(cwStyleToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(surfaceToggle(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -1222,9 +1227,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             volumeRow.setAlpha(Sfx.isEnabled() ? 1f : 0.45f);
             menuPanel.addView(volumeRow, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
         } else if ("system".equals(page)) {
-            final int[] edges = {48, 64, 80, 96};
-            menuFirst = cycleRow(Icon.SLIDERS, "Screen edge margin", new String[] {"Small", "Medium", "Large", "Extra large"}, () -> {
-                int v = prefs.getInt("edge", 64);
+            final int[] edges = {48, 64, 80};
+            menuFirst = cycleRow(Icon.SLIDERS, "Screen edge margin", new String[] {"Small", "Medium", "Large"}, () -> {
+                int v = Math.min(80, prefs.getInt("edge", 64));
                 for (int i = 0; i < edges.length; i++) if (edges[i] == v) return i;
                 return 1;
             }, i -> prefs.edit().putInt("edge", edges[i]).apply(), true);
@@ -1654,6 +1659,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private LinearLayout themeRow() {
         final LinearLayout row = U.row(this);
+        themeDots.clear();
         String cur = prefs.getString("theme", "ember");
         for (final String[] t : V.THEMES) {
             final boolean on = t[0].equals(cur);
@@ -1675,13 +1681,97 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 g.setStroke(V.dp(has ? 3 : on ? 2.5f : 1), has || on ? V.TEXT : 0x55FFFFFF);
                 b.setBackground(g);
             });
-            b.setOnClickListener(v -> { reopenMenu = true; prefs.edit().putString("theme", t[0]).apply(); });
+            b.setOnClickListener(v -> { reopenMenu = true; menuFocusDot = true; prefs.edit().putString("theme", t[0]).apply(); });
+            themeDots.add(b);
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(V.dp(24), V.dp(24));
             p.rightMargin = V.dp(9);
-            p.topMargin = V.dp(4);
             row.addView(b, p);
         }
         return row;
+    }
+
+    // ------------------------------------------------------------------ theme colors
+
+    private final List<View> themeDots = new ArrayList<>();
+    private View themeOption, themeDotRow;
+    private boolean menuFocusDot, themeOpen;
+    private android.animation.ValueAnimator themeAnim;
+    private static final String[] THEME_MODES = {"nuvio", "artwork", "choose"};
+    private static final float PEEK_DP = 12, OPEN_DP = 30; // how far the option sits below the colour circles
+
+    private View selectedThemeDot() {
+        String cur = prefs.getString("theme", "ember");
+        for (int i = 0; i < V.THEMES.length && i < themeDots.size(); i++) if (V.THEMES[i][0].equals(cur)) return themeDots.get(i);
+        return themeDots.isEmpty() ? themeOption : themeDots.get(0);
+    }
+
+    private void setDotsFocusable(boolean on) {
+        for (View d : themeDots) { d.setFocusable(on); d.setFocusableInTouchMode(on); }
+    }
+
+    /**
+     * "Theme colors": Follow Nuvio / From artwork / Choose. The colour circles sit half hidden behind the option
+     * (peeking over its top edge) and slide out when Choose is picked, with the selection moving up to the chosen colour.
+     */
+    private View buildThemeColors() {
+        final FrameLayout box = new FrameLayout(this);
+        box.setClipChildren(false);
+        box.setClipToPadding(false);
+        final LinearLayout dots = themeRow();
+        themeDotRow = dots;
+        FrameLayout.LayoutParams dp = new FrameLayout.LayoutParams(U.WRAP, V.dp(24));
+        dp.leftMargin = V.dp(16);
+        box.addView(dots, dp);
+        themeOption = cycleRow(Icon.EYE, "Theme colors", new String[] {"FOLLOW NUVIO", "FROM ARTWORK", "CHOOSE"}, () -> {
+            String m = V.themeMode(this);
+            for (int i = 0; i < THEME_MODES.length; i++) if (THEME_MODES[i].equals(m)) return i;
+            return 1;
+        }, i -> {
+            prefs.edit().putString("theme_mode", THEME_MODES[i]).apply();
+            setThemeOpen(i == 2, true);
+        }, false);
+        FrameLayout.LayoutParams op = new FrameLayout.LayoutParams(U.MATCH, V.dp(48));
+        box.addView(themeOption, op); // added last, so it covers the lower half of the circles
+        themeOpen = "choose".equals(V.themeMode(this));
+        op.topMargin = V.dp(themeOpen ? OPEN_DP : PEEK_DP);
+        setDotsFocusable(themeOpen);
+        return box;
+    }
+
+    private void setThemeOpen(final boolean open, boolean animate) {
+        if (themeOption == null || open == themeOpen && animate) return;
+        themeOpen = open;
+        if (themeAnim != null) themeAnim.cancel();
+        final FrameLayout.LayoutParams op = (FrameLayout.LayoutParams) themeOption.getLayoutParams();
+        final int from = op.topMargin, to = V.dp(open ? OPEN_DP : PEEK_DP);
+        if (open) setDotsFocusable(true);
+        final Runnable done = () -> {
+            op.topMargin = to;
+            themeOption.setLayoutParams(op);
+            if (!open) setDotsFocusable(false);
+            refitMenuKeeping(themeOption);
+            if (open) { View d = selectedThemeDot(); if (d != null) d.requestFocus(); } // selection moves up to the chosen colour
+        };
+        if (!animate) { done.run(); return; }
+        themeAnim = android.animation.ValueAnimator.ofFloat(0f, 1f);
+        themeAnim.setDuration(240);
+        themeAnim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        themeAnim.addUpdateListener(a -> {
+            op.topMargin = Math.round(from + (to - from) * (Float) a.getAnimatedValue());
+            themeOption.setLayoutParams(op);
+        });
+        themeAnim.addListener(new android.animation.AnimatorListenerAdapter() {
+            private boolean cancelled;
+            @Override public void onAnimationCancel(android.animation.Animator an) { cancelled = true; }
+            @Override public void onAnimationEnd(android.animation.Animator an) { if (!cancelled) done.run(); }
+        });
+        themeAnim.start();
+    }
+
+    /** The theme-colours source changed: refresh the accent without rebuilding Home (so the menu animation can play). */
+    private void applyThemeMode() {
+        V.loadTheme(this);
+        if (shade != null && !V.artTint(this)) setAccent(null); // fades to the Nuvio profile's colour or the chosen theme
     }
 
     private View scrim, topBar;
@@ -2014,7 +2104,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 });
             }, first ? 0 : 420);
             // The colour does not wait for the backdrop: it is read from a small copy of the picture almost at once.
-            if (artMode() && prefs.getBoolean("art_colours", true)) {
+            if (artMode() && V.artTint(this)) {
                 U.MAIN.postDelayed(() -> {
                     if (token != heroToken) return;
                     Img.load(this, art, 160, small -> {
