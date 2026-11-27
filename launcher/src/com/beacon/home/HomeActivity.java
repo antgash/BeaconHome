@@ -2150,9 +2150,18 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, 0));
         }
         appsRow = row(block, 10);
+        // Both styles are centred on the screen; a row too wide to fit (many pinned apps) goes back to the left edge and scrolls.
+        if (appsRow.getParent() instanceof View) {
+            final FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
+            cp.gravity = Gravity.CENTER_HORIZONTAL;
+            appsRow.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> {
+                View hs = (View) appsRow.getParent();
+                int want = appsRow.getWidth() > hs.getWidth() ? Gravity.START : Gravity.CENTER_HORIZONTAL;
+                if (hs.getWidth() > 0 && cp.gravity != want) { cp.gravity = want; appsRow.requestLayout(); }
+            });
+        }
         if (appCircle && appsRow.getParent() instanceof View) {
             FrameLayout.LayoutParams ap = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
-            ap.gravity = Gravity.CENTER_HORIZONTAL;
             // 14 + 48 - 6 = the 56 a pill row takes, so nothing above shifts; the dock's last 6dp hangs into the bottom margin.
             ap.topMargin = V.dp(14);
             ap.bottomMargin = -V.dp(6);
