@@ -324,25 +324,27 @@ final class Streaming {
         // With a genre there are fewer titles, so the vote floors are lower.
         final int latestVotes = g == null ? 5 : 2, topMovieVotes = g == null ? 300 : 120, topTvVotes = g == null ? 200 : 80;
         final String noDocs = g == null ? "&without_genres=99" : "";
+        // Row titles name the genre on a genre page: "Latest Horror Movies".
+        final String gn = g == null ? "" : g.name + " ";
         // Paired by category: Latest movies then Latest series, then Top, then Popular.
         List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
         if (movies)
-            jobs.add(() -> new Row("Latest Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg + noDocs
+            jobs.add(() -> new Row("Latest " + gn + "Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg + noDocs
                     + "&sort_by=primary_release_date.desc&primary_release_date.lte=" + today + "&vote_count.gte=" + latestVotes, "results"), "movie", s)));
         if (series)
-            jobs.add(() -> new Row("Latest Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
+            jobs.add(() -> new Row("Latest " + gn + "Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
                     + "&sort_by=first_air_date.desc&first_air_date.lte=" + today + "&vote_count.gte=" + latestVotes, "results"), "series", s)));
         if (movies)
-            jobs.add(() -> new Row("Top Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg
+            jobs.add(() -> new Row("Top " + gn + "Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg
                     + "&sort_by=vote_average.desc&vote_count.gte=" + topMovieVotes, "results"), "movie", s)));
         if (series)
-            jobs.add(() -> new Row("Top Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
+            jobs.add(() -> new Row("Top " + gn + "Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
                     + "&sort_by=vote_average.desc&vote_count.gte=" + topTvVotes, "results"), "series", s)));
         if (movies)
-            jobs.add(() -> new Row("Popular Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg
+            jobs.add(() -> new Row("Popular " + gn + "Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg
                     + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s)));
         if (series)
-            jobs.add(() -> new Row("Popular Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
+            jobs.add(() -> new Row("Popular " + gn + "Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
                     + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s)));
         return parallel(jobs);   // keeps the order above
     }
