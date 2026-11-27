@@ -90,6 +90,7 @@ final class V {
         if (surface == 1) { MENU_PANEL = 0xFF0E0E12; MENU_PANEL_LINE = 0; }
         else if (surface == 2) { MENU_PANEL = 0xFF2E3544; MENU_PANEL_LINE = 0; }
         else { MENU_PANEL = U.mix(BG, 0xFFFFFFFF, 0.10f); MENU_PANEL_LINE = 0x40FFFFFF; }
+        Ui.accent = accent(); // the shared UI helpers (bars, outlines, cards) start from the same colour
     }
 
     static float scale = 1f;

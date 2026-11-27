@@ -1777,6 +1777,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     /** The theme-colours source changed: refresh the accent without rebuilding Home (so the menu animation can play). */
     private void applyThemeMode() {
+        final int before = V.accent();
+        if (V.artAccent == null) V.artAccent = before; // keep showing the old colour until the fade below starts (loadTheme changes the base colour)
         V.loadTheme(this);
         if ("nuvio".equals(V.themeMode(this))) refreshProfiles(); // read the active profile's colour now, in case none is remembered yet
         if (shade != null && !V.artTint(this)) setAccent(null); // fades to the Nuvio profile's colour or the chosen theme
@@ -2136,7 +2138,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final int to = raw == null ? V.themeAccent : ArtColor.asAccent(raw);
         final Integer target = raw == null ? null : to;
         shade.set(V.BG, raw == null ? null : ArtColor.asGlow(raw));
-        if (from == to) { V.artAccent = target; return; }
+        if (from == to) { V.artAccent = target; Ui.accent = V.accent(); heroLabel.setTextColor(V.accent()); heroProgFill.setBackground(V.shape(V.accent(), 2, 0)); redrawAll(root); return; }
         final android.animation.ArgbEvaluator ev = new android.animation.ArgbEvaluator();
         accentFade = android.animation.ValueAnimator.ofFloat(0f, 1f);
         accentFade.setDuration(260);
