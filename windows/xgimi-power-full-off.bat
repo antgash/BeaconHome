@@ -10,7 +10,7 @@ if "%IP%"=="" ( echo config.bat has no device address. Run setup-config.bat to f
 set "B=%~dp0backup"
 if not exist "%B%" mkdir "%B%"
 "%ADB%" connect %IP% >nul 2>&1
-"%ADB%" -s %IP% get-state >nul 2>&1 || ( echo Can't reach the device at %IP%. & echo - Is it on and on the same Wi-Fi? & echo - Android 11+ / Google TV ^(Mi Box S 2nd gen, Chromecast^): run pair-device.bat first. & echo - Otherwise run find-projector.bat, then setup-config.bat. & pause & exit /b 1 )
+"%ADB%" -s %IP% get-state >nul 2>&1 || ( echo Can't reach the device at %IP%. & echo - Is it on and on the same Wi-Fi? & echo - Android 11+ / Google TV ^(Mi Box S 2nd gen, Chromecast^): run pair-device.bat first. & echo - Otherwise run find-device.bat, then setup-config.bat. & pause & exit /b 1 )
 rem -- XGIMI only: make the remote's power button shut down fully (logo on every start) --
 if not exist "%B%\power-key.txt" "%ADB%" -s %IP% shell settings get system power_key_definition > "%B%\power-key.txt"
 "%ADB%" -s %IP% shell settings put system power_key_definition 1

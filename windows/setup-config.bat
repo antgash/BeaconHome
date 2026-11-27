@@ -7,7 +7,7 @@ echo   (saved only on this PC, in config.bat)
 echo ============================================
 echo.
 set "IP="
-if exist found-projector.txt type found-projector.txt
+if exist found-device.txt type found-device.txt
 echo.
 echo Device address, e.g. 192.168.1.20:5555
 echo   (Android 11+/Google TV wireless debugging: use the address:port shown

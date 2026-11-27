@@ -10,7 +10,7 @@ if "%IP%"=="" ( echo config.bat has no device address. Run setup-config.bat to f
 set "B=%~dp0backup"
 if not exist "%B%" mkdir "%B%"
 "%ADB%" connect %IP% >nul 2>&1
-"%ADB%" -s %IP% get-state >nul 2>&1 || ( echo Can't reach the device at %IP%. & echo - Is it on and on the same Wi-Fi? & echo - Android 11+ / Google TV ^(Mi Box S 2nd gen, Chromecast^): run pair-device.bat first. & echo - Otherwise run find-projector.bat, then setup-config.bat. & pause & exit /b 1 )
+"%ADB%" -s %IP% get-state >nul 2>&1 || ( echo Can't reach the device at %IP%. & echo - Is it on and on the same Wi-Fi? & echo - Android 11+ / Google TV ^(Mi Box S 2nd gen, Chromecast^): run pair-device.bat first. & echo - Otherwise run find-device.bat, then setup-config.bat. & pause & exit /b 1 )
 echo Installing beacon...
 if not exist BeaconHome.apk ( echo Put BeaconHome.apk next to this file first. & pause & exit /b 1 )
 "%ADB%" -s %IP% install -r -g BeaconHome.apk || ( pause & exit /b 1 )
@@ -29,7 +29,7 @@ rem -- make beacon the home screen; a tiny helper sends the remote's Home button
 "%ADB%" -s %IP% shell cmd package set-home-activity %P%/com.beacon.home.HomeActivity
 "%ADB%" -s %IP% shell settings put secure enabled_accessibility_services %P%/com.beacon.home.HomeButtonService
 "%ADB%" -s %IP% shell settings put secure accessibility_enabled 1
-rem -- hand over your settings (kept only on the projector) --
+rem -- hand over your settings (kept only on the device) --
 set "X="
 if not "%NAME%"=="" set X=%X% --es name "%NAME%"
 if not "%TMDB_KEY%"=="" set X=%X% --es tmdb "%TMDB_KEY%"

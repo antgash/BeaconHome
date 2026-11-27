@@ -17,7 +17,7 @@
 3. If there's no `config.bat`, it runs `setup-config.bat` for you. That asks for the TV's IP address (Settings → Network on the TV) and saves it, so you only enter it once.
 4. If it can't reach the device, it shows a message:
    - On Android 11+ or Google TV (such as the Chromecast), run `pair-device.bat` first.
-   - Otherwise run `find-projector.bat`, then `setup-config.bat`.
+   - Otherwise run `find-device.bat`, then `setup-config.bat`.
    - Allow the USB or network debugging prompt on the TV if it appears.
 5. It then does four things on the TV:
    - sets beacon as the default home app;
