@@ -2154,7 +2154,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         }
         appsRow = row(block, 10);
         // Both styles are centred on the screen; a row too wide to fit (many pinned apps) goes back to the left edge and scrolls.
-        if (appsRow.getParent() instanceof View) {
+        if ((appCircle || appCards) && appsRow.getParent() instanceof View) {
             final FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
             cp.gravity = Gravity.CENTER_HORIZONTAL;
             appsRow.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> {
@@ -2746,7 +2746,14 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             fp.bottomMargin = pins.isEmpty() ? 0 : (appCircle || appCards) ? -V.dp(6) : 0;
         }
         appsRow.setMinimumHeight(appCards && !pins.isEmpty() ? V.dp(CARD_H) : appCircle && !pins.isEmpty() ? V.dp(48) : 0);
-        appsRow.setGravity(Gravity.CENTER_VERTICAL);
+        if (appCircle || appCards) {
+            appsRow.setGravity(Gravity.CENTER_VERTICAL);
+        } else {
+            // Pill: the row is at least as wide as the screen and its pills are centred inside it. When the pills (and their
+            // names) are wider than the screen the row simply grows, so it starts at the left edge and scrolls instead.
+            appsRow.setMinimumWidth(getResources().getDisplayMetrics().widthPixels);
+            appsRow.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL);
+        }
         if (appCards) appsRow.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
         if (appCircle) {
             appsRow.setPadding(V.dp(5), V.dp(5), V.dp(5), V.dp(5));
