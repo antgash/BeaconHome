@@ -11,6 +11,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -55,7 +56,38 @@ public class AllAppsActivity extends Activity {
         });
     }
 
+    private boolean loaded;
+    private int restoreIdx = -1;
+
+    /** Coming back from App info or an uninstall: drop apps that are gone (and show new ones) right away. */
+    @Override protected void onResume() {
+        super.onResume();
+        if (!loaded) return;
+        U.IO.execute(() -> {
+            final List<Apps.App> apps = Apps.load(getApplicationContext());
+            U.MAIN.post(() -> {
+                if (isFinishing() || samePackages(apps, allApps)) return;
+                int idx = 0, n = 0;
+                for (int r = 1; r < list.getChildCount(); r++) {
+                    ViewGroup row = (ViewGroup) list.getChildAt(r);
+                    for (int c = 0; c < row.getChildCount(); c++) { if (row.getChildAt(c).hasFocus()) idx = n; n++; }
+                }
+                restoreIdx = idx;
+                build(apps);
+            });
+        });
+    }
+
+    private static boolean samePackages(List<Apps.App> a, List<Apps.App> b) {
+        if (a.size() != b.size()) return false;
+        java.util.Set<String> s = new java.util.HashSet<>();
+        for (Apps.App x : b) s.add(x.pkg);
+        for (Apps.App x : a) if (!s.contains(x.pkg)) return false;
+        return true;
+    }
+
     private void build(List<Apps.App> apps) {
+        loaded = true;
         list.removeAllViews();
         list.addView(V.text(this, "All apps", 24, 800, V.TEXT));
         allApps = apps;
@@ -83,6 +115,16 @@ public class AllAppsActivity extends Activity {
                 row.addView(t, tp);
                 if (first == null) first = t;
             }
+        }
+        if (restoreIdx >= 0) { // after an uninstall: keep the selection where it was (or on the last icon)
+            List<View> tiles = new java.util.ArrayList<>();
+            for (int r = 1; r < list.getChildCount(); r++) {
+                ViewGroup row = (ViewGroup) list.getChildAt(r);
+                for (int c = 0; c < row.getChildCount(); c++) tiles.add(row.getChildAt(c));
+            }
+            View target = tiles.isEmpty() ? null : tiles.get(Math.min(restoreIdx, tiles.size() - 1));
+            restoreIdx = -1;
+            if (target != null) first = target;
         }
         if (first != null) { final View f = first; f.post(f::requestFocus); }
     }
