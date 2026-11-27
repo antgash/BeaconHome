@@ -2624,7 +2624,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final ImageView logo = V.image(this, ImageView.ScaleType.FIT_CENTER);
         logo.setPadding(0, V.dp(7), 0, V.dp(7));
         t.addView(logo, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-        Img.load(this, "asset:tvguide-logo.png", V.dp(120), b -> { if (b != null) logo.setImageBitmap(b); });
+        Img.load(this, "asset:tvguide-logo-v2.png", V.dp(120), b -> { if (b != null) logo.setImageBitmap(b); });
         final ImageView gif = V.image(this, ImageView.ScaleType.CENTER_CROP);
         gif.setTag("gif");
         gif.setAlpha(0f);
@@ -2641,7 +2641,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 V.tileGlow(t, has, 12, 1.08f);
             if (has) {
                 playGif(t, gif, "asset:tvguide-hover.gif", tw, th);
-                setHero("svc:live", "Live TV", "TV Guide", "asset:tvguide-logo.png",
+                setHero("svc:live", "Live TV", "TV Guide", "asset:tvguide-logo-v2.png",
                         "Channels with a full TV guide · watch here or in Nuvio", 0, null, "asset:live-backdrop-v4.jpg");
             } else if (gifHost == t) {
                 stopGif();
