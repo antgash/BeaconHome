@@ -89,7 +89,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     // rows
     private LinearLayout cwBlock, cwRow, svcRow, appsRow;
-    private boolean appCircle;
+    private boolean appCircle, appCards;
     private FrameLayout dockBox;
     private TextView dockLabel;
     private LinearLayout volumeRow;
@@ -1491,9 +1491,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 i -> prefs.edit().putInt("surface", i).apply(), true);
     }
 
-    /** App row: Pill (name beside each icon) or Circle (a centred dock of round icons, name above the selected one). */
+    /** Dock style: Pill (name beside each icon), Circle (a dock of round icons, name above the selected one) or Cards (banners). */
     private View appStyleToggle() {
-        return cycleRow(Icon.APPS, "App style", new String[] {"PILL", "CIRCLE"},
+        return cycleRow(Icon.APPS, "Dock style", new String[] {"PILL", "CIRCLE", "CARDS"},
                 () -> prefs.getInt("app_style", 0),
                 i -> prefs.edit().putInt("app_style", i).apply(), true);
     }
@@ -2131,6 +2131,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private void buildApps(LinearLayout col) {
         LinearLayout block = U.col(this);
         appCircle = prefs.getInt("app_style", 0) == 1;
+        appCards = prefs.getInt("app_style", 0) == 2;
         if (appCircle) {
             // Circle dock: the selected app's name floats in a small label above the dock.
             dockBox = new FrameLayout(this);
@@ -2166,7 +2167,24 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             ap.topMargin = V.dp(14);
             ap.bottomMargin = -V.dp(6);
         }
+        if (appCards && appsRow.getParent() instanceof View) {
+            // Cards: banners fill the band under the streaming row. 2 + 60 - 6 = the same 56 a pill row takes, and the
+            // bottom edge lands where the circle dock's does, so the space to the bottom of the screen is the same.
+            FrameLayout.LayoutParams ap = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
+            ap.topMargin = V.dp(CARD_TOP);
+            ap.bottomMargin = -V.dp(6);
+        }
         col.addView(block, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
+    }
+
+    private static final float CARD_TOP = 2, CARD_H = 60, CARD_GAP = 10, CARD_MIN_W = 74;
+
+    /** Width of a banner card: as wide as the band allows (16:9), shrinking so n cards fit, but never below CARD_MIN_W. */
+    private float cardWidth(int n) {
+        float avail = getResources().getDisplayMetrics().widthPixels / V.scale - 2 * EDGE;
+        float full = CARD_H * 16f / 9f;
+        float fit = (avail - (n - 1) * CARD_GAP) / Math.max(1, n);
+        return Math.max(CARD_MIN_W, Math.min(full, fit));
     }
 
     private void addToRow(LinearLayout r, View v) {
@@ -2704,12 +2722,64 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void fillApps() {
         appsRow.removeAllViews();
-        appsRow.setTag(appCircle ? 10f : 10f);
+        appsRow.setTag(appCards ? CARD_GAP : 10f);
+        final List<Apps.App> pins = pinned();
+        if (appCards) appsRow.setPadding(V.dp(EDGE), 0, V.dp(EDGE), 0);
         if (appCircle) {
             appsRow.setPadding(V.dp(5), V.dp(5), V.dp(5), V.dp(5));
             appsRow.setBackground(V.shape(V.GLASS_STRONG, 20, V.LINE));
         }
-        for (final Apps.App a : pinned()) {
+        for (final Apps.App a : pins) {
+            if (appCards) {
+                final float cw = cardWidth(pins.size()), ch = cw * 9f / 16f;
+                final int tw = V.dp(cw), th = V.dp(ch);
+                final FrameLayout t = new FrameLayout(this);
+                t.setFocusable(true);
+                t.setFocusableInTouchMode(true);
+                LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(tw, th);
+                tp.topMargin = V.dp((CARD_H - ch) / 2f); // smaller cards stay centred in the band
+                t.setLayoutParams(tp);
+                V.round(t, 10);
+                if (a.banner != null) {
+                    t.setBackgroundColor(0xFF1A1C22);
+                    ImageView iv = V.image(this, ImageView.ScaleType.CENTER_CROP);
+                    iv.setImageDrawable(a.banner);
+                    t.addView(iv, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+                } else {
+                    t.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                            new int[] {U.mix(a.color, 0xFFFFFFFF, 0.1f), U.mix(a.color, 0xFF000000, 0.5f)}));
+                    ImageView iv = V.image(this, ImageView.ScaleType.FIT_CENTER);
+                    iv.setImageDrawable(a.icon);
+                    int is = Math.round(th * 0.46f);
+                    t.addView(iv, U.flp(is, is, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, th * 0.10f / U.k, 0, 0));
+                    TextView tv = V.text(this, a.label, 9.5f, 600, V.TEXT);
+                    tv.setGravity(Gravity.CENTER);
+                    V.ellipsize(tv);
+                    t.addView(tv, U.flp(U.MATCH, U.WRAP, Gravity.BOTTOM, 4, 0, 4, 5));
+                }
+                final View ring = new View(this);
+                ring.setBackground(new V.Glow(9, 0f, 1));
+                ring.setAlpha(0f);
+                t.addView(ring, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+                t.setContentDescription(a.label);
+                t.setTag(a.pkg);
+                t.setOnFocusChangeListener((v, has) -> {
+                    t.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
+                            .setDuration(170).setInterpolator(new DecelerateInterpolator()).start();
+                    ring.animate().alpha(has ? 1f : 0f).setDuration(150).start();
+                    V.tileGlow(t, has, 10, 1.08f);
+                });
+                t.setOnClickListener(v -> Apps.launch(this, a));
+                t.setOnLongClickListener(v -> { appMenu(a); return true; });
+                t.setOnKeyListener((v, keyCode, ev) -> {
+                    if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                    if (ev.getAction() == KeyEvent.ACTION_DOWN && ev.getRepeatCount() == 0)
+                        startActivity(new Intent(this, AllAppsActivity.class));
+                    return true;
+                });
+                addToRow(appsRow, t);
+                continue;
+            }
             if (appCircle) {
                 final FrameLayout it = new FrameLayout(this);
                 it.setFocusable(true);
@@ -2759,11 +2829,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             addToRow(appsRow, p);
         }
         // The All apps button only remains when nothing is pinned (the row needs something to focus).
-        if (appCircle && appsRow.getChildCount() > 0) {
+        if (appsRow.getChildCount() > 0) {
             ((ViewGroup.MarginLayoutParams) appsRow.getChildAt(appsRow.getChildCount() - 1).getLayoutParams()).rightMargin = 0;
         }
         if (appsRow.getChildCount() > 0) return;
-        if (appCircle) { appsRow.setBackground(null); appsRow.setPadding(V.dp(EDGE), V.dp(6), V.dp(EDGE), V.dp(8)); }
+        if (appCircle || appCards) { appsRow.setBackground(null); appsRow.setPadding(V.dp(EDGE), V.dp(6), V.dp(EDGE), V.dp(8)); }
         LinearLayout all = V.pill(this, 42, 6, 18);
         FrameLayout dot = new FrameLayout(this);
         dot.setBackground(V.shape(0x24FFFFFF, 15, 0));
