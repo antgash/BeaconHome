@@ -47,13 +47,13 @@ beacon updates itself from this repo's Releases:
 
 **Top bar and menu**
 - The top-left pill opens the **beacon menu**, a short list of categories. Select one to open its page, and Back returns to the list:
-  - **Appearance**: theme colour bubbles, **Colours from artwork**, **Focus style** (Glow or Fill), **Card style** (see below) and **Title artwork**.
+  - **Appearance**: theme colour bubbles, **Colours from artwork**, **Surface** (Frosted glass, Smoke or Slate, the last two semi-transparent), **Focus style** (Glow or Fill), **Dock style** (see below), **Card style** (see below) and **Title artwork**.
   - **Screensaver**: **Start screensaver** at the top (preview it right now; any key leaves), **Screensaver starts after** (Off, 1, 3, 5, 10 or 20 minutes), **Artwork changes every**, and **Use as Android TV screensaver** (jumps to the system screensaver picker).
   - **Sound**: navigation sounds on/off and an 8-step volume.
   - **Weather**: show it by the clock, and **Weather location** (search for a city by name, or go back to automatic).
   - **System**: **Screen edge margin**, **Animation speed**, **Google TV recommendations**, **Home screen** (beacon or Google TV), **Nuvio app**, **Nuvio connection** and **Show hidden apps again**.
   - **Updates & downloads**: automatic check on/off, **Update beacon**, **Download Nuvio Beacon** (built for beacon: downloads and installs it from GitHub when it isn't installed; it then updates itself), a **Changelog** of beacon's major revisions (select one to see its main changes) and **About** (version).
-- **Nuvio profile button** next to the beacon pill: it shows the active Nuvio profile's picture, and Select lists every profile so you can switch. The switch happens in Nuvio too. Profiles with a PIN open Nuvio's own profile screen so the PIN is entered there. This needs a Nuvio version that shares its profiles with launchers (proposed to Nuvio; the button stays hidden until then).
+- **Nuvio profile button** next to the beacon pill: it shows the active Nuvio profile's picture, and Select lists every profile so you can switch. The switch happens in Nuvio too. Profiles with a PIN open Nuvio's own profile screen so the PIN is entered there. This needs a Nuvio that shares its profiles with launchers, which **[Nuvio Beacon](https://github.com/antgash/NuvioTVbeacon/blob/beacon/BEACON.md)** does (official Nuvio doesn't yet); the button stays hidden when none is installed. Picking a profile here also skips Nuvio's own "Who's watching?" screen.
 - There is no separate settings screen any more: everything lives in the menu. The hero area on Home is blank until you select something, with no greeting.
 - The **clock is centered with the weather beside it**, in **Fahrenheit**.
 - The ad-blocking (NextDNS) pill and the free-memory pill are gone from the top bar, and **all ad-blocking features have been removed from beacon** (the NextDNS code, its settings entry and the `ad-block-on/off` scripts). HDMI, Wi-Fi and settings buttons remain on the right.
@@ -80,6 +80,12 @@ beacon updates itself from this repo's Releases:
   - **Pills**: the original wide thumbnail pills.
   - **Rings**: a round thumbnail with a thin ring in your theme colour that fills as you get through the show or film (the default).
   - **Poster cards**: picture tiles with the title and time left on the art and a progress bar along the bottom.
+- **Dock style for your apps.** *Appearance → Dock style* sets how the apps row looks:
+  - **Pill**: an icon with its name beside it, centred on the screen (it goes left-aligned only while the names are too long to fit centred).
+  - **Circle**: a dock of round icons, with the name of the selected app shown above it.
+  - **Cards**: each app's banner on a slim background strip. The cards are as large as fit under the streaming row and shrink automatically as you pin more.
+  - The apps row keeps the same height in every style, so the rows above never move.
+- **Up to 10 apps on Home.** Trying to pin an 11th plays the error sound from your sound scheme and shows a themed "Only 10 apps allowed" popup. After you unpin an app, focus moves to the next icon on the left, then the right, then up to the beacon pill.
 - **Choose your Nuvio app.** *System → Nuvio app* picks which Nuvio beacon works with: the official app (the default), any installed fork with "Nuvio" in its name, or **Another app…** to pick anything installed. Whichever you choose is the one Continue watching reads from, and the one that opens and plays Continue watching titles, streaming service titles and screensaver picks. The choice is remembered. A fork needs to publish Android TV "Watch Next" entries like the official app for Continue watching to fill, and may not open every title if it uses different links.
 - **Faster Continue watching.** The row re-checks about every 20 seconds and redraws quietly only when something changed, keeping your place.
 - **Focus glow.** The item you've selected gets a ring and a soft outward glow in your theme colour instead of filling solid white. *Appearance → Focus style* switches between **Glow** and the original **Fill**.
@@ -93,7 +99,7 @@ beacon updates itself from this repo's Releases:
 **beacon** (`launcher/`): a home screen app.
 - **No ads or promoted rows.** It opens on what you were watching, with a big artwork backdrop.
 - **Continue watching** from Nuvio (read from Android TV's Watch Next / Preview programs), with time left and "done by 10:32 PM".
-- **Streaming services** row (Netflix, Prime Video, Apple TV, Hulu, AMC+, Crave…). Each opens a Nuvio-powered page: big title art, then the service's Top 10 and its popular and new movies and series. Picking a title opens it in Nuvio.
+- **Streaming services** row (Netflix, Prime Video, Apple TV, Hulu, AMC+, Crave…) plus a **Live TV** tile with the TV Guide logo. Each streaming service opens a Nuvio-powered page: big title art, then the service's Top 10 and its popular and new movies and series. Picking a title opens it in Nuvio. To give these pages more titles, add a free TMDB v3 API key as a repository secret named `TMDB_KEY` (optional; the build bakes it into the app).
 - **Your apps** row, pinned in the order you choose, plus All apps.
 - **📺 Live TV guide**, TiviMate-style:
   - Big live preview at the top; filter by country, category, language and source.
