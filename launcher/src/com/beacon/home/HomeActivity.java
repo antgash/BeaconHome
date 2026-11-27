@@ -2111,7 +2111,15 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 // where the logo sits now, ignoring the hero's slide-in and any shift already applied
                 float centre = c[1] - hero.getTranslationY() - heroLogo.getTranslationY() + heroLogo.getHeight() / 2f;
                 heroLogo.setTranslationY((top + bottom) / 2f - centre);
-                if (heroLogo.getAlpha() < 1f) heroLogo.animate().alpha(1f).setDuration(160).start();
+                // The artwork is moved partly outside the hero box to centre it, and Android only repaints the part
+                // inside the box it thinks changed, so the overhang (top or bottom) used to appear a moment later.
+                // Repaint the whole screen as it's placed and on every frame of its fade-in, so it shows in one go.
+                final View whole = getWindow().getDecorView();
+                whole.invalidate();
+                if (heroLogo.getAlpha() < 1f) heroLogo.animate().alpha(1f).setDuration(160)
+                        .setUpdateListener(an -> whole.invalidate())
+                        .withEndAction(() -> { heroLogo.animate().setUpdateListener(null); whole.invalidate(); })
+                        .start();
                 return true;
             }
         });
