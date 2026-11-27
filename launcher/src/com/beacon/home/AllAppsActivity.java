@@ -32,6 +32,7 @@ public class AllAppsActivity extends Activity {
         V.init(this);
         prefs = U.prefs(this);
         FrameLayout root = new FrameLayout(this);
+        this.root = root;
         root.setBackgroundColor(V.BG);
         View glow = Ui.gradient(this, GradientDrawable.Orientation.BL_TR, U.alpha(V.accent(), 0.10f), 0x00000000, 0x00000000);
         root.addView(glow, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
@@ -84,6 +85,40 @@ public class AllAppsActivity extends Activity {
             }
         }
         if (first != null) { final View f = first; f.post(f::requestFocus); }
+    }
+
+    private FrameLayout root;
+    private View limitNotice;
+
+    /** "Only 10 apps on Home": an error sound from the sound scheme and a themed pill that fades away. */
+    private void showLimit() {
+        Sfx.error();
+        if (limitNotice != null) root.removeView(limitNotice);
+        LinearLayout pill = new LinearLayout(this);
+        pill.setOrientation(LinearLayout.HORIZONTAL);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setPadding(V.dp(16), 0, V.dp(20), 0);
+        pill.setBackground(V.shape(V.MENU_PANEL, 22, V.MENU_PANEL_LINE));
+        pill.setElevation(V.dpf(6));
+        Icon ic = new Icon(this, Icon.PIN);
+        ic.setColor(V.accent());
+        pill.addView(ic, new LinearLayout.LayoutParams(V.dp(14), V.dp(14)));
+        TextView tv = V.text(this, "Only " + Apps.MAX_PINNED + " apps allowed on Home \u00b7 unpin one to add another", 12.5f, 600, V.TEXT);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(U.WRAP, U.WRAP);
+        tp.leftMargin = V.dp(10);
+        pill.addView(tv, tp);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(U.WRAP, V.dp(44), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        lp.bottomMargin = V.dp(40);
+        root.addView(pill, lp);
+        limitNotice = pill;
+        pill.setAlpha(0f);
+        pill.setTranslationY(V.dpf(12));
+        pill.animate().alpha(1f).translationY(0).setDuration(220).start();
+        final View me = pill;
+        U.MAIN.postDelayed(() -> {
+            if (limitNotice != me) return;
+            me.animate().alpha(0f).setDuration(260).withEndAction(() -> { root.removeView(me); if (limitNotice == me) limitNotice = null; }).start();
+        }, 2800);
     }
 
     private View firstRow;
@@ -140,7 +175,7 @@ public class AllAppsActivity extends Activity {
             final boolean pinned = Apps.isPinned(this, allApps, a.pkg);
             ActionSheet sheet = new ActionSheet(this, a.label);
             if (pinned) sheet.add("Unpin from Home", Icon.UNPIN, () -> { Apps.unpin(this, allApps, a.pkg); badge.setVisibility(View.GONE); });
-            else sheet.add("Pin to Home", Icon.PIN, () -> { Apps.pin(this, allApps, a.pkg); badge.setVisibility(View.VISIBLE); });
+            else sheet.add("Pin to Home", Icon.PIN, () -> { if (Apps.pin(this, allApps, a.pkg)) badge.setVisibility(View.VISIBLE); else showLimit(); });
             sheet.add("Open", Icon.PLAY, () -> Apps.launch(this, a));
             sheet.add("App info", Icon.INFO, () -> Apps.start(this, new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.pkg))));
             sheet.add("Hide", Icon.EYE, () -> { prefs.edit().putBoolean("hide_" + a.pkg, true).apply(); recreate(); });

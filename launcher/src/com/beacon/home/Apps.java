@@ -203,9 +203,17 @@ final class Apps {
 
     static boolean isPinned(Context c, List<App> all, String pkg) { return pins(c, all).contains(pkg); }
 
-    static void pin(Context c, List<App> all, String pkg) {
+    /** The most apps that can sit on the Home row (all dock styles): past this the icons get too small. */
+    static final int MAX_PINNED = 10;
+
+    /** Pins an app; returns false (and changes nothing) when the Home row already holds MAX_PINNED. */
+    static boolean pin(Context c, List<App> all, String pkg) {
         List<String> l = pins(c, all);
-        if (!l.contains(pkg)) { l.add(pkg); savePins(c, l); }
+        if (l.contains(pkg)) return true;
+        if (pinned(c, all).size() >= MAX_PINNED) return false;
+        l.add(pkg);
+        savePins(c, l);
+        return true;
     }
 
     static void unpin(Context c, List<App> all, String pkg) {
