@@ -351,7 +351,7 @@ final class V {
         for (int i = 0; i < g.getChildCount(); i++) unclip(g.getChildAt(i));
     }
 
-    static int edge(Context c) { return Math.min(80, U.prefs(c).getInt("edge", 64)); } // 96 (the old Extra large) is capped at Large
+    static int edge(Context c) { return Math.min(80, U.prefs(c).getInt("edge", 48)); } // 96 (the old Extra large) is capped at Large
 
     /** Backgrounds (the first {@code bleed} children of root) stay full screen; the content moves in from the edges. */
     static void fit(android.app.Activity a, int bleed) {

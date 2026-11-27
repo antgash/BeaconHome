@@ -309,7 +309,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (key == null || key.startsWith("last_") || key.startsWith("count_") || key.equals("svc")) return;
         if ("theme_mode".equals(key)) { applyThemeMode(); return; }
         if ("theme".equals(key)) { applyThemeInstant(); return; }
-        if (U.P_MODE.equals(key) || "edge".equals(key) || "theme".equals(key) || "focus_glow".equals(key) || "surface".equals(key) || "app_style".equals(key)) {
+        if (U.P_MODE.equals(key) || "edge".equals(key) || "svc_off".equals(key) || "theme".equals(key) || "focus_glow".equals(key) || "surface".equals(key) || "app_style".equals(key)) {
             V.loadTheme(this);
             if (player != null) player.stop();
             build();
@@ -887,10 +887,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Throwable t) { return "1.0"; }
     }
 
-    private boolean fastAnim() {
-        return Settings.Global.getFloat(getContentResolver(), "window_animation_scale", 1f) < 0.9f;
-    }
-
     private boolean pkgEnabled(String pkg) {
         try {
             int st = getPackageManager().getApplicationEnabledSetting(pkg);
@@ -956,35 +952,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                             + "; pm disable-user --user 0 " + TVREC + "; pm disable-user --user 0 " + TVLAUNCHER
                             + "; am start -n " + getPackageName() + "/" + HomeActivity.class.getName());
         }
-    }
-
-    private View nuvioStatusRow() {
-        final LinearLayout row = menuButton(Icon.NUVIO, "Nuvio connection", "Checking…", () -> {
-            if (checkSelfPermission("com.android.providers.tv.permission.READ_EPG_DATA") != PackageManager.PERMISSION_GRANTED
-                    || checkSelfPermission("android.permission.READ_TV_LISTINGS") != PackageManager.PERMISSION_GRANTED) {
-                try {
-                    requestPermissions(new String[] {"com.android.providers.tv.permission.READ_EPG_DATA",
-                            "android.permission.READ_TV_LISTINGS", android.Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
-                } catch (Throwable ignored) {}
-            } else {
-                closeMenu();
-                Apps.launchPackage(this, U.nuvio());
-            }
-        });
-        final TextView st = (TextView) ((LinearLayout) row.getChildAt(1)).getChildAt(1);
-        st.setSingleLine(true);
-        st.setEllipsize(TextUtils.TruncateAt.END);
-        U.IO.execute(() -> {
-            final Nuvio.Result r = Nuvio.load(getApplicationContext(), false);
-            U.MAIN.post(() -> {
-                String msg;
-                if ("permission".equals(r.error)) msg = "Needs permission · select to allow";
-                else if (r.nuvioPicks + r.nuvioContinue == 0) msg = "No titles yet · turn on Android TV rows in Nuvio";
-                else msg = r.nuvioPicks + " titles · " + r.nuvioContinue + " in Continue watching";
-                st.setText(msg);
-            });
-        });
-        return row;
     }
 
     private String appLabel(String pkg) {
@@ -1272,18 +1239,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         } else if ("system".equals(page)) {
             final int[] edges = {48, 64, 80};
             menuFirst = cycleRow(Icon.SLIDERS, "Screen edge margin", new String[] {"Small", "Medium", "Large"}, () -> {
-                int v = Math.min(80, prefs.getInt("edge", 64));
+                int v = Math.min(80, prefs.getInt("edge", 48));
                 for (int i = 0; i < edges.length; i++) if (edges[i] == v) return i;
-                return 1;
+                return 0;
             }, i -> prefs.edit().putInt("edge", edges[i]).apply(), true);
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(valueRow(Icon.PLAY, "Animation speed", () -> fastAnim() ? "Fast (0.5×)" : "Normal", () -> {
-                final boolean fast = fastAnim();
-                confirmRun(fast ? "Back to normal animation speed?" : "Use fast animations?",
-                        "Changes how quickly menus and screens animate in every app.",
-                        fast ? "settings put global window_animation_scale 1.0; settings put global transition_animation_scale 1.0; settings put global animator_duration_scale 1.0"
-                             : "settings put global window_animation_scale 0.5; settings put global transition_animation_scale 0.5; settings put global animator_duration_scale 0.5");
-            }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            menuPanel.addView(toggleButton(Icon.EYE, "Hide streaming services row", "svc_off", false), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.SHIELD, "Google TV recommendations", () -> pkgEnabled(TVREC) ? "On" : "Off", () -> {
                 final boolean on = pkgEnabled(TVREC);
                 confirmRun(on ? "Turn off Google TV recommendations?" : "Turn Google TV recommendations back on?",
@@ -1292,7 +1253,6 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             }), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.BEACON, "Home screen", () -> beaconIsHome() ? "beacon" : "Google TV", this::switchHomeScreen), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.NUVIO, "Nuvio app", this::nuvioLabel, this::pickNuvio), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
-            menuPanel.addView(nuvioStatusRow(), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(valueRow(Icon.APPS, "Show hidden apps again", () -> hiddenCount() + " hidden", () -> {
                 android.content.SharedPreferences.Editor e = prefs.edit();
                 for (String k : new ArrayList<>(prefs.getAll().keySet())) if (k.startsWith("hide_")) e.remove(k);
@@ -1520,6 +1480,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         row.addView(state);
         V.tint(row, V.TEXT);
         row.setOnClickListener(v -> {
+            if ("svc_off".equals(key)) reopenMenu = true; // the row appears or disappears: rebuild Home and reopen the menu
             prefs.edit().putBoolean(key, !prefs.getBoolean(key, def)).apply();
             paint.run();
             if ("weather".equals(key)) loadWeather();
@@ -2298,6 +2259,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout block = U.col(this);
         header(block, "Streaming services").setText("on Nuvio");
         svcRow = row(block, 12);
+        if (prefs.getBoolean("svc_off", false)) block.setVisibility(View.GONE); // gone, not just invisible: the rows above move down
         col.addView(block, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
     }
 
@@ -2625,6 +2587,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private void fillServices() {
         svcRow.removeAllViews();
+        if (prefs.getBoolean("svc_off", false)) return;
         int th = V.dp(63), tw = V.dp(112);
         addLiveTile(tw, th);
         for (final Streaming.Service sv : Streaming.visible(this)) {
