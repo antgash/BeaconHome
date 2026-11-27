@@ -44,6 +44,15 @@ final class ArtColor {
         return Color.HSVToColor(hsv);
     }
 
+    /** A Nuvio profile's colour as an accent: keeps its hue and most of its saturation, just bright enough to read on dark. */
+    static int asProfileAccent(int c) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(c, hsv);
+        hsv[1] = Math.max(0.45f, hsv[1]);
+        hsv[2] = Math.max(0.85f, hsv[2]);
+        return Color.HSVToColor(hsv);
+    }
+
     /** For the edge glow: full brightness, a bit more saturation. */
     static int asGlow(int c) {
         float[] hsv = new float[3];

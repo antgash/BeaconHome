@@ -1693,7 +1693,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     // ------------------------------------------------------------------ theme colors
 
     private final List<View> themeDots = new ArrayList<>();
-    private View themeOption, themeDotRow;
+    private View themeOption, themeDotRow, themeWrap;
     private boolean menuFocusDot, themeOpen;
     private android.animation.ValueAnimator themeAnim;
     private static final String[] THEME_MODES = {"nuvio", "artwork", "choose"};
@@ -1730,8 +1730,15 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             prefs.edit().putString("theme_mode", THEME_MODES[i]).apply();
             setThemeOpen(i == 2, true);
         }, false);
+        // A solid panel-coloured cover sits under the option so nothing of the circles shows through it.
+        final FrameLayout wrap = new FrameLayout(this);
+        themeWrap = wrap;
+        View cover = new View(this);
+        cover.setBackgroundColor(V.MENU_PANEL);
+        wrap.addView(cover, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
+        wrap.addView(themeOption, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
         FrameLayout.LayoutParams op = new FrameLayout.LayoutParams(U.MATCH, V.dp(48));
-        box.addView(themeOption, op); // added last, so it covers the lower half of the circles
+        box.addView(wrap, op); // added last, so it covers the lower half of the circles
         themeOpen = "choose".equals(V.themeMode(this));
         op.topMargin = V.dp(themeOpen ? OPEN_DP : PEEK_DP);
         setDotsFocusable(themeOpen);
@@ -1739,15 +1746,15 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
     private void setThemeOpen(final boolean open, boolean animate) {
-        if (themeOption == null || open == themeOpen && animate) return;
+        if (themeWrap == null || open == themeOpen && animate) return;
         themeOpen = open;
         if (themeAnim != null) themeAnim.cancel();
-        final FrameLayout.LayoutParams op = (FrameLayout.LayoutParams) themeOption.getLayoutParams();
+        final FrameLayout.LayoutParams op = (FrameLayout.LayoutParams) themeWrap.getLayoutParams();
         final int from = op.topMargin, to = V.dp(open ? OPEN_DP : PEEK_DP);
         if (open) setDotsFocusable(true);
         final Runnable done = () -> {
             op.topMargin = to;
-            themeOption.setLayoutParams(op);
+            themeWrap.setLayoutParams(op);
             if (!open) setDotsFocusable(false);
             refitMenuKeeping(themeOption);
             if (open) { View d = selectedThemeDot(); if (d != null) d.requestFocus(); } // selection moves up to the chosen colour
@@ -1758,7 +1765,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         themeAnim.setInterpolator(new android.view.animation.DecelerateInterpolator());
         themeAnim.addUpdateListener(a -> {
             op.topMargin = Math.round(from + (to - from) * (Float) a.getAnimatedValue());
-            themeOption.setLayoutParams(op);
+            themeWrap.setLayoutParams(op);
         });
         themeAnim.addListener(new android.animation.AnimatorListenerAdapter() {
             private boolean cancelled;
@@ -1771,6 +1778,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     /** The theme-colours source changed: refresh the accent without rebuilding Home (so the menu animation can play). */
     private void applyThemeMode() {
         V.loadTheme(this);
+        if ("nuvio".equals(V.themeMode(this))) refreshProfiles(); // read the active profile's colour now, in case none is remembered yet
         if (shade != null && !V.artTint(this)) setAccent(null); // fades to the Nuvio profile's colour or the chosen theme
     }
 

@@ -82,7 +82,7 @@ final class V {
         for (String[] t : THEMES) if (t[0].equals(id)) { BG = Color.parseColor(t[2]); themeAccent = Color.parseColor(t[3]); break; }
         if ("nuvio".equals(themeMode(c))) { // follow the active Nuvio profile's colour (remembered from the last time it was read)
             int n = U.prefs(c).getInt("last_nuvio_accent", 0);
-            if (n != 0) themeAccent = ArtColor.asAccent(n);
+            if (n != 0) themeAccent = ArtColor.asProfileAccent(n);
         }
         // Panels (the beacon menu and the long-press sheets) follow the surface too.
         if (surface == 0) MENU_ROW = U.mix(BG, 0xFFFFFFFF, 0.17f); // solid, one step lighter than the panel
