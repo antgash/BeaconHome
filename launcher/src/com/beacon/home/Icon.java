@@ -11,7 +11,10 @@ import android.view.View;
 final class Icon extends View {
     static final int WIFI = 1, WIFI_OFF = 2, ETHERNET = 3, HDMI = 4, GEAR = 5, SLIDERS = 6, WALL = 7,
             SEARCH = 8, PLAY = 9, INFO = 10, PREV = 11, NEXT = 12, EYE = 13, APPS = 14, CHECK = 15, NUVIO = 16,
-            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30, BEACON = 31, SPEAKER = 32, DOWNLOAD = 33, LIGHTHOUSE = 34;
+            SUN = 17, MOON = 18, CLOUD = 19, RAIN = 20, SHIELD = 21, SHIELD_OFF = 22, CHEVRON_DOWN = 23, GRID4 = 24, ORBIT = 25, PIN = 26, UNPIN = 27, LEFT = 28, RIGHT = 29, PLUS = 30, BEACON = 31, SPEAKER = 32, DOWNLOAD = 33, LIGHTHOUSE = 34,
+            // genres (streaming service pages)
+            G_ACTION = 35, G_COMEDY = 36, G_DRAMA = 37, G_SCIFI = 38, G_HORROR = 39, G_THRILLER = 40, G_CRIME = 41,
+            G_ANIMATION = 42, G_DOCUMENTARY = 43, G_FAMILY = 44, G_ROMANCE = 45, G_MYSTERY = 46;
 
     private int type;
     private int level = 4;
@@ -214,6 +217,85 @@ final class Icon extends View {
             case LEFT:
                 path.reset(); path.moveTo(15, 6); path.lineTo(9, 12); path.lineTo(15, 18);
                 c.drawPath(path, p);
+                break;
+            case G_ACTION:   // lightning bolt
+                path.reset(); path.moveTo(13.5f, 2.5f); path.lineTo(5f, 13.5f); path.lineTo(11.5f, 13.5f);
+                path.lineTo(10.5f, 21.5f); path.lineTo(19f, 10f); path.lineTo(12.5f, 10f); path.close();
+                c.drawPath(path, p);
+                break;
+            case G_COMEDY: case G_DRAMA: {   // smiling / sad face
+                c.drawCircle(12, 12, 9, p);
+                c.drawCircle(9f, 10f, 1.1f, fill);
+                c.drawCircle(15f, 10f, 1.1f, fill);
+                if (type == G_COMEDY) { r.set(7.5f, 9.5f, 16.5f, 16.5f); c.drawArc(r, 25, 130, false, p); }
+                else { r.set(8f, 14.5f, 16f, 20f); c.drawArc(r, 205, 130, false, p); }
+                break;
+            }
+            case G_SCIFI:   // ringed planet
+                c.drawCircle(12, 12, 5.5f, p);
+                c.save();
+                c.rotate(-22, 12, 12);
+                r.set(2f, 9.2f, 22f, 14.8f);
+                c.drawArc(r, 200, 140, false, p);
+                c.drawArc(r, 20, 140, false, p);
+                c.restore();
+                break;
+            case G_HORROR:   // ghost
+                path.reset(); path.moveTo(5f, 20.5f); path.lineTo(5f, 11f);
+                path.cubicTo(5f, 6.5f, 8f, 3.5f, 12f, 3.5f); path.cubicTo(16f, 3.5f, 19f, 6.5f, 19f, 11f);
+                path.lineTo(19f, 20.5f); path.lineTo(16.67f, 18.5f); path.lineTo(14.33f, 20.5f); path.lineTo(12f, 18.5f);
+                path.lineTo(9.67f, 20.5f); path.lineTo(7.33f, 18.5f); path.close();
+                c.drawPath(path, p);
+                c.drawCircle(9.5f, 10.5f, 1.2f, fill);
+                c.drawCircle(14.5f, 10.5f, 1.2f, fill);
+                break;
+            case G_THRILLER:   // crosshair
+                c.drawCircle(12, 12, 7, p);
+                c.drawCircle(12, 12, 2.2f, p);
+                c.drawLine(12, 2.5f, 12, 6.5f, p); c.drawLine(12, 17.5f, 12, 21.5f, p);
+                c.drawLine(2.5f, 12, 6.5f, 12, p); c.drawLine(17.5f, 12, 21.5f, 12, p);
+                break;
+            case G_CRIME:   // badge
+                path.reset(); path.moveTo(12f, 3f); path.lineTo(19f, 6f); path.lineTo(19f, 11f);
+                path.cubicTo(19f, 16f, 16f, 19.5f, 12f, 21f); path.cubicTo(8f, 19.5f, 5f, 16f, 5f, 11f);
+                path.lineTo(5f, 6f); path.close();
+                c.drawPath(path, p);
+                c.drawCircle(12, 11.5f, 2.2f, p);
+                break;
+            case G_ANIMATION:   // sparkle
+                path.reset(); path.moveTo(11f, 3.5f); path.quadTo(11.5f, 11.5f, 19f, 12.5f);
+                path.quadTo(11.5f, 13.5f, 11f, 21.5f); path.quadTo(10.5f, 13.5f, 3f, 12.5f);
+                path.quadTo(10.5f, 11.5f, 11f, 3.5f); path.close();
+                c.drawPath(path, p);
+                c.drawCircle(18.5f, 5.5f, 1.3f, fill);
+                break;
+            case G_DOCUMENTARY:   // globe
+                c.drawCircle(12, 12, 9, p);
+                r.set(8f, 3f, 16f, 21f);
+                c.drawOval(r, p);
+                c.drawLine(3, 12, 21, 12, p);
+                break;
+            case G_FAMILY:   // house
+                path.reset(); path.moveTo(3.5f, 11.5f); path.lineTo(12f, 4f); path.lineTo(20.5f, 11.5f);
+                c.drawPath(path, p);
+                path.reset(); path.moveTo(6f, 10f); path.lineTo(6f, 20f); path.lineTo(18f, 20f); path.lineTo(18f, 10f);
+                c.drawPath(path, p);
+                path.reset(); path.moveTo(10.3f, 20f); path.lineTo(10.3f, 15f); path.lineTo(13.7f, 15f); path.lineTo(13.7f, 20f);
+                c.drawPath(path, p);
+                break;
+            case G_ROMANCE:   // heart
+                path.reset(); path.moveTo(12f, 20.5f);
+                path.cubicTo(4f, 15f, 2.5f, 10.5f, 4.5f, 7.2f); path.cubicTo(6.5f, 4f, 10.5f, 4.5f, 12f, 7.5f);
+                path.cubicTo(13.5f, 4.5f, 17.5f, 4f, 19.5f, 7.2f); path.cubicTo(21.5f, 10.5f, 20f, 15f, 12f, 20.5f);
+                path.close();
+                c.drawPath(path, p);
+                break;
+            case G_MYSTERY:   // question mark
+                path.reset(); path.moveTo(8.8f, 9f);
+                path.cubicTo(8.8f, 6.3f, 10.4f, 4.5f, 12.3f, 4.5f); path.cubicTo(14.4f, 4.5f, 15.8f, 6.1f, 15.8f, 8.1f);
+                path.cubicTo(15.8f, 10.9f, 12.3f, 11.3f, 12.3f, 14.5f);
+                c.drawPath(path, p);
+                c.drawCircle(12.3f, 18.8f, 1.3f, fill);
                 break;
             case DOWNLOAD:
                 c.drawLine(12, 4, 12, 15, p);

@@ -28,6 +28,8 @@ public class ServiceActivity extends Activity {
     private static final float EDGE = 48, TOP_H = 292, BACK_W = 640;
 
     private Streaming.Service svc;
+    /** Set when this page shows one genre of the service (opened from the service page's genre tiles). */
+    private Streaming.Genre genre;
     private final ImageView[] back = new ImageView[2];
     private int backFront = -1;
     private LinearLayout info, grid;
@@ -44,6 +46,7 @@ public class ServiceActivity extends Activity {
         U.init(this);
         V.init(this);
         svc = Streaming.find(getIntent().getStringExtra("service"));
+        genre = Streaming.genre(getIntent().getStringExtra("genre"));
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(V.BG);
@@ -120,7 +123,7 @@ public class ServiceActivity extends Activity {
         sp.topMargin = V.dp(TOP_H);
         root.addView(scroll, sp);
 
-        status = V.dim(V.text(this, "Loading " + svc.name + "…", 11, 500, V.TEXT), 0.7f);
+        status = V.dim(V.text(this, "Loading " + (genre != null ? genre.name + " on " : "") + svc.name + "…", 11, 500, V.TEXT), 0.7f);
         FrameLayout.LayoutParams stp = U.flp(U.WRAP, U.WRAP, Gravity.TOP | Gravity.START);
         stp.leftMargin = V.dp(EDGE);
         stp.topMargin = V.dp(TOP_H + 20);
@@ -132,14 +135,14 @@ public class ServiceActivity extends Activity {
         // itself stay clipped so nothing slides over the top half.
         V.unclipAll(grid);
 
-        // Start on the service's own backdrop and logo, like Nuvio's folder page.
-        kicker.setText("Streaming on Nuvio");
-        titleText.setText(svc.name);
+        // Start on the service's own backdrop and logo, like Nuvio's folder page (a genre page: the genre's name).
+        kicker.setText(genre != null ? svc.name + " \u00b7 Genre" : "Streaming on Nuvio");
+        titleText.setText(genre != null ? genre.name : svc.name);
         Img.load(this, svc.hero, HomeActivity.WALL_W, bm -> { if (bm != null && shown < 0) showBack(bm); });
-        if (svc.logo != null) Img.load(this, svc.logo, V.dp(300), bm -> {
+        if (genre == null && svc.logo != null) Img.load(this, svc.logo, V.dp(300), bm -> {
             if (bm != null && shown < 0) { titleLogo.setImageBitmap(bm); titleLogo.setVisibility(View.VISIBLE); titleText.setVisibility(View.GONE); }
         });
-        Streaming.load(this, svc.key, rs -> {
+        Streaming.Cb loaded = rs -> {
             List<Nuvio.Item> list = new ArrayList<>();
             for (Streaming.Row r : rs) list.addAll(r.items);
             items = list;
@@ -150,7 +153,9 @@ public class ServiceActivity extends Activity {
             }
             status.setVisibility(View.GONE);
             buildGrid();
-        });
+        };
+        if (genre != null) Streaming.loadGenre(this, svc.key, genre.name, loaded);
+        else Streaming.load(this, svc.key, loaded);
     }
 
     @Override public void onTrimMemory(int level) {
@@ -177,7 +182,75 @@ public class ServiceActivity extends Activity {
             View first = section(r.title, idx);
             if (f == null) f = first;
         }
+        if (genre == null) genreSection();
         if (f != null) { final View ff = f; ff.post(ff::requestFocus); }
+    }
+
+    /** One row of genre tiles under the service's rows; each opens that genre's movies and series on the service. */
+    private void genreSection() {
+        TextView h = V.text(this, "Genres", 12, 700, V.TEXT);
+        LinearLayout.LayoutParams hp = lpm(U.WRAP, U.WRAP, 0, 10, 0, 0);
+        hp.leftMargin = V.dp(EDGE);
+        grid.addView(h, hp);
+        HorizontalScrollView hs = new HomeActivity.AnchoredRow(this);
+        hs.setHorizontalScrollBarEnabled(false);
+        hs.setHorizontalFadingEdgeEnabled(false);
+        hs.setFocusable(false);
+        LinearLayout row = U.row(this);
+        row.setPadding(V.dp(EDGE), V.dp(8), V.dp(EDGE), V.dp(10));
+        hs.addView(row);
+        grid.addView(hs, new LinearLayout.LayoutParams(U.MATCH, U.WRAP));
+        V.unclipAll(hs);
+        int w = V.dp(118), ht = V.dp(84);
+        for (int k = 0; k < Streaming.GENRES.length; k++) {
+            final Streaming.Genre g = Streaming.GENRES[k];
+            View tile = genreTile(g);
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(w, ht);
+            cp.rightMargin = k == Streaming.GENRES.length - 1 ? 0 : V.dp(10);
+            row.addView(tile, cp);
+        }
+    }
+
+    private View genreTile(final Streaming.Genre g) {
+        final LinearLayout tile = U.col(this);
+        tile.setGravity(Gravity.CENTER);
+        tile.setFocusable(true);
+        tile.setFocusableInTouchMode(true);
+        tile.setBackground(V.shape(0xFF181A20, 10, 0));
+        final Icon ic = new Icon(this, g.icon);
+        ic.setColor(V.accent());
+        tile.addView(ic, new LinearLayout.LayoutParams(V.dp(26), V.dp(26)));
+        TextView t = V.text(this, g.name, 11, 700, V.TEXT);
+        tile.addView(t, lpm(U.WRAP, U.WRAP, 0, 8, 0, 0));
+        tile.setContentDescription(g.name);
+        tile.setOnFocusChangeListener((v, has) -> {
+            v.animate().scaleX(has ? 1.06f : 1f).scaleY(has ? 1.06f : 1f).setDuration(160)
+                    .setInterpolator(new DecelerateInterpolator()).start();
+            GradientDrawable bg = V.shape(0xFF181A20, 10, 0);
+            if (has) bg.setStroke(V.dp(1.5f), V.TEXT);
+            tile.setBackground(bg);
+            if (has) showGenre(g);
+        });
+        tile.setOnClickListener(v -> startActivity(new android.content.Intent(this, ServiceActivity.class)
+                .putExtra("service", svc.key).putExtra("genre", g.name)));
+        return tile;
+    }
+
+    /** The spotlight while a genre tile is focused: the genre's name over the service's backdrop. */
+    private void showGenre(Streaming.Genre g) {
+        U.MAIN.removeCallbacks(showPending);
+        pending = -1;
+        shown = -2;
+        kicker.setText(svc.name + " \u00b7 Genre");
+        titleText.setText(g.name);
+        titleText.setVisibility(View.VISIBLE);
+        titleLogo.setVisibility(View.GONE);
+        titleLogo.setImageDrawable(null);
+        boolean tv = g.tv > 0;
+        meta.setText(tv ? "Movies and series" : "Movies");
+        U.gone(meta, false);
+        desc.setText("Latest, top and popular " + g.name.toLowerCase(java.util.Locale.ROOT)
+                + (tv ? " movies and series" : " movies") + " on " + svc.name + ".");
     }
 
     private View section(String title, List<Integer> idx) {

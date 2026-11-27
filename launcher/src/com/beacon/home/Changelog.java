@@ -26,6 +26,10 @@ final class Changelog {
     }
 
     static final Entry[] ENTRIES = {
+            new Entry("Streaming pages", "Nov 27", "Simpler service pages with genres", null,
+                    Icon.PLAY, "Every service shows Latest, Top and Popular, for movies and for series",
+                    Icon.G_SCIFI, "A row of genre tiles under them, from Action to Mystery",
+                    Icon.GRID4, "Each genre opens a page of that genre\u2019s movies and series on the service"),
             new Entry("New look", "Nov 27", "A lighthouse icon and banner", "asset:changelog/beacon-lighthouse.jpg",
                     Icon.LIGHTHOUSE, "New lighthouse icon and app banner, also on the screensaver",
                     Icon.GEAR, "Menu descriptions now list what each page contains"),

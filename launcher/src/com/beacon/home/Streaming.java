@@ -236,6 +236,12 @@ final class Streaming {
     static List<Nuvio.Item> cached(String key) {
         List<Row> r = mem.get(key);
         if (r == null) return null;
+        // Lead with what's popular on the service (the page itself opens on Latest).
+        for (int i = 0; i < r.size(); i++) if ("Popular Movies".equals(r.get(i).title) && i > 0) {
+            r = new ArrayList<>(r);
+            r.add(0, r.remove(i));
+            break;
+        }
         List<Nuvio.Item> out = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (Row row : r) for (Nuvio.Item it : row.items) {
@@ -261,11 +267,11 @@ final class Streaming {
         Service s = find(key);
         String tk = tmdbKey(c);
         List<Row> rows = new ArrayList<>();
-        if (s.hasCatalog()) rows.addAll(catalogRows(c, s));
-        if (!TextUtils.isEmpty(tk)) {
-            rows.addAll(tmdbRows(c, s, tk));
-            rows.addAll(genreRows(c, s, tk));
+        if (!TextUtils.isEmpty(tk) && !TextUtils.isEmpty(s.providers)) {
+            // Every service: Latest, Top and Popular, for movies then series. Genres have their own pages.
+            rows.addAll(categoryRows(c, s, tk, null));
         } else if (s.hasCatalog()) {
+            rows.addAll(catalogRows(c, s));
             rows.addAll(catalogGenreRows(c, s));
         }
         if (!rows.isEmpty()) {
@@ -275,12 +281,89 @@ final class Streaming {
         return rows;
     }
 
-    // ---------------------------------------------------------------- genre rows
+    // ---------------------------------------------------------------- categories and genres
 
-    private static final String[][] TMDB_MOVIE_GENRES = {{"Action", "28"}, {"Comedy", "35"}, {"Drama", "18"}, {"Horror", "27"},
-            {"Sci-Fi", "878"}, {"Thriller", "53"}, {"Animation", "16"}, {"Documentary", "99"}};
-    private static final String[][] TMDB_TV_GENRES = {{"Action & Adventure", "10759"}, {"Comedy", "35"}, {"Drama", "18"}, {"Crime", "80"},
-            {"Sci-Fi & Fantasy", "10765"}, {"Mystery", "9648"}, {"Animation", "16"}, {"Documentary", "99"}};
+    /** A genre tile on a service page: its TMDB ids for movies and for series (0 when TMDB has no such TV genre). */
+    static final class Genre {
+        final String name;
+        final int movie, tv, icon;
+        Genre(String name, int movie, int tv, int icon) { this.name = name; this.movie = movie; this.tv = tv; this.icon = icon; }
+    }
+
+    static final Genre[] GENRES = {
+            new Genre("Action", 28, 10759, Icon.G_ACTION),
+            new Genre("Comedy", 35, 35, Icon.G_COMEDY),
+            new Genre("Drama", 18, 18, Icon.G_DRAMA),
+            new Genre("Sci-Fi", 878, 10765, Icon.G_SCIFI),
+            new Genre("Horror", 27, 0, Icon.G_HORROR),
+            new Genre("Thriller", 53, 0, Icon.G_THRILLER),
+            new Genre("Crime", 80, 80, Icon.G_CRIME),
+            new Genre("Animation", 16, 16, Icon.G_ANIMATION),
+            new Genre("Documentary", 99, 99, Icon.G_DOCUMENTARY),
+            new Genre("Family", 10751, 10751, Icon.G_FAMILY),
+            new Genre("Romance", 10749, 0, Icon.G_ROMANCE),
+            new Genre("Mystery", 9648, 9648, Icon.G_MYSTERY),
+    };
+
+    static Genre genre(String name) {
+        for (Genre g : GENRES) if (g.name.equals(name)) return g;
+        return null;
+    }
+
+    /**
+     * Latest, Top and Popular rows (movies, then series) for a service, optionally only one genre. Top is the
+     * best rated with enough votes to mean something; Latest is the newest released.
+     */
+    private static List<Row> categoryRows(final Context c, final Service s, final String k, final Genre g) {
+        final String base = "https://api.themoviedb.org/3";
+        final String prov = "&with_watch_providers=" + Uri.encode(s.providers) + "&watch_region=" + s.region;
+        final String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT).format(new java.util.Date());
+        final boolean movies = g == null || g.movie > 0, series = g == null || g.tv > 0;
+        final String mg = g == null ? "" : "&with_genres=" + g.movie;
+        final String tg = g == null ? "" : "&with_genres=" + g.tv;
+        // With a genre there are fewer titles, so the vote floors are lower.
+        final int latestVotes = g == null ? 5 : 2, topMovieVotes = g == null ? 300 : 120, topTvVotes = g == null ? 200 : 80;
+        final String noDocs = g == null ? "&without_genres=99" : "";
+        List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
+        if (movies) {
+            jobs.add(() -> new Row("Latest Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg + noDocs
+                    + "&sort_by=primary_release_date.desc&primary_release_date.lte=" + today + "&vote_count.gte=" + latestVotes, "results"), "movie", s)));
+            jobs.add(() -> new Row("Top Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg
+                    + "&sort_by=vote_average.desc&vote_count.gte=" + topMovieVotes, "results"), "movie", s)));
+            jobs.add(() -> new Row("Popular Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + mg
+                    + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s)));
+        }
+        if (series) {
+            jobs.add(() -> new Row("Latest Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
+                    + "&sort_by=first_air_date.desc&first_air_date.lte=" + today + "&vote_count.gte=" + latestVotes, "results"), "series", s)));
+            jobs.add(() -> new Row("Top Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
+                    + "&sort_by=vote_average.desc&vote_count.gte=" + topTvVotes, "results"), "series", s)));
+            jobs.add(() -> new Row("Popular Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + tg
+                    + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s)));
+        }
+        return parallel(jobs);   // keeps the order above
+    }
+
+    /** One genre's page for a service: the same Latest, Top and Popular rows, for that genre only. */
+    static void loadGenre(Context c, final String key, final String genreName, final Cb cb) {
+        final String mk = key + "|" + genreName;
+        List<Row> hit = mem.get(mk);
+        Long at = memAt.get(mk);
+        if (hit != null && at != null && System.currentTimeMillis() - at < 6 * 3600_000L) { cb.done(hit); return; }
+        final Context app = c.getApplicationContext();
+        U.IO.execute(() -> {
+            Service s = find(key);
+            Genre g = genre(genreName);
+            String tk = tmdbKey(app);
+            List<Row> rows = s == null || g == null || TextUtils.isEmpty(tk) || TextUtils.isEmpty(s.providers)
+                    ? new ArrayList<>() : categoryRows(app, s, tk, g);
+            if (!rows.isEmpty()) { mem.put(mk, rows); memAt.put(mk, System.currentTimeMillis()); }
+            U.MAIN.post(() -> cb.done(rows));
+        });
+    }
+
+    // ---------------------------------------------------------------- genre rows (catalogue fallback)
+
     private static final String[] CAT_GENRES = {"Action", "Comedy", "Drama", "Horror", "Sci-Fi", "Thriller", "Animation", "Documentary"};
 
     private static final long SHUFFLE_MS = 12 * 3600_000L;
@@ -316,19 +399,7 @@ final class Streaming {
         return out;
     }
 
-    private static List<Row> genreRows(final Context c, final Service s, final String k) {
-        if (TextUtils.isEmpty(s.providers)) return new ArrayList<>();
-        final String base = "https://api.themoviedb.org/3";
-        final String prov = "&with_watch_providers=" + Uri.encode(s.providers) + "&watch_region=" + s.region;
-        List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
-        for (final String[] g : TMDB_MOVIE_GENRES) jobs.add(() -> new Row(g[0] + " Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov
-                + "&with_genres=" + g[1] + "&page=" + (1 + (int) ((window() + g[1].hashCode()) % 3)) + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s)));
-        for (final String[] g : TMDB_TV_GENRES) jobs.add(() -> new Row(g[0] + " Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov
-                + "&with_genres=" + g[1] + "&page=" + (1 + (int) ((window() + g[1].hashCode()) % 3)) + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s)));
-        return shuffled(parallel(jobs), s.key);
-    }
-
-    private static List<Row> catalogGenreRows(final Context c, final Service s) {
+private static List<Row> catalogGenreRows(final Context c, final Service s) {
         List<java.util.concurrent.Callable<Row>> jobs = new ArrayList<>();
         for (final String g : CAT_GENRES) {
             jobs.add(() -> new Row(g + " Movies", parseCatalog(cachedGet(c, CATALOG + "/catalog/movie/" + s.catalog + "/genre=" + Uri.encode(g) + ".json", "metas"), "movie", s)));
@@ -338,19 +409,6 @@ final class Streaming {
     }
 
     // ---------------------------------------------------------------- TMDB (same sources as Nuvio)
-
-    private static List<Row> tmdbRows(Context c, Service s, String k) {
-        List<Row> rows = new ArrayList<>();
-        String base = "https://api.themoviedb.org/3";
-        String prov = "&with_watch_providers=" + Uri.encode(s.providers) + "&watch_region=" + s.region;
-        if (s.tmdbList > 0) add(rows, "Top 10 Movies", parseTmdb(cachedGet(c, base + "/list/" + s.tmdbList + "?api_key=" + k, "items"), "movie", s));
-        add(rows, "Popular Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "series", s));
-        add(rows, "Popular Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + "&sort_by=popularity.desc&vote_count.gte=25", "results"), "movie", s));
-        add(rows, "New Series", parseTmdb(cachedGet(c, base + "/discover/tv?api_key=" + k + prov + "&sort_by=first_air_date.desc&vote_count.gte=5", "results"), "series", s));
-        add(rows, "New Movies", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + "&sort_by=primary_release_date.desc&vote_count.gte=5&without_genres=99", "results"), "movie", s));
-        add(rows, "Top Rated", parseTmdb(cachedGet(c, base + "/discover/movie?api_key=" + k + prov + "&sort_by=vote_average.desc&vote_count.gte=300", "results"), "movie", s));
-        return rows;
-    }
 
     private static void add(List<Row> rows, String title, List<Nuvio.Item> items) {
         if (!items.isEmpty()) rows.add(new Row(title, items));
