@@ -176,7 +176,7 @@ final class NuvioBeaconInstaller {
                 s.commit(pend.getIntentSender());
             }
             return true;
-        } catch (Throwable t) {
+        } catch (Throwable ex) {
             return false;
         }
     }
