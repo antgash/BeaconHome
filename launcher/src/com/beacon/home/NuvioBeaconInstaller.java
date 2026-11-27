@@ -32,6 +32,16 @@ final class NuvioBeaconInstaller {
     /** PendingIntent.FLAG_MUTABLE (API 31), written out because the build compiles against API 30. */
     private static final int FLAG_MUTABLE = 1 << 25;
 
+    /** An app beacon can download from a GitHub repo's Releases and install. */
+    static final class Target {
+        final String repo, pkg, name, cacheFile;
+        Target(String repo, String pkg, String name, String cacheFile) { this.repo = repo; this.pkg = pkg; this.name = name; this.cacheFile = cacheFile; }
+    }
+
+    static final Target NUVIO = new Target(REPO, U.NUVIO_BEACON, "Nuvio Beacon", "nuvio-beacon.apk");
+    /** The stand-alone Live TV app (antgash/LiveTV); each release has a single LiveTV.apk. */
+    static final Target LIVE_TV = new Target("antgash/LiveTV", "com.horizon.livetv", "Live TV", "livetv.apk");
+
     static final class Release {
         String tag, url;
         long size;
@@ -40,17 +50,21 @@ final class NuvioBeaconInstaller {
     interface Found { void done(Release r, boolean ok); }
 
     /** Installed version name, or null when Nuvio Beacon isn't installed. */
-    static String installed(Context c) {
-        try { return c.getPackageManager().getPackageInfo(U.NUVIO_BEACON, 0).versionName; } catch (Throwable t) { return null; }
+    static String installed(Context c) { return installed(c, NUVIO); }
+
+    static String installed(Context c, Target t) {
+        try { return c.getPackageManager().getPackageInfo(t.pkg, 0).versionName; } catch (Throwable x) { return null; }
     }
 
     /** Finds the newest release (betas included: Nuvio Beacon follows Nuvio's betas) and the APK for this device. */
-    static void latest(Context c, Found cb) {
+    static void latest(Context c, Found cb) { latest(c, NUVIO, cb); }
+
+    static void latest(Context c, final Target t, Found cb) {
         U.IO.execute(() -> {
             Release r = null;
             boolean ok = false;
             try {
-                HttpURLConnection h = (HttpURLConnection) new URL("https://api.github.com/repos/" + REPO + "/releases?per_page=10").openConnection();
+                HttpURLConnection h = (HttpURLConnection) new URL("https://api.github.com/repos/" + t.repo + "/releases?per_page=10").openConnection();
                 h.setConnectTimeout(10000);
                 h.setReadTimeout(15000);
                 h.setRequestProperty("Accept", "application/vnd.github+json");
@@ -99,15 +113,21 @@ final class NuvioBeaconInstaller {
             String n = a == null ? "" : a.optString("name");
             if (n.endsWith(".apk") && n.contains("universal")) return a;
         }
+        if (assets.length() == 1) { // a release with one APK (not split by processor)
+            JSONObject a = assets.optJSONObject(0);
+            if (a != null && a.optString("name").endsWith(".apk")) return a;
+        }
         return null;
     }
 
     /** Downloads the APK into the cache, then starts the install. Progress and the outcome arrive on the main thread. */
-    static void downloadAndInstall(Context c, Release r, Updater.Progress p, java.util.function.Consumer<String> state) {
+    static void downloadAndInstall(Context c, Release r, Updater.Progress p, java.util.function.Consumer<String> state) { downloadAndInstall(c, NUVIO, r, p, state); }
+
+    static void downloadAndInstall(Context c, final Target t, Release r, Updater.Progress p, java.util.function.Consumer<String> state) {
         final Context app = c.getApplicationContext();
-        final boolean first = installed(app) == null;
+        final boolean first = installed(app, t) == null;
         U.IO.execute(() -> {
-            File out = new File(app.getCacheDir(), "nuvio-beacon.apk");
+            File out = new File(app.getCacheDir(), t.cacheFile);
             boolean ok = false;
             try {
                 HttpURLConnection h = (HttpURLConnection) new URL(r.url).openConnection();
@@ -131,25 +151,26 @@ final class NuvioBeaconInstaller {
             } catch (Throwable ignored) {
             }
             if (!ok) { out.delete(); U.MAIN.post(() -> state.accept("Download failed · select to retry")); return; }
-            final boolean started = install(app, out, first);
+            final boolean started = install(app, out, first, t);
             U.MAIN.post(() -> state.accept(started ? "Confirm the install on screen" : "Couldn't start the installer · select to retry"));
         });
     }
 
-    private static boolean install(Context c, File apk, boolean first) {
+    private static boolean install(Context c, File apk, boolean first, Target t) {
         try {
             PackageInstaller pi = c.getPackageManager().getPackageInstaller();
             PackageInstaller.SessionParams sp = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-            sp.setAppPackageName(U.NUVIO_BEACON);
+            sp.setAppPackageName(t.pkg);
             int id = pi.createSession(sp);
             try (PackageInstaller.Session s = pi.openSession(id)) {
-                try (InputStream in = new FileInputStream(apk); OutputStream out = s.openWrite("nuvio-beacon", 0, apk.length())) {
+                try (InputStream in = new FileInputStream(apk); OutputStream out = s.openWrite(t.cacheFile, 0, apk.length())) {
                     byte[] buf = new byte[64 * 1024];
                     int n;
                     while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
                     s.fsync(out);
                 }
-                Intent it = new Intent(c, Result.class).setAction(ACTION).putExtra(EXTRA_FIRST, first);
+                Intent it = new Intent(c, Result.class).setAction(ACTION + "." + t.pkg).putExtra(EXTRA_FIRST, first)
+                        .putExtra("app_pkg", t.pkg).putExtra("app_name", t.name).putExtra("app_cache", t.cacheFile);
                 PendingIntent pend = PendingIntent.getBroadcast(c, id, it,
                         PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? FLAG_MUTABLE : 0));
                 s.commit(pend.getIntentSender());
@@ -171,17 +192,25 @@ final class NuvioBeaconInstaller {
                     try { c.startActivity(confirm); } catch (Throwable ignored) {}
                 }
             } else if (st == PackageInstaller.STATUS_SUCCESS) {
-                new File(c.getCacheDir(), "nuvio-beacon.apk").delete();
-                if (i.getBooleanExtra(EXTRA_FIRST, false)) {
-                    U.setNuvio(c, U.NUVIO_BEACON);
-                    Toast.makeText(c, "Nuvio Beacon installed · beacon now uses it for Continue watching and profiles", Toast.LENGTH_LONG).show();
+                String pkg = i.getStringExtra("app_pkg"), name = i.getStringExtra("app_name");
+                String cache = i.getStringExtra("app_cache");
+                new File(c.getCacheDir(), cache == null ? "nuvio-beacon.apk" : cache).delete();
+                boolean first = i.getBooleanExtra(EXTRA_FIRST, false);
+                if (pkg == null || U.NUVIO_BEACON.equals(pkg)) {
+                    if (first) {
+                        U.setNuvio(c, U.NUVIO_BEACON);
+                        Toast.makeText(c, "Nuvio Beacon installed · beacon now uses it for Continue watching and profiles", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(c, "Nuvio Beacon updated", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    Toast.makeText(c, "Nuvio Beacon updated", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(c, name + (first ? " installed" : " updated"), Toast.LENGTH_SHORT).show();
                 }
             } else {
-                new File(c.getCacheDir(), "nuvio-beacon.apk").delete();
+                String name = i.getStringExtra("app_name"), cache = i.getStringExtra("app_cache");
+                new File(c.getCacheDir(), cache == null ? "nuvio-beacon.apk" : cache).delete();
                 String msg = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
-                Toast.makeText(c, "Nuvio Beacon not installed" + (TextUtils.isEmpty(msg) ? "" : ": " + msg), Toast.LENGTH_LONG).show();
+                Toast.makeText(c, (name == null ? "Nuvio Beacon" : name) + " not installed" + (TextUtils.isEmpty(msg) ? "" : ": " + msg), Toast.LENGTH_LONG).show();
             }
         }
     }

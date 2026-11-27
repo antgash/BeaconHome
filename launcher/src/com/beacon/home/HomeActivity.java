@@ -1083,6 +1083,35 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         });
     }
 
+    private TextView ltSub;
+    private String ltState;
+    private static final String LT_SUB = "The stand-alone Live TV guide";
+    private boolean ltBusy;
+
+    private void setLtState(String t) {
+        ltState = t;
+        if (ltSub != null) ltSub.setText(t);
+    }
+
+    private void downloadLiveTv() {
+        final NuvioBeaconInstaller.Target t = NuvioBeaconInstaller.LIVE_TV;
+        if (ltBusy || NuvioBeaconInstaller.installed(this, t) != null) return;
+        ltBusy = true;
+        setLtState("Checking GitHub\u2026");
+        NuvioBeaconInstaller.latest(this, t, (r, ok) -> {
+            if (!ok || r == null) {
+                ltBusy = false;
+                setLtState(!ok ? "Couldn't reach GitHub \u00b7 select to retry" : "No build for this TV yet");
+                return;
+            }
+            setLtState("Downloading\u2026 0%");
+            NuvioBeaconInstaller.downloadAndInstall(this, t, r, pct -> setLtState("Downloading\u2026 " + pct + "%"), msg -> {
+                ltBusy = false;
+                setLtState(msg);
+            });
+        });
+    }
+
     /** A changelog row: title, date and summary; Select opens it to list the main changes (and a picture). */
     private View changelogEntry(final Changelog.Entry e) {
         final LinearLayout box = U.col(this);
@@ -1285,7 +1314,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             nb.addView(nbMark);
             V.tint(nb, V.TEXT);
             menuRefreshers.add(() -> nbMark.setText(NuvioBeaconInstaller.installed(this) != null ? "INSTALLED" : ""));
-            menuPanel.addView(nb, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
+            menuPanel.addView(nb, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
+            if (!ltBusy) ltState = LT_SUB;
+            LinearLayout lt = menuButton(Icon.DOWNLOAD, "Download Live TV app", ltState, this::downloadLiveTv);
+            ltSub = (TextView) ((LinearLayout) lt.getChildAt(1)).getChildAt(1);
+            lt.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+            final TextView ltMark = V.text(this, NuvioBeaconInstaller.installed(this, NuvioBeaconInstaller.LIVE_TV) != null ? "INSTALLED" : "", 10, 800, V.TEXT);
+            lt.addView(ltMark);
+            V.tint(lt, V.TEXT);
+            menuRefreshers.add(() -> ltMark.setText(NuvioBeaconInstaller.installed(this, NuvioBeaconInstaller.LIVE_TV) != null ? "INSTALLED" : ""));
+            menuPanel.addView(lt, lp(U.MATCH, V.dp(48), 0, 0, 0, 14));
             menuPanel.addView(menuLabel("Changelog"));
             for (Changelog.Entry e : Changelog.ENTRIES) menuPanel.addView(changelogEntry(e), lp(U.MATCH, U.WRAP, 0, 0, 0, 8));
             menuPanel.addView(new View(this), lp(U.MATCH, V.dp(6), 0, 0, 0, 0));
