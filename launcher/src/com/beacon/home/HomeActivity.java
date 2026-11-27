@@ -2099,7 +2099,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         final int token = ++heroToken;
         heroSwapping = true;
         hero.animate().cancel();
-        hero.animate().alpha(0f).setDuration(140).withLayer().withEndAction(() -> {
+        hero.animate().alpha(0f).setDuration(140).withEndAction(() -> {
             if (token != heroToken) return;
             heroCw = key != null && key.equals(cwHeroKey);
             ViewGroup.LayoutParams hlp = hero.getLayoutParams();
@@ -2123,7 +2123,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             heroRemaining.setVisibility(View.VISIBLE);
             hero.setTranslationY(V.dpf(12));
             hero.animate().alpha(ambient ? 0f : 1f).translationY(0).setStartDelay(60).setDuration(420)
-                    .setInterpolator(new DecelerateInterpolator(1.6f)).withLayer().start();
+                    .setInterpolator(new DecelerateInterpolator(1.6f)).start();
             heroSwapping = false;
             if (!TextUtils.isEmpty(logoUrl)) loadHeroLogo(token, logoUrl);
             else if (key != null && key.equals(wantKey) && wantLogo != null) loadHeroLogo(token, wantLogo);
