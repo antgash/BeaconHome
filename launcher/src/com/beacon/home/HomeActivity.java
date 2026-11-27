@@ -584,7 +584,8 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         String text = cwHeading();
         if (TextUtils.isEmpty(cwOwner)) { cwHead.setText(text); return; }
         android.text.SpannableString sp = new android.text.SpannableString(text);
-        sp.setSpan(new android.text.style.ForegroundColorSpan(accent), 0, cwOwner.trim().length(),
+        int end = text.indexOf(" continue watching");   // the name and its ’s
+        sp.setSpan(new android.text.style.ForegroundColorSpan(accent), 0, end > 0 ? end : cwOwner.trim().length(),
                 android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         cwHead.setText(sp);
     }
@@ -721,6 +722,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             U.MAIN.post(() -> {
                 if ("ok".equals(r)) {
                     Toast.makeText(this, "Switched to " + p.name, Toast.LENGTH_SHORT).show();
+                    // Show the new profile's name and colour now, before Continue watching reloads and flashes,
+                    // so the flash never lands on the previous profile's colour.
+                    activeProfileId = p.id;
+                    cwOwner = p.name;
+                    rememberProfileColour(p);
+                    paintCwHead(V.accent());
                     refreshProfiles();
                     U.MAIN.postDelayed(profileReload, 1200); // Nuvio can report the new active profile a moment late
                     nuvioAt = 0;
@@ -3144,9 +3151,12 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         cwBlock.animate().alpha(1f).translationX(0).setDuration(450).start();
         if (cwHead != null) {
             // The flash pulses the profile's name white and settles it back on the theme colour.
-            android.animation.ValueAnimator a = android.animation.ValueAnimator.ofObject(new android.animation.ArgbEvaluator(), V.TEXT, V.accent());
+            // It heads for whatever the theme colour is on each frame, so a colour change mid-flash (the new
+            // profile's colour arriving) is followed smoothly instead of landing on the old colour first.
+            final android.animation.ArgbEvaluator ev = new android.animation.ArgbEvaluator();
+            android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
             a.setDuration(1100);
-            a.addUpdateListener(an -> paintCwHead((Integer) an.getAnimatedValue()));
+            a.addUpdateListener(an -> paintCwHead((Integer) ev.evaluate(an.getAnimatedFraction(), V.TEXT, V.accent())));
             a.start();
         }
         cwBlock.post(this::showCwNotice);
