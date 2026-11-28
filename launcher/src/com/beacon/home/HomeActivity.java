@@ -2969,12 +2969,21 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         t.setFocusableInTouchMode(true);
         t.setLayoutParams(new LinearLayout.LayoutParams(tw, th));
         V.round(t, 12);
-        t.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {0xFF1D1E24, 0xFF08090C}));
-        // The TV Guide logo, sized like the other service tiles' artwork (it fills the tile's height with a small margin).
-        final ImageView logo = V.image(this, ImageView.ScaleType.FIT_CENTER);
-        logo.setPadding(0, V.dp(7), 0, V.dp(7));
-        t.addView(logo, new FrameLayout.LayoutParams(U.MATCH, U.MATCH));
-        Img.load(this, "asset:tvguide-logo-v2.png", V.dp(120), b -> { if (b != null) logo.setImageBitmap(b); });
+        // The original Horizon tile: red gradient with "● Live" over "TV Guide". (The TV Guide logo still shows in the hero.)
+        t.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {0xFF7A1420, 0xFF1A0A0E}));
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        col.setPadding(V.dp(14), 0, V.dp(10), 0);
+        TextView dot = V.caps(this, "● Live", 8.5f, 0xFFFF6B6B);
+        dot.setSingleLine(true);
+        col.addView(dot, new LinearLayout.LayoutParams(-2, -2));
+        TextView name = V.text(this, "TV Guide", 13, 800, V.TEXT);
+        name.setSingleLine(true);
+        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-2, -2);
+        np.topMargin = V.dp(2);
+        col.addView(name, np);
+        t.addView(col, new FrameLayout.LayoutParams(tw, th, Gravity.CENTER));
         final ImageView gif = V.image(this, ImageView.ScaleType.CENTER_CROP);
         gif.setTag("gif");
         gif.setAlpha(0f);

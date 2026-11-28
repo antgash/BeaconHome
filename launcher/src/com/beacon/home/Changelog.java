@@ -26,6 +26,9 @@ final class Changelog {
     }
 
     static final Entry[] ENTRIES = {
+            new Entry("Live TV tile", "Nov 28", "The original Live TV tile is back", null,
+                    Icon.HDMI, "The first streaming tile is red again, with Live over TV Guide",
+                    Icon.PLAY, "The TV Guide artwork still shows above Continue watching"),
             new Entry("Rearranging", "Nov 28", "A clearer hint when moving tiles", null,
                     Icon.APPS, "The Rearrange hint now sits above the dock, so every app stays in view",
                     Icon.SLIDERS, "It takes the menu colours of your surface, with the keys in your theme colour"),
