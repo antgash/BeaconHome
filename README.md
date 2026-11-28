@@ -2,9 +2,11 @@
 
 # beacon: an Android TV home built around Nuvio
 
-An ad-free home screen for Android TV, Google TV and projectors. It opens on what you were watching, puts your streaming services one press away, and adds a full Live TV guide, a drifting-artwork screensaver and an updater that installs new builds straight from this repo's Releases.
+An ad-free home screen for Android TV, Google TV and projectors, built around **Nuvio**. Switch Nuvio profiles right from the home screen and your Continue watching feed updates instantly. It also brings **Live TV channels** with a full guide, and one-press **streaming services**, each with its own page. And it's easy to make your own, with deep appearance customization.
 
-beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed. It works on any Android TV 8+ box or projector and is used daily on an NVIDIA Shield.
+It runs on any Android TV 8+ box or projector and is used daily on an NVIDIA Shield. Builds are installed and updated straight from this repo's Releases.
+
+beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and renamed, with several features incorporated from **Veil**.
 
 ![beacon home screen](screenshots/01-home.png)
 *Home: your Continue watching row with the title's own artwork behind it, streaming services below, and your pinned apps in the dock.*
