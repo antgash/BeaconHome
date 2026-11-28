@@ -26,6 +26,9 @@ final class Changelog {
     }
 
     static final Entry[] ENTRIES = {
+            new Entry("Appearance", "Nov 28", "Simpler style names", null,
+                    Icon.PLAY, "Card style is now called Continue watching, with Pills, Cards and Circles",
+                    Icon.APPS, "Dock style uses the same names: Pills, Cards and Circles"),
             new Entry("Continue watching", "Nov 28", "Up to date without opening Nuvio Beacon", null,
                     Icon.PLAY, "Opening Home asks Nuvio Beacon for your latest progress in the background",
                     Icon.NUVIO, "Something watched on another TV shows up here within a few seconds",

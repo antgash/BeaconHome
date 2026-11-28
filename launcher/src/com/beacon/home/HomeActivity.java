@@ -1247,7 +1247,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (page == null) {
             int mins = prefs.getInt(U.P_AMBIENT_MIN, 3);
             String city = prefs.getString("wx_city", "");
-            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, cards, surface, dock", () -> openMenuPage("look"));
+            menuFirst = hubRow(Icon.SLIDERS, "Appearance", "Theme, focus, continue watching, surface, dock", () -> openMenuPage("look"));
             menuPanel.addView(menuFirst, lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.MOON, "Screensaver", (mins == 0 ? "Off" : "After " + mins + " min") + " \u00b7 preview, artwork speed", () -> openMenuPage("screensaver")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
             menuPanel.addView(hubRow(Icon.SPEAKER, "Sound", (Sfx.isEnabled() ? "Navigation sounds on" : "Navigation sounds off") + " \u00b7 volume", () -> openMenuPage("sound")), lp(U.MATCH, V.dp(48), 0, 0, 0, 8));
@@ -1552,16 +1552,16 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         return row;
     }
 
-    private static final String[] CW_STYLES = {"PILLS", "RINGS", "POSTER CARDS"};
+    private static final String[] CW_STYLES = {"PILLS", "CIRCLES", "CARDS"};
 
     private int cwStyle() {
         int d = prefs.getBoolean("cw_rings", true) ? 1 : 0;
         return Math.max(0, Math.min(2, prefs.getInt("cw_style", d)));
     }
 
-    /** Continue watching look: pills, progress rings or poster cards. Left/Right change it. */
+    /** Continue watching look: Pills, Circles (progress rings) or Cards (posters). Left/Right change it; the stored values are unchanged. */
     private View cwStyleToggle() {
-        return cycleRow(Icon.BEACON, "Card style", CW_STYLES, this::cwStyle, i -> {
+        return cycleRow(Icon.BEACON, "Continue watching", CW_STYLES, this::cwStyle, i -> {
             prefs.edit().putInt("cw_style", i).apply();
             cwSig = "";
             fillContinue();
@@ -1575,9 +1575,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 i -> prefs.edit().putInt("surface", i).apply(), true);
     }
 
-    /** Dock style: Pill (name beside each icon), Circle (a dock of round icons, name above the selected one) or Cards (banners). */
+    /** Dock style: Pills (name beside each icon), Circles (a dock of round icons, name above the selected one) or Cards (banners). */
     private View appStyleToggle() {
-        return cycleRow(Icon.APPS, "Dock style", new String[] {"PILL", "CIRCLE", "CARDS"},
+        return cycleRow(Icon.APPS, "Dock style", new String[] {"PILLS", "CIRCLES", "CARDS"},
                 () -> prefs.getInt("app_style", 0),
                 i -> prefs.edit().putInt("app_style", i).apply(), true);
     }
