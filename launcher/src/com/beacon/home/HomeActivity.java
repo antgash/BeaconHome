@@ -2098,39 +2098,64 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
 
     private static final String LIVE_LOGO = "asset:live-tv-logo.png";
 
+    /** Streaming service logos (and Live TV), decoded once when the row is built so the hero never waits for them. */
+    private final java.util.Map<String, Bitmap> svcLogos = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private void prefetchServiceLogos() {
+        final java.util.List<String> urls = new java.util.ArrayList<>();
+        urls.add(LIVE_LOGO);
+        for (Streaming.Service sv : Streaming.visible(this)) if (!TextUtils.isEmpty(sv.logo)) urls.add(sv.logo);
+        final Context ac = getApplicationContext();
+        final int w = V.dp(420);
+        U.IO.execute(() -> {
+            for (String u : urls) {
+                if (svcLogos.containsKey(u)) continue;
+                Bitmap b = Img.loadSync(ac, u, w);
+                if (b != null) svcLogos.put(u, b);
+            }
+        });
+    }
+
     private void loadHeroLogo(final int token, final String url) {
         final boolean cw = heroCw;
+        Bitmap pre = cw ? null : svcLogos.get(url);
+        if (pre != null) { showHeroLogo(token, cw, pre); return; }
         Img.load(this, url, V.dp(cw ? 700 : 420), bm -> {
-            if (token != heroToken || bm == null) return;
-            ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
-            if (lpl instanceof LinearLayout.LayoutParams) ((LinearLayout.LayoutParams) lpl).topMargin = cw ? 0 : V.dp(8);
-            if (cw) {
-                // Fit into the box between the beacon menu and the Continue watching heading, kept in proportion.
-                // Never wider than about 36% of the screen, measured from the left edge (10% smaller than before).
-                float maxW = getResources().getDisplayMetrics().widthPixels * 0.36f;
-                float maxH = V.dp(151);
-                float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
-                lpl.width = Math.round(bm.getWidth() * k);
-                lpl.height = Math.round(bm.getHeight() * k);
-                heroLogo.setMaxHeight(V.dp(151));
-                heroLogo.setMaxWidth(Integer.MAX_VALUE);
-            } else {
-                // streaming services and everything else: the original size.
-                // The Live TV logo is drawn edge to edge, so it gets half the height to match the service logos.
-                lpl.width = U.WRAP;
-                lpl.height = U.WRAP;
-                heroLogo.setMaxHeight(V.dp(LIVE_LOGO.equals(url) ? 39 : 78));
-                heroLogo.setMaxWidth(V.dp(420));
-            }
-            heroLogo.setLayoutParams(lpl);
-            heroLogo.setImageBitmap(bm);
-            // Hidden until it has been sized and placed, then faded in whole (no part of it appearing late).
-            heroLogo.animate().cancel();
-            heroLogo.setAlpha(cw ? 0f : 1f);
-            heroLogo.setVisibility(View.VISIBLE);
-            heroTitle.setVisibility(View.GONE);
-            centerHeroLogo(cw);
+            if (token != heroToken) return;
+            if (bm == null) { heroTitle.setVisibility(View.VISIBLE); return; }   // no artwork after all: fall back to the name
+            showHeroLogo(token, cw, bm);
         });
+    }
+
+    private void showHeroLogo(final int token, final boolean cw, final Bitmap bm) {
+        if (token != heroToken) return;
+        ViewGroup.LayoutParams lpl = heroLogo.getLayoutParams();
+        if (lpl instanceof LinearLayout.LayoutParams) ((LinearLayout.LayoutParams) lpl).topMargin = cw ? 0 : V.dp(8);
+        if (cw) {
+            // Fit into the box between the beacon menu and the Continue watching heading, kept in proportion.
+            // Never wider than about 36% of the screen, measured from the left edge (10% smaller than before).
+            float maxW = getResources().getDisplayMetrics().widthPixels * 0.36f;
+            float maxH = V.dp(151);
+            float k = Math.min(maxW / Math.max(1, bm.getWidth()), maxH / Math.max(1, bm.getHeight()));
+            lpl.width = Math.round(bm.getWidth() * k);
+            lpl.height = Math.round(bm.getHeight() * k);
+            heroLogo.setMaxHeight(V.dp(151));
+            heroLogo.setMaxWidth(Integer.MAX_VALUE);
+        } else {
+            // streaming services and everything else: the original size
+            lpl.width = U.WRAP;
+            lpl.height = U.WRAP;
+            heroLogo.setMaxHeight(V.dp(78));
+            heroLogo.setMaxWidth(V.dp(420));
+        }
+        heroLogo.setLayoutParams(lpl);
+        heroLogo.setImageBitmap(bm);
+        // Hidden until it has been sized and placed, then faded in whole (no part of it appearing late).
+        heroLogo.animate().cancel();
+        heroLogo.setAlpha(cw ? 0f : 1f);
+        heroLogo.setVisibility(View.VISIBLE);
+        heroTitle.setVisibility(View.GONE);
+        centerHeroLogo(cw);
     }
 
     /**
@@ -2196,7 +2221,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             heroLabel.setVisibility(TextUtils.isEmpty(label) ? View.GONE : View.VISIBLE);
             heroLabel.setTextColor(V.accent());
             heroTitle.setText(title);
-            heroTitle.setVisibility(View.VISIBLE);
+            final String logo = !TextUtils.isEmpty(logoUrl) ? logoUrl
+                    : key != null && key.equals(wantKey) && wantLogo != null ? wantLogo : null;
+            // When artwork is on its way the name stays hidden, so it never flashes up before the logo.
+            heroTitle.setVisibility(logo == null ? View.VISIBLE : View.GONE);
             heroLogo.setVisibility(View.GONE);
             heroLogo.setImageDrawable(null);
             heroLine.setText(line == null ? "" : line);
@@ -2207,13 +2235,13 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
             ((View) heroProgFill.getParent()).setVisibility(progress > 0 ? View.VISIBLE : View.GONE);
             heroRemaining.setText(remaining == null ? "" : remaining);
             heroRemaining.setVisibility(View.VISIBLE);
+            heroSwapping = false;
+            // Logos already decoded are put in place before the fade, so they arrive with the rest.
+            if (logo != null) loadHeroLogo(token, logo);
             // A quick fade in place (no slide up).
             hero.setTranslationY(0);
             hero.animate().alpha(ambient ? 0f : 1f).setStartDelay(0).setDuration(180)
                     .setInterpolator(new DecelerateInterpolator(1.2f)).start();
-            heroSwapping = false;
-            if (!TextUtils.isEmpty(logoUrl)) loadHeroLogo(token, logoUrl);
-            else if (key != null && key.equals(wantKey) && wantLogo != null) loadHeroLogo(token, wantLogo);
         }).start();
         if (!TextUtils.isEmpty(art)) {
             // Full-screen fades are the heaviest thing this GPU draws, so the backdrop only changes once
@@ -2727,6 +2755,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (prefs.getBoolean("svc_off", false)) return;
         int th = V.dp(63), tw = V.dp(112);
         addLiveTile(tw, th);
+        prefetchServiceLogos();
         for (final Streaming.Service sv : Streaming.visible(this)) {
             final FrameLayout t = new FrameLayout(this);
             t.setTag(sv.key);
