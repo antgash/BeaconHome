@@ -225,6 +225,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         lastInput = System.currentTimeMillis();
         observeNuvio();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
+        NuvioProfiles.requestCwRefresh(this);
         observeProfiles();
         refreshProfilesAfresh(0);
         refreshUpdatePill();

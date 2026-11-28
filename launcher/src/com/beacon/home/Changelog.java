@@ -26,6 +26,10 @@ final class Changelog {
     }
 
     static final Entry[] ENTRIES = {
+            new Entry("Continue watching", "Nov 28", "Up to date without opening Nuvio Beacon", null,
+                    Icon.PLAY, "Opening Home asks Nuvio Beacon for your latest progress in the background",
+                    Icon.NUVIO, "Something watched on another TV shows up here within a few seconds",
+                    Icon.NEXT, "Next episodes of series you finished elsewhere appear too"),
             new Entry("Live TV tile", "Nov 28", "The original Live TV tile is back", null,
                     Icon.HDMI, "The first streaming tile is red again, with Live over TV Guide",
                     Icon.PLAY, "The TV Guide artwork still shows above Continue watching"),

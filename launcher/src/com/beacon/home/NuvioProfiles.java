@@ -47,6 +47,38 @@ final class NuvioProfiles {
 
     static Uri uri(String pkg) { return Uri.parse("content://" + pkg + ".launcher/profiles"); }
 
+    // ------------------------------------------------------------------ Continue watching refresh
+
+    static final String CW_REFRESH = "cw_refresh";
+    private static final long CW_REFRESH_EVERY_MS = 3 * 60_000L;
+    private static long cwRefreshAt;
+
+    /**
+     * Asks Nuvio Beacon to fetch the active profile's latest progress in the background and republish
+     * its Continue watching, so a title watched on another TV shows here without opening Nuvio. beacon's
+     * row updates by itself when it lands (it watches the TV provider). At most every few minutes;
+     * Nuvio builds without it simply ignore the call.
+     */
+    static void requestCwRefresh(Context c) {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (cwRefreshAt != 0 && now - cwRefreshAt < CW_REFRESH_EVERY_MS) return;
+        cwRefreshAt = now;
+        final Context app = c.getApplicationContext();
+        U.IO.execute(() -> {
+            for (String pkg : sources()) {
+                try {
+                    Bundle r = app.getContentResolver().call(uri(pkg), CW_REFRESH, null, null);
+                    if (r != null) {
+                        Log.d(TAG, "Continue watching refresh: " + r.getString("result") + " (" + pkg + ")");
+                        return;
+                    }
+                } catch (Throwable t) {
+                    Log.d(TAG, "Continue watching refresh not offered by " + pkg);
+                }
+            }
+        });
+    }
+
     // ------------------------------------------------------------------ last known list
 
     private static final String CACHE = "nuvio_profiles_cache";
