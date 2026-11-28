@@ -2096,7 +2096,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private Object cwHeroKey;   // key of the Continue watching item the hero is (about to be) showing
     private boolean heroCw;     // true while the hero shows a Continue watching item: bigger artwork, no extra lines
 
-    private static final String LIVE_LOGO = "asset:live-tv-logo.png";
+    private static final String LIVE_LOGO = "asset:live-tv-logo-v2.png";
 
     /** Streaming service logos (and Live TV), decoded once when the row is built so the hero never waits for them. */
     private final java.util.Map<String, Bitmap> svcLogos = new java.util.concurrent.ConcurrentHashMap<>();

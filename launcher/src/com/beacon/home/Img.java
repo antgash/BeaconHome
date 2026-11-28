@@ -63,7 +63,9 @@ final class Img {
         if (hit != null) return hit;
         try {
             File f = file(c, uri);
-            if (!f.exists() || f.length() == 0) fetch(c, uri, f);
+            // Pictures bundled in the APK are copied to the cache once; copy again after an update so a
+            // changed picture under the same name isn't hidden behind the old copy.
+            if (!f.exists() || f.length() == 0 || uri.startsWith("asset:") && f.lastModified() < installed(c)) fetch(c, uri, f);
             if (!f.exists()) return null;
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inJustDecodeBounds = true;
@@ -91,6 +93,17 @@ final class Img {
             Log.w(TAG, "load " + uri, t);
             return null;
         }
+    }
+
+    private static long installedAt;
+
+    /** When this version of beacon was installed (or updated). */
+    private static long installed(Context c) {
+        if (installedAt == 0) {
+            try { installedAt = c.getPackageManager().getPackageInfo(c.getPackageName(), 0).lastUpdateTime; }
+            catch (Exception e) { installedAt = 1; }
+        }
+        return installedAt;
     }
 
     static File file(Context c, String uri) throws Exception {
