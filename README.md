@@ -2,7 +2,7 @@
 
 # beacon: an Android TV home built around Nuvio
 
-An ad-free home screen for Android TV, Google TV and projectors, built around **Nuvio**. Switch Nuvio profiles right from the home screen and your Continue watching feed updates instantly. It also brings **Live TV channels** with a full guide, and one-press **streaming services**, each with its own page. And it's easy to make your own, with deep appearance customization.
+An ad-free home screen for Android TV, Google TV and projectors, built around **Nuvio**. Switch Nuvio profiles right from the home screen and your Continue watching feed updates instantly. It also brings **Live TV channels** with a full guide, and one-press **streaming services**, each with its own page. And it's easy to set up, with deep appearance customization.
 
 It runs on any Android TV 8+ box or projector and is used daily on an NVIDIA Shield. Builds are installed and updated straight from this repo's Releases.
 
