@@ -94,6 +94,10 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private boolean pendingFocusMenu;
     private FrameLayout dockBox;
     private TextView dockLabel;
+    private Icon dockArrow;          // the small chevron left of the dock: All apps is down there
+    private float dockArrowY;
+    private android.animation.ObjectAnimator dockArrowNod;
+    private boolean dockArrowHooked;
     private LinearLayout volumeRow;
     private TextView cwCount, cwTonight;
     private int defaultFocusId = View.NO_ID;
@@ -2353,25 +2357,42 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         LinearLayout block = U.col(this);
         appCircle = prefs.getInt("app_style", 0) == 1;
         appCards = prefs.getInt("app_style", 0) == 2;
+        // A box with no height of its own above the dock. What floats around the dock (the Circle name label, the All apps
+        // arrow) lives in it, so it takes no space: the dock stays centred on the screen and the rows above never move.
+        dockBox = new FrameLayout(this);
+        dockBox.setClipChildren(false);
+        block.setClipChildren(false);
+        dockLabel = null;
         if (appCircle) {
             // Circle dock: the selected app's name floats in a small label above the dock.
-            dockBox = new FrameLayout(this);
-            dockBox.setClipChildren(false);
             dockLabel = V.text(this, "", 12, 600, V.TEXT);
             dockLabel.setSingleLine(true);
             dockLabel.setGravity(Gravity.CENTER);
             dockLabel.setPadding(V.dp(11), 0, V.dp(11), 0);
             dockLabel.setBackground(V.shape(V.GLASS_STRONG, 10, V.LINE));
             dockLabel.setVisibility(View.INVISIBLE);
-            // The box has no height of its own, so the rows above never move; the label floats over the gap
-            // above the dock (block and box must not clip it).
-            block.setClipChildren(false);
+            // The label floats over the gap above the dock (block and box must not clip it).
             FrameLayout.LayoutParams dl = new FrameLayout.LayoutParams(U.WRAP, V.dp(18), Gravity.TOP | Gravity.START);
             dl.topMargin = -V.dp(7); // label spans -7..11, dock starts at 14
             dockBox.addView(dockLabel, dl);
-            block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, 0));
         }
+        dockArrow = new Icon(this, Icon.CHEVRON_DOWN);
+        dockArrow.setColor(U.alpha(V.TEXT, 0.5f));
+        dockArrow.setVisibility(View.INVISIBLE);
+        dockArrow.setFocusable(false);
+        dockArrow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        dockBox.addView(dockArrow, new FrameLayout.LayoutParams(V.dp(ARROW), V.dp(ARROW), Gravity.TOP | Gravity.START));
+        block.addView(dockBox, new LinearLayout.LayoutParams(U.MATCH, 0));
         appsRow = row(block, 10);
+        // The arrow follows the dock's left edge when the dock lays out again or scrolls.
+        appsRow.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> appsRow.post(this::placeDockArrow));
+        if (appsRow.getParent() instanceof HorizontalScrollView)
+            ((HorizontalScrollView) appsRow.getParent()).setOnScrollChangeListener((v, x, y, ox, oy) -> placeDockArrow());
+        if (!dockArrowHooked) {
+            // Lights up in the theme colour (and nods down) while something on the dock is selected.
+            dockArrowHooked = true;
+            getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((was, now) -> paintDockArrow());
+        }
         // Both styles are centred on the screen; a row too wide to fit (many pinned apps) goes back to the left edge and scrolls.
         if ((appCircle || appCards) && appsRow.getParent() instanceof View) {
             final FrameLayout.LayoutParams cp = (FrameLayout.LayoutParams) appsRow.getLayoutParams();
@@ -3010,6 +3031,49 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
     // --- apps (pinned) + All apps
+
+    /** All apps arrow: its size and the gap between it and the dock (dp). */
+    private static final float ARROW = 20, ARROW_GAP = 13;
+
+    /** Put the All apps arrow just left of the dock, centred on it. It is not part of the row, so it never shifts the centring. */
+    private void placeDockArrow() {
+        if (dockArrow == null || dockBox == null || appsRow == null) return;
+        View first = appsRow.getChildCount() > 0 ? appsRow.getChildAt(0) : null;
+        // With nothing pinned the row is just the All apps button, which says so itself.
+        if (first == null || first.getTag() == null || appsRow.getWidth() == 0) { dockArrow.setVisibility(View.INVISIBLE); return; }
+        int[] row = new int[2], box = new int[2];
+        appsRow.getLocationOnScreen(row);
+        dockBox.getLocationOnScreen(box);
+        // Circle and Cards: the dock is the row's own background. Pill: no background, so the first pill is the edge.
+        boolean pill = !appCircle && !appCards;
+        float x = row[0] + (pill ? first.getLeft() : 0);
+        float cy = row[1] + (pill ? first.getTop() + first.getHeight() / 2f : appsRow.getHeight() / 2f);
+        int size = V.dp(ARROW);
+        float left = x - V.dp(ARROW_GAP) - size;
+        dockArrowY = cy - box[1] - size / 2f;
+        dockArrow.setTranslationX(left - box[0]);
+        if (dockArrowNod == null || !dockArrowNod.isRunning()) dockArrow.setTranslationY(dockArrowY);
+        // Scrolled off (a long row that starts at the left edge and has scrolled): hide it rather than draw it half off screen.
+        dockArrow.setVisibility(left >= 0 ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    /** Faint white while the dock isn't selected; theme colour plus three small nods down while it is. */
+    private void paintDockArrow() {
+        if (dockArrow == null || appsRow == null) return;
+        boolean on = appsRow.hasFocus();
+        boolean was = dockArrow.getTag() == Boolean.TRUE;
+        dockArrow.setTag(on);
+        dockArrow.setColor(on ? V.accent() : U.alpha(V.TEXT, 0.5f));
+        if (on == was) return;
+        if (dockArrowNod != null) dockArrowNod.cancel();
+        dockArrow.setTranslationY(dockArrowY);
+        if (!on) return;
+        dockArrowNod = android.animation.ObjectAnimator.ofFloat(dockArrow, View.TRANSLATION_Y, dockArrowY, dockArrowY + V.dp(4), dockArrowY);
+        dockArrowNod.setDuration(650);
+        dockArrowNod.setRepeatCount(2);
+        dockArrowNod.setStartDelay(120);
+        dockArrowNod.start();
+    }
 
     /** Circle style: put the name label above the focused icon, kept inside the dock. */
     private void placeDockLabel(final View it, final String name) {
