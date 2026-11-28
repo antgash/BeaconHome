@@ -58,7 +58,7 @@ beacon updates itself from this repo's Releases:
 - Big live preview, filters for country, category, language and source, favourites, a see-through guide while watching, and "Open in Nuvio". It picks the sharpest version of each stream. Needs the Live TV addon below, or install the stand-alone **Live TV** app from *Updates & downloads*.
 
 **Screensaver**
-- A drifting-artwork screen used both for Home's idle mode and as the real Android TV screensaver. It shuffles Continue watching, Nuvio's rows and titles from your streaming services, and Select opens a title's page in Nuvio. See *Using the screensaver* below.
+- A drifting-artwork screen used both for Home's idle mode and as the real Android TV screensaver. It shuffles Continue watching, Nuvio's rows and titles from your streaming services, and press OK on any title to open its details in Nuvio and play it. See *Using the screensaver* below.
 
 **Updates**
 - *beacon menu → Updates & downloads* updates beacon, installs **Nuvio Beacon** and the **Live TV** app, and shows a changelog. beacon checks about twice a day and tells you on Home when a build is out.
@@ -85,6 +85,9 @@ To give the streaming service pages more titles, add a free TMDB v3 API key as a
 - GitHub Actions builds with `bash launcher/build.sh` and publishes each build as its own numbered release (the newest 10 are kept).
 
 ## Using the screensaver
+
+![Screensaver](screenshots/14-screensaver.png)
+*The screensaver drifts across artwork from your Continue watching, Nuvio's rows and your streaming services. Press **OK / Select** on any title to open its details page in Nuvio, where you can play it.*
 
 - **Preview or in-app idle mode:** open the beacon menu (top-left pill) → *Screensaver → Start screensaver*. *Screensaver starts after* sets how long Home sits idle before it begins on its own.
 - **As the Android TV screensaver:** Settings → Device Preferences → Screen saver → choose **beacon**. If your device doesn't list it, run:
