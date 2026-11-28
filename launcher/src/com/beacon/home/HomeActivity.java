@@ -2096,7 +2096,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     private Object cwHeroKey;   // key of the Continue watching item the hero is (about to be) showing
     private boolean heroCw;     // true while the hero shows a Continue watching item: bigger artwork, no extra lines
 
-    private void loadHeroLogo(final int token, String url) {
+    private static final String LIVE_LOGO = "asset:live-tv-logo.png";
+
+    private void loadHeroLogo(final int token, final String url) {
         final boolean cw = heroCw;
         Img.load(this, url, V.dp(cw ? 700 : 420), bm -> {
             if (token != heroToken || bm == null) return;
@@ -2113,10 +2115,11 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 heroLogo.setMaxHeight(V.dp(151));
                 heroLogo.setMaxWidth(Integer.MAX_VALUE);
             } else {
-                // streaming services and everything else: the original size
+                // streaming services and everything else: the original size.
+                // The Live TV logo is drawn edge to edge, so it gets half the height to match the service logos.
                 lpl.width = U.WRAP;
                 lpl.height = U.WRAP;
-                heroLogo.setMaxHeight(V.dp(78));
+                heroLogo.setMaxHeight(V.dp(LIVE_LOGO.equals(url) ? 39 : 78));
                 heroLogo.setMaxWidth(V.dp(420));
             }
             heroLogo.setLayoutParams(lpl);
@@ -3001,7 +3004,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 V.tileGlow(t, has, 12, 1.08f);
             if (has) {
                 playGif(t, gif, "asset:tvguide-hover.gif", tw, th);
-                setHero("svc:live", "Live TV", "TV Guide", "asset:live-tv-logo.png",
+                setHero("svc:live", "Live TV", "TV Guide", LIVE_LOGO,
                         "Channels with a full TV guide · watch here or in Nuvio", 0, null, "asset:live-backdrop-v4.jpg");
             } else if (gifHost == t) {
                 stopGif();
