@@ -2818,7 +2818,54 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         rearrangeAt = System.currentTimeMillis();
         target.requestFocus();
         liftTile(target, true);
-        Toast.makeText(this, "Left / Right to move \u00b7 OK to place", Toast.LENGTH_LONG).show();
+        showRearrangeHint(row);
+    }
+
+    private View rearrangeHint;
+
+    /**
+     * The "how to move it" bubble, in the menu colours (solid, from the surface setting) with the keys in the theme
+     * colour. It floats just above the row being rearranged so every tile in it stays in view.
+     */
+    private void showRearrangeHint(final LinearLayout row) {
+        hideRearrangeHint();
+        int ac = V.accent();
+        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder();
+        String[][] parts = {{"Left / Right", " to move   \u00b7   "}, {"OK", " to place   \u00b7   "}, {"Back", " to cancel"}};
+        for (String[] p : parts) {
+            int st = sb.length();
+            sb.append(p[0]);
+            sb.setSpan(new android.text.style.ForegroundColorSpan(ac), st, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.append(p[1]);
+        }
+        TextView t = V.text(this, "", 11, 600, V.TEXT);
+        t.setText(sb);
+        t.setSingleLine(true);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(V.dp(14), V.dp(8), V.dp(14), V.dp(8));
+        t.setBackground(V.shape(V.MENU_PANEL, 14, V.MENU_PANEL_LINE));
+        t.setElevation(V.dpf(6));
+        t.setAlpha(0f);
+        rearrangeHint = t;
+        root.addView(t, new FrameLayout.LayoutParams(U.WRAP, U.WRAP, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        t.post(() -> {
+            if (rearrangeHint != t) return;
+            int[] r = new int[2], o = new int[2];
+            row.getLocationInWindow(r);
+            root.getLocationInWindow(o);
+            // clear the lifted tile, and the circle dock's name label that floats above it
+            int gap = V.dp(row == appsRow && appCircle ? 30 : 14);
+            t.setTranslationY(Math.max(V.dp(8), r[1] - o[1] - gap - t.getHeight()));
+            t.animate().alpha(1f).setDuration(160).start();
+        });
+    }
+
+    private void hideRearrangeHint() {
+        final View t = rearrangeHint;
+        rearrangeHint = null;
+        if (t == null) return;
+        t.animate().cancel();
+        t.animate().alpha(0f).setDuration(120).withEndAction(() -> root.removeView(t)).start();
     }
 
     private void liftTile(final View v, boolean up) {
@@ -2865,6 +2912,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         if (v == null || row == null) return;
         rearrangeView = null;
         rearrangeRow = null;
+        hideRearrangeHint();
         final String tag = (String) v.getTag();
         List<String> order = new ArrayList<>();
         for (int i = 0; i < row.getChildCount(); i++) if (movable(row.getChildAt(i))) order.add((String) row.getChildAt(i).getTag());

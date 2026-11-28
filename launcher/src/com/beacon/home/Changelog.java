@@ -26,6 +26,9 @@ final class Changelog {
     }
 
     static final Entry[] ENTRIES = {
+            new Entry("Rearranging", "Nov 28", "A clearer hint when moving tiles", null,
+                    Icon.APPS, "The Rearrange hint now sits above the dock, so every app stays in view",
+                    Icon.SLIDERS, "It takes the menu colours of your surface, with the keys in your theme colour"),
             new Entry("Streaming pages", "Nov 27", "Simpler service pages with genres", null,
                     Icon.PLAY, "Every service shows Latest, Top and Popular, for movies and for series",
                     Icon.G_SCIFI, "A row of genre tiles under them, from Action to Mystery",
