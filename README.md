@@ -13,9 +13,12 @@ beacon is a fork of **Horizon Home Kit** by jyotiprakash101 (MIT), reworked and 
 
 ## A look around
 
+![Continue watching and dock styles: Cards, Pills and Circles](screenshots/15-styles.png)
+
+*Continue watching and the app dock each come in three styles: Cards, Pills and Circles. Pick a style for each in Appearance and mix and match them however you like.*
+
 | | |
 |---|---|
-| ![Pills](screenshots/02-pills.png) *Continue watching as wide pills, with the dock in its Pill style.* | ![Poster cards](screenshots/03-poster-cards.png) *Poster cards with a progress bar, and the dock as banner cards.* |
 | ![Appearance](screenshots/04-appearance.png) *Appearance: theme colours (follow Nuvio, from artwork, or pick one), focus, Continue watching, surface and dock styles (Pills, Cards or Circles).* | ![Profiles](screenshots/05-profiles.png) *Switch Nuvio profiles from the top bar. Continue watching changes with the profile.* |
 | ![Continue watching menu](screenshots/06-continue-watching-menu.png) *Long-press a Continue watching item: go to details, mark as watched or remove it.* | ![Dock menu](screenshots/07-dock-menu.png) *Long-press an app: open it, rearrange the dock or unpin it.* |
 | ![Streaming page](screenshots/08-streaming-page.png) *Every streaming service has its own Nuvio-powered page.* | ![Genres](screenshots/09-streaming-genres.png) *Jump into a service by genre.* |
