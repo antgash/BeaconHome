@@ -2970,7 +2970,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         t.setFocusableInTouchMode(true);
         t.setLayoutParams(new LinearLayout.LayoutParams(tw, th));
         V.round(t, 12);
-        // The original Horizon tile: red gradient with "● Live" over "TV Guide". (The TV Guide logo still shows in the hero.)
+        // The original Horizon tile: red gradient with "● Live" over "TV Guide". (The Live TV logo shows in the hero.)
         t.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {0xFF7A1420, 0xFF1A0A0E}));
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -3001,7 +3001,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
                 V.tileGlow(t, has, 12, 1.08f);
             if (has) {
                 playGif(t, gif, "asset:tvguide-hover.gif", tw, th);
-                setHero("svc:live", "Live TV", "TV Guide", "asset:tvguide-logo-v2.png",
+                setHero("svc:live", "Live TV", "TV Guide", "asset:live-tv-logo.png",
                         "Channels with a full TV guide · watch here or in Nuvio", 0, null, "asset:live-backdrop-v4.jpg");
             } else if (gifHost == t) {
                 stopGif();
