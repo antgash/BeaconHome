@@ -47,6 +47,54 @@ final class NuvioProfiles {
 
     static Uri uri(String pkg) { return Uri.parse("content://" + pkg + ".launcher/profiles"); }
 
+    // ------------------------------------------------------------------ last known list
+
+    private static final String CACHE = "nuvio_profiles_cache";
+
+    /** Remembers the list, so the profile button can show at once next time (before Nuvio has answered). */
+    static void save(Context c, List<Profile> list) {
+        try {
+            org.json.JSONArray a = new org.json.JSONArray();
+            for (Profile p : list) {
+                org.json.JSONObject o = new org.json.JSONObject();
+                o.put("id", p.id).put("name", p.name).put("color", p.color).put("avatar", p.avatar)
+                        .put("theme", p.themeColor).put("pkg", p.pkg).put("active", p.active).put("pin", p.pin);
+                a.put(o);
+            }
+            U.prefs(c).edit().putString(CACHE, a.toString()).apply();
+        } catch (Throwable ignored) {}
+    }
+
+    /** The last list Nuvio gave, while the app it came from is still installed (null otherwise). */
+    static List<Profile> cached(Context c) {
+        try {
+            String raw = U.prefs(c).getString(CACHE, null);
+            if (raw == null) return null;
+            org.json.JSONArray a = new org.json.JSONArray(raw);
+            List<Profile> out = new ArrayList<>();
+            for (int i = 0; i < a.length(); i++) {
+                org.json.JSONObject o = a.getJSONObject(i);
+                Profile p = new Profile();
+                p.id = o.optInt("id");
+                p.name = o.optString("name", null);
+                p.color = o.optString("color", null);
+                p.avatar = o.isNull("avatar") ? null : o.optString("avatar", null);
+                p.themeColor = o.isNull("theme") ? null : o.optString("theme", null);
+                p.pkg = o.optString("pkg", null);
+                p.active = o.optBoolean("active");
+                p.pin = o.optBoolean("pin");
+                out.add(p);
+            }
+            if (out.isEmpty() || out.get(0).pkg == null) return null;
+            c.getPackageManager().getPackageInfo(out.get(0).pkg, 0);   // throws when it was uninstalled
+            return out;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    static void forget(Context c) { U.prefs(c).edit().remove(CACHE).apply(); }
+
     /** Where profiles are read from: the chosen Nuvio app, then Nuvio Beacon (which always offers them). */
     static String[] sources() {
         String pkg = U.nuvio();

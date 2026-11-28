@@ -168,7 +168,15 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         @Override public void onReceive(Context c, Intent i) { updateClock(); }
     };
     private final BroadcastReceiver pkgRx = new BroadcastReceiver() {
-        @Override public void onReceive(Context c, Intent i) { loadApps(); }
+        @Override public void onReceive(Context c, Intent i) {
+            loadApps();
+            String pkg = i.getData() == null ? null : i.getData().getSchemeSpecificPart();
+            if (pkg != null && (pkg.equals(U.nuvio()) || pkg.equals(U.NUVIO_BEACON))) {
+                profilePkg = null;            // observe it again
+                observeProfiles();
+                refreshProfilesAfresh(1500);  // give the new version a moment to start
+            }
+        }
     };
 
     // ================================================================== lifecycle
@@ -214,7 +222,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         observeNuvio();
         if (System.currentTimeMillis() - nuvioAt > 5000) loadNuvio();
         observeProfiles();
-        refreshProfiles();
+        refreshProfilesAfresh(0);
         refreshUpdatePill();
         if (Updater.due(this)) U.MAIN.postDelayed(() -> Updater.check(this, (info, ok) -> refreshUpdatePill()), 6000);
     }
@@ -256,6 +264,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         try { getContentResolver().unregisterContentObserver(nuvioObserver); } catch (Throwable ignored) {}
         try { getContentResolver().unregisterContentObserver(profileObserver); } catch (Throwable ignored) {}
         U.MAIN.removeCallbacks(profileReload);
+        U.MAIN.removeCallbacks(profileRetry);
         U.MAIN.removeCallbacks(nuvioReload);
         prefs.unregisterOnSharedPreferenceChangeListener(this);
     }
@@ -537,6 +546,9 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         b.setOnClickListener(v -> showProfileMenu());
         b.setVisibility(View.GONE);
         profileBtn = b;
+        // The last known profile at once (before Nuvio answers); refreshed when it does.
+        final List<NuvioProfiles.Profile> last = NuvioProfiles.cached(this);
+        if (last != null) U.MAIN.post(() -> { if (profileBtn == b && profiles == null) showProfile(last); });
         return b;
     }
 
@@ -560,12 +572,41 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
     }
 
     /** Re-reads Nuvio's profiles off the main thread and updates the button. */
+    /** Waits between asks while Nuvio doesn't answer (it is starting up, or being updated). */
+    private static final int[] PROFILE_RETRY_MS = {2000, 4000, 8000, 15000, 30000};
+    private int profileRetries;
+    private final Runnable profileRetry = this::refreshProfiles;
+
+    /**
+     * Re-reads Nuvio's profiles off the main thread and updates the button. While Nuvio doesn't answer (just
+     * updated, or still starting), the last known profile stays on the button and beacon asks again a few times.
+     */
     private void refreshProfiles() {
         final int load = ++profileLoads;
         U.IO.execute(() -> {
             final List<NuvioProfiles.Profile> list = NuvioProfiles.load(getApplicationContext());
-            U.MAIN.post(() -> { if (load == profileLoads) showProfile(list); });
+            final List<NuvioProfiles.Profile> last = list == null ? NuvioProfiles.cached(getApplicationContext()) : null;
+            U.MAIN.post(() -> {
+                if (load != profileLoads) return;
+                U.MAIN.removeCallbacks(profileRetry);
+                if (list != null) {
+                    profileRetries = 0;
+                    NuvioProfiles.save(this, list);
+                    showProfile(list);
+                    return;
+                }
+                showProfile(last);   // null when there's nothing to fall back on: the button hides
+                if (last != null && profileRetries < PROFILE_RETRY_MS.length)
+                    U.MAIN.postDelayed(profileRetry, PROFILE_RETRY_MS[profileRetries++]);
+            });
         });
+    }
+
+    /** Asks Nuvio again from the start (after it was installed or updated, or on returning to Home). */
+    private void refreshProfilesAfresh(long delayMs) {
+        profileRetries = 0;
+        U.MAIN.removeCallbacks(profileRetry);
+        if (delayMs <= 0) refreshProfiles(); else U.MAIN.postDelayed(profileRetry, delayMs);
     }
 
     /** Name of the active Nuvio profile, shown on the Continue watching heading (null: plain heading). */
@@ -3413,6 +3454,7 @@ public class HomeActivity extends Activity implements SharedPreferences.OnShared
         pf.addAction(Intent.ACTION_PACKAGE_ADDED);
         pf.addAction(Intent.ACTION_PACKAGE_REMOVED);
         pf.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        pf.addAction(Intent.ACTION_PACKAGE_REPLACED);
         pf.addDataScheme("package");
         registerReceiver(pkgRx, pf);
         try {
